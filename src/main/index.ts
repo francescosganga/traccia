@@ -20,12 +20,12 @@ import {
   showMainWindow
 } from './windows'
 
+app.setName('Traccia')
+// Before the lock: it is tied to userData, so a screenshot run on its own profile can coexist with the running app
+useScreenshotProfile()
 if (!app.requestSingleInstanceLock()) {
   app.quit()
 }
-
-app.setName('Traccia')
-useScreenshotProfile()
 
 const session = new RecordingSession({
   engine: () => getMainWindow()?.webContents ?? null,
