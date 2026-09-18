@@ -53,6 +53,8 @@ export function registerIpc({ session, startRecording }: IpcDeps): void {
   ipcMain.handle('whisper:download', async (_e, id: WhisperModelId) => {
     try {
       await whisper.downloadModel(id, (progress, file) => broadcast('whisper:progress', { model: id, status: 'progress', progress, file }))
+      // Downloading a model is choosing it: otherwise the default (base) stays selected even when it is not installed
+      applySettings({ whisperModel: id })
       broadcast('whisper:progress', { model: id, status: 'done', progress: 1 })
     } catch (e) {
       const msg = (e as Error).message
