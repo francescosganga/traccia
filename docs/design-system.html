@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Traccia design system</title>
+    <!-- Serve the repo root with any static server (e.g. `python3 -m http.server`) and open /docs/design-system.html -->
+    <link rel="stylesheet" href="../src/renderer/src/styles.css?v=3" />
+    <style>
+      /* The app stylesheet loads its fonts through Vite; resolve them from node_modules here. */
+      @font-face {
+        font-family: 'Inter Variable';
+        font-weight: 100 900;
+        src: url(../node_modules/@fontsource-variable/inter/files/inter-latin-opsz-normal.woff2) format('woff2-variations');
+      }
+      @font-face {
+        font-family: 'JetBrains Mono Variable';
+        font-weight: 100 800;
+        src: url(../node_modules/@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2) format('woff2-variations');
+      }
+      body {
+        user-select: text;
+        overflow: auto;
+      }
+      .board {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 40px 24px 96px;
+      }
+      .board > header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 8px;
+      }
+      .board > header h1 {
+        margin: 0;
+      }
+      .board > header p {
+        color: var(--text-dim);
+        margin: 0;
+      }
+      .toc {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin: 20px 0 40px;
+      }
+      .toc a {
+        text-decoration: none;
+        font-size: 12px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        color: var(--text-dim);
+      }
+      section {
+        margin-bottom: 56px;
+      }
+      section > h2 {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-dim);
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 20px;
+      }
+      section > p {
+        color: var(--text-dim);
+        max-width: 720px;
+        margin-bottom: 16px;
+      }
+      .swatches {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+        gap: 10px;
+      }
+      .swatch {
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        overflow: hidden;
+        font-size: 11px;
+      }
+      .swatch i {
+        display: block;
+        height: 44px;
+      }
+      .swatch span {
+        display: block;
+        padding: 6px 8px;
+        color: var(--text-muted);
+        font-family: var(--mono);
+      }
+      .swatch span b {
+        display: block;
+        font-family: var(--font);
+        color: var(--text);
+        font-weight: 500;
+      }
+      .type-row {
+        display: grid;
+        grid-template-columns: 180px 1fr;
+        gap: 16px;
+        align-items: baseline;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border);
+      }
+      .type-row .k {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+      .gallery {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 16px;
+      }
+      .gallery .card {
+        margin: 0;
+      }
+      .gallery .card > h3 {
+        margin-bottom: 14px;
+      }
+      .gallery .stack {
+        gap: 10px;
+      }
+      .gallery .row {
+        flex-wrap: wrap;
+      }
+      .desk {
+        display: flex;
+        gap: 36px;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        padding: 36px 24px;
+        border-radius: 12px;
+        background: radial-gradient(120% 90% at 50% 0%, #2a2540 0%, #171522 50%, #0d0c14 100%);
+      }
+      .icon-block {
+        text-align: center;
+      }
+      .icon-block .app-icon {
+        width: 96px;
+        height: 96px;
+        filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.5));
+      }
+      .icon-block .name {
+        margin-top: 8px;
+        font-size: 12px;
+        color: #fff;
+      }
+      .menubar {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 24px;
+        padding: 0 10px;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.85);
+        color: #111;
+        font-size: 12px;
+        font-family: var(--mono);
+        font-variant-numeric: tabular-nums;
+      }
+      .menubar svg {
+        width: 14px;
+        height: 14px;
+      }
+      .widget-box {
+        width: 320px;
+        height: 60px;
+        box-shadow: var(--shadow-lg);
+        border-radius: 14px;
+      }
+      .region-box {
+        position: relative;
+        width: 320px;
+        height: 160px;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #a7a7ad;
+      }
+      .region-box .dimmer {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+      }
+      .region-box .region-rect {
+        left: 30px;
+        top: 36px;
+        width: 220px;
+        height: 64px;
+        box-shadow: none;
+        background: #d9d9dd;
+      }
+      .region-box .region-toolbar {
+        left: 0;
+        top: 72px;
+      }
+      .frame {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: var(--shadow-lg);
+      }
+      .mock-app {
+        position: relative;
+        display: flex;
+        min-height: 420px;
+      }
+      .mock-app .content {
+        overflow: visible;
+        padding: 28px 32px;
+      }
+      .mock-app .grid-2 {
+        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      }
+      .lights {
+        position: absolute;
+        top: 14px;
+        left: 14px;
+        display: flex;
+        gap: 8px;
+        z-index: 1;
+      }
+      .lights i {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+      }
+      .dos {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 16px;
+      }
+      .dos .card {
+        margin: 0;
+      }
+      .dos h3 {
+        margin-bottom: 8px;
+      }
+      .dos h3.ok {
+        color: var(--ok);
+      }
+      .dos h3.no {
+        color: var(--danger-text);
+      }
+      .dos ul {
+        margin: 0;
+        padding-left: 18px;
+        font-size: 13px;
+        color: var(--text-dim);
+        line-height: 1.6;
+      }
+    </style>
+  </head>
+  <body>
+    <svg width="0" height="0" style="position: absolute">
+      <defs>
+        <symbol id="i-record" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><circle class="fill" cx="12" cy="12" r="3.5" /></symbol>
+        <symbol id="i-settings" viewBox="0 0 24 24">
+          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+          <circle cx="12" cy="12" r="3" />
+        </symbol>
+        <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21h8M12 17v4" /></symbol>
+        <symbol id="i-pointer" viewBox="0 0 24 24"><path d="M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z" /></symbol>
+        <symbol id="i-mic" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3" /></symbol>
+        <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" /><path d="M20 3v4M22 5h-4" /></symbol>
+        <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></symbol>
+        <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12" /></symbol>
+        <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" /></symbol>
+        <symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" /></symbol>
+        <symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /><path d="M14 2v4a2 2 0 0 0 2 2h4" /></symbol>
+      </defs>
+    </svg>
+
+    <div class="board">
+      <header>
+        <svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="6" fill="var(--bg-elev-2)" /><circle cx="12" cy="12" r="6.5" fill="none" stroke="var(--rec)" stroke-width="1.6" /><circle cx="12" cy="12" r="3.4" fill="var(--rec)" /></svg>
+        <div>
+          <h1>Traccia design system</h1>
+          <p>A dark studio tool with a single warm colour. Rendered with the app's own stylesheet — see <code>design-system.md</code> for the rules.</p>
+        </div>
+      </header>
+      <nav class="toc">
+        <a href="#identity">Identity</a><a href="#colour">Colour</a><a href="#type">Type</a><a href="#controls">Controls</a><a href="#status">Status</a><a href="#screens">Screens</a><a href="#rules">Do / Don't</a>
+      </nav>
+
+      <section id="identity">
+        <h2>Identity</h2>
+        <div class="desk">
+          <div class="icon-block">
+            <svg class="app-icon" viewBox="0 0 1024 1024">
+              <rect x="82" y="82" width="860" height="860" rx="205" fill="var(--bg-elev)" />
+              <circle cx="512" cy="512" r="282" fill="none" stroke="var(--rec)" stroke-width="51" />
+              <circle cx="512" cy="512" r="164" fill="var(--rec)" />
+            </svg>
+            <div class="name">App icon</div>
+          </div>
+          <div class="icon-block">
+            <span class="menubar"><svg viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.4"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4" fill="#111" stroke="none" /></svg> ● 00:12</span>
+            <div class="name">Menu bar (template image)</div>
+          </div>
+          <div class="icon-block">
+            <div class="widget-box">
+              <div class="controls">
+                <div class="time"><span class="rec-dot"></span> 00:12</div>
+                <button class="btn primary stop">Stop</button>
+              </div>
+            </div>
+            <div class="name">Floating widget</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="colour">
+        <h2>Colour</h2>
+        <p>Neutrals carry the interface; <b>Record Red</b> is spent only on recording and on the one primary action of a view. Selection and hover are white tints.</p>
+        <div class="swatches" id="sw"></div>
+      </section>
+
+      <section id="type">
+        <h2>Type</h2>
+        <p>Inter Variable (optical sizing on) and JetBrains Mono Variable, both bundled. Controls sit at 13 px, body at 14 px.</p>
+        <div class="type-row"><span class="k">h1 · 24 / 600 · −1 %</span><h1 style="margin: 0">New recording</h1></div>
+        <div class="type-row"><span class="k">h2 · 16 / 600</span><h2 style="margin: 0">Recording complete</h2></div>
+        <div class="type-row"><span class="k">h3 · 12 / 600 · caps</span><h3 style="margin: 0">Audio &amp; transcription</h3></div>
+        <div class="type-row"><span class="k">body · 14 / 400</span><span>Record your screen to explain something to an AI, not just to a person.</span></div>
+        <div class="type-row"><span class="k">dim · 14 / 400</span><span class="dim">Runs locally on your computer, after the recording.</span></div>
+        <div class="type-row"><span class="k">small · 12</span><span class="small dim">2 or 4 fps are enough for an AI to follow a tutorial.</span></div>
+        <div class="type-row"><span class="k">control · 13 / 500</span><span><button class="btn">Change…</button> <kbd>⌘⇧R</kbd></span></div>
+        <div class="type-row"><span class="k">timer · mono 40 / 600</span><span class="timer">00:12</span></div>
+        <div class="type-row"><span class="k">path · mono 12</span><code class="path">~/Movies/Traccia/2026-09-18 09-48/recording.txt</code></div>
+      </section>
+
+      <section id="controls">
+        <h2>Controls</h2>
+        <div class="gallery">
+          <div class="card">
+            <h3>Buttons</h3>
+            <div class="stack">
+              <div class="row"><button class="btn primary">Primary</button><button class="btn">Default</button><button class="btn ghost">Ghost</button><button class="btn danger">Delete</button></div>
+              <div class="row"><button class="btn primary record">Record</button><button class="btn primary stop">Stop</button><button class="btn sm">Small</button><button class="btn ghost icon-btn" aria-label="Close"><svg class="icon"><use href="#i-x" /></svg></button><button class="btn" disabled>Disabled</button></div>
+              <div class="row"><button class="btn primary big record">Select region and record</button></div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Segmented</h3>
+            <div class="stack">
+              <div class="segmented"><button>Full screen</button><button class="active">Region</button></div>
+              <div class="segmented"><button>MP4</button><button>MOV</button><button>WebM</button><button class="active">JPG + txt</button></div>
+              <div class="segmented"><button class="active">Native</button><button>1080p</button><button>720p</button><button>480p</button></div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Toggles</h3>
+            <label class="toggle"><span class="text"><span>Record the microphone</span></span><button class="switch on" role="switch" aria-checked="true"></button></label>
+            <label class="toggle"><span class="text"><span>Transcribe with Whisper</span><span class="small dim">Runs locally, after the recording.</span></span><button class="switch" role="switch" aria-checked="false"></button></label>
+            <label class="toggle"><span class="text"><span>Open at login</span><span class="small dim">Packaged app only.</span></span><button class="switch" role="switch" aria-checked="false" disabled></button></label>
+          </div>
+          <div class="card">
+            <h3>Inputs</h3>
+            <div class="field"><label>Spoken language</label><select><option>Detect automatically</option><option>English</option><option>Italiano</option></select><span class="hint">Setting the language improves accuracy and speed.</span></div>
+            <div class="field"><label>Countdown (seconds)</label><input type="number" value="3" /></div>
+            <div class="field"><label>Global shortcut</label><div class="row"><input type="text" class="grow" value="CommandOrControl+Shift+R" /><button class="btn" disabled>Save</button></div></div>
+            <div class="field"><label>Recordings folder</label><div class="row between"><code class="path">~/Movies/Traccia</code><button class="btn">Change…</button></div></div>
+          </div>
+          <div class="card">
+            <h3>Navigation</h3>
+            <div class="stack" style="gap: 2px">
+              <button class="nav active"><svg class="icon"><use href="#i-record" /></svg>Record</button>
+              <button class="nav"><svg class="icon"><use href="#i-settings" /></svg>Settings</button>
+            </div>
+            <h3 class="mt-5">Icons</h3>
+            <div class="row" style="gap: 14px; color: var(--text-dim)">
+              <svg class="icon"><use href="#i-record" /></svg><svg class="icon"><use href="#i-settings" /></svg><svg class="icon"><use href="#i-monitor" /></svg><svg class="icon"><use href="#i-pointer" /></svg><svg class="icon"><use href="#i-mic" /></svg><svg class="icon"><use href="#i-sparkles" /></svg><svg class="icon"><use href="#i-check" /></svg><svg class="icon"><use href="#i-x" /></svg><svg class="icon"><use href="#i-alert" /></svg><svg class="icon"><use href="#i-folder" /></svg><svg class="icon"><use href="#i-file" /></svg>
+            </div>
+            <div class="row mt-3"><span class="status-icon accent"><svg class="icon"><use href="#i-monitor" /></svg></span><span class="status-icon ok"><svg class="icon"><use href="#i-check" /></svg></span><span class="status-icon bad"><svg class="icon"><use href="#i-alert" /></svg></span><span class="status-icon"><svg class="icon"><use href="#i-file" /></svg></span></div>
+          </div>
+          <div class="card">
+            <h3>Badges, progress, notices</h3>
+            <div class="stack">
+              <div class="row"><span class="badge ok"><span class="dot"></span> In use</span><span class="badge"><span class="dot"></span> Installed</span><span class="badge warn"><span class="dot"></span> Not requested yet</span><span class="badge bad"><span class="dot"></span> Denied</span></div>
+              <div class="progress"><div style="width: 63%"></div></div>
+              <div class="progress indeterminate"><div></div></div>
+              <div class="row"><span class="spinner"></span><span class="dim small">Transcribing (Whisper base)</span></div>
+              <div class="notice warn"><svg class="icon"><use href="#i-alert" /></svg>Clicks not recorded: Accessibility permission not granted</div>
+              <div class="notice error"><svg class="icon"><use href="#i-alert" /></svg>Download failed: network unreachable</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="status">
+        <h2>Status cards</h2>
+        <div class="gallery">
+          <div class="card success">
+            <div class="title-row"><span class="status-icon ok"><svg class="icon"><use href="#i-check" /></svg></span><h2>Recording complete</h2><button class="btn ghost icon-btn"><svg class="icon"><use href="#i-x" /></svg></button></div>
+            <p class="dim mt-2">00:13 · 1416×1060 · JPG · 10 frames (17 identical skipped) · 2 transcript segments</p>
+            <div class="row wrap mt-3"><button class="btn primary"><svg class="icon"><use href="#i-folder" /></svg>Show in Finder</button><button class="btn"><svg class="icon"><use href="#i-file" /></svg>Open recording.txt</button></div>
+          </div>
+          <div class="card error">
+            <div class="title-row"><span class="status-icon bad"><svg class="icon"><use href="#i-alert" /></svg></span><h2>Error</h2><button class="btn ghost icon-btn"><svg class="icon"><use href="#i-x" /></svg></button></div>
+            <p class="mt-2 selectable">Screen Recording permission not granted. Enable this app in System Settings → Privacy &amp; Security, then restart the app.</p>
+          </div>
+          <div class="card info">
+            <div class="title-row"><span class="spinner"></span><h2>Processing</h2></div>
+            <p class="dim mt-2">Transcribing (Whisper base) — 42%</p>
+            <div class="progress"><div style="width: 42%"></div></div>
+          </div>
+          <div class="card rec-panel">
+            <div class="timer"><span class="rec-dot"></span>00:12</div>
+            <p class="dim">Recording</p>
+            <button class="btn primary big stop mt-2">Stop</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="screens">
+        <h2>Screens</h2>
+        <div class="frame">
+          <div class="mock-app">
+            <div class="lights"><i style="background: #ff5f57"></i><i style="background: #febc2e"></i><i style="background: #28c840"></i></div>
+            <nav class="sidebar">
+              <div class="brand"><svg class="logo" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="var(--bg-elev-2)" /><circle cx="12" cy="12" r="6.5" fill="none" stroke="var(--rec)" stroke-width="1.6" /><circle cx="12" cy="12" r="3.4" fill="var(--rec)" /></svg><span>Traccia</span></div>
+              <button class="nav active"><svg class="icon"><use href="#i-record" /></svg>Record</button>
+              <button class="nav"><svg class="icon"><use href="#i-settings" /></svg>Settings</button>
+              <div class="spacer"></div>
+              <div class="version">v0.1.0</div>
+            </nav>
+            <div class="content">
+              <div class="content-inner">
+                <div class="page-header"><h1>New recording</h1></div>
+                <div class="card">
+                  <div class="grid-2">
+                    <div class="field"><label>What to record</label><div class="segmented"><button>Full screen</button><button class="active">Region</button></div></div>
+                    <div class="field"><label>Output format</label><div class="segmented"><button>MP4</button><button>MOV</button><button>WebM</button><button class="active">JPG + txt</button></div></div>
+                    <div class="field"><label>Resolution</label><div class="segmented"><button class="active">Native</button><button>1080p</button><button>720p</button><button>480p</button></div></div>
+                    <div class="field"><label>Frames per second (JPG)</label><div class="segmented"><button>1 fps</button><button class="active">2 fps</button><button>4 fps</button></div></div>
+                    <div class="field"><label>Audio</label><div class="segmented"><button class="active">Microphone</button><button>None</button></div></div>
+                  </div>
+                  <div class="row wrap small dim mt-2"><span>Transcription: Whisper base</span><span>· Clicks: yes</span><span>· Shortcut: <kbd>⌘⇧R</kbd></span><button class="btn ghost sm">Settings</button></div>
+                </div>
+                <div class="record-panel">
+                  <button class="btn primary big record">Select region and record</button>
+                  <p class="hint">The window hides while recording. Stop with the widget, the menu bar icon or <kbd>⌘⇧R</kbd>.</p>
+                </div>
+                <div class="card">
+                  <h3>Recent recordings</h3>
+                  <div class="list-item">
+                    <div class="stack tight"><strong>Sep 17, 2026, 9:48 PM</strong><span class="small dim">00:13 · JPG</span></div>
+                    <div class="row"><button class="btn ghost sm">Open recording.txt</button><button class="btn ghost sm">Open recording-raw.txt</button><button class="btn sm"><svg class="icon"><use href="#i-folder" /></svg>Show in Finder</button></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="desk mt-4">
+          <div class="region-box">
+            <div class="dimmer"></div>
+            <div class="region-rect">
+              <div class="region-size">708 × 530</div>
+              <div class="region-toolbar"><button class="btn primary record">Record</button><button class="btn">Cancel</button></div>
+            </div>
+          </div>
+          <div class="wizard" style="padding: 0; width: 320px">
+            <div class="steps"><span class="done"></span><span class="done"></span><span></span><span></span></div>
+            <div class="feature"><span class="status-icon accent"><svg class="icon"><use href="#i-mic" /></svg></span><div><strong>Voice transcribed with Whisper, locally</strong><p class="dim small">Nothing leaves your computer.</p></div></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="rules">
+        <h2>Do / Don't</h2>
+        <div class="dos">
+          <div class="card">
+            <h3 class="ok">Do</h3>
+            <ul>
+              <li>One red button per view: the primary action, or Record/Stop.</li>
+              <li>Use the segmented control for every enumerated setting, everywhere.</li>
+              <li>Show shortcuts as <kbd>⌘⇧R</kbd> via <code>formatShortcut()</code>.</li>
+              <li>Give status cards an icon tile and a border in their hue.</li>
+              <li>Space with the 4 pt scale and the <code>.mt-*</code> utilities.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3 class="no">Don't</h3>
+            <ul>
+              <li>Fill a destructive button with red — red text on a ghost button instead.</li>
+              <li>Use red for focus, links or selection.</li>
+              <li>Put red buttons in lists (downloads, permissions).</li>
+              <li>Use emoji as icons; use <code>&lt;Icon&gt;</code>.</li>
+              <li>Reference a primitive (<code>--n-700</code>, <code>--red-500</code>) from a component.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const groups = [
+        ['bg', '--bg'], ['bg-sidebar', '--bg-sidebar'], ['bg-elev', '--bg-elev'], ['bg-elev-2', '--bg-elev-2'], ['border', '--border'], ['border-strong', '--border-strong'],
+        ['text', '--text'], ['text-dim', '--text-dim'], ['text-muted', '--text-muted'],
+        ['accent', '--accent'], ['accent-hover', '--accent-hover'], ['accent-active', '--accent-active'], ['rec (icon)', '--rec'], ['accent-soft', '--accent-soft'],
+        ['ok', '--ok'], ['warn', '--warn'], ['danger', '--danger'], ['danger-text', '--danger-text'],
+        ['hover', '--hover'], ['selected', '--selected'], ['selected-strong', '--selected-strong'], ['focus', '--focus']
+      ]
+      const cs = getComputedStyle(document.documentElement)
+      const resolve = (v) => {
+        const m = v.trim().match(/^var\((--[\w-]+)\)$/)
+        return m ? resolve(cs.getPropertyValue(m[1])) : v.trim()
+      }
+      document.getElementById('sw').innerHTML = groups
+        .map(([name, tok]) => `<div class="swatch"><i style="background: var(${tok})"></i><span><b>${name}</b>${resolve(cs.getPropertyValue(tok))}</span></div>`)
+        .join('')
+    </script>
+  </body>
+</html>
