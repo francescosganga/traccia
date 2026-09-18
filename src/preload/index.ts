@@ -5,6 +5,7 @@ import type {
   DownloadProgress,
   EngineStartCommand,
   EngineStartedInfo,
+  LoginItemStatus,
   Permissions,
   RecordingEntry,
   RecordingRequest,
@@ -34,7 +35,8 @@ const api = {
     requestPermission: (kind: 'screen' | 'microphone' | 'accessibility'): Promise<Permissions> => ipcRenderer.invoke('permissions:request', kind),
     openPrivacySettings: (kind: 'screen' | 'microphone' | 'accessibility'): Promise<void> => ipcRenderer.invoke('permissions:open', kind),
     version: (): Promise<string> => ipcRenderer.invoke('app:version'),
-    platform: (): Promise<string> => ipcRenderer.invoke('app:platform')
+    platform: (): Promise<string> => ipcRenderer.invoke('app:platform'),
+    loginItem: (): Promise<LoginItemStatus> => ipcRenderer.invoke('app:loginItem')
   },
   whisper: {
     models: (): Promise<WhisperModelInfo[]> => ipcRenderer.invoke('whisper:models'),

@@ -43,6 +43,20 @@ export interface Settings {
   /** Last used capture mode and display */
   lastMode: CaptureMode
   lastDisplayId: number | null
+  /** Register the app as a login item (packaged app only) */
+  openAtLogin: boolean
+  /** When opened at login, keep the main window hidden and live in the menu bar */
+  startHiddenAtLogin: boolean
+  /** Show the app icon in the Dock (macOS). Off = menu-bar-only app */
+  showInDock: boolean
+}
+
+export interface LoginItemStatus {
+  openAtLogin: boolean
+  /** macOS 13+: 'requires-approval' means the user must allow it in System Settings → Login Items */
+  status: 'not-registered' | 'enabled' | 'requires-approval' | 'not-found' | 'unknown'
+  /** Login items can only be registered by the packaged app */
+  packaged: boolean
 }
 
 export interface DisplayInfo {

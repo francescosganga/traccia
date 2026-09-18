@@ -23,7 +23,10 @@ export const DEFAULTS: Settings = {
   showControls: true,
   shortcut: 'CommandOrControl+Shift+R',
   lastMode: 'screen',
-  lastDisplayId: null
+  lastDisplayId: null,
+  openAtLogin: false,
+  startHiddenAtLogin: true,
+  showInDock: true
 }
 
 let cache: Settings | null = null

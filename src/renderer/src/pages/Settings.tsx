@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { t } from '../../../shared/i18n'
-import type { Settings, SpeechLanguage } from '../../../shared/types'
+import type { LoginItemStatus, Settings, SpeechLanguage } from '../../../shared/types'
 import { LanguagePicker } from '../components/LanguagePicker'
 import { ModelManager } from '../components/ModelManager'
 import { PermissionsPanel } from '../components/PermissionsPanel'
@@ -23,6 +23,13 @@ const SPEECH_LANGUAGES: { id: SpeechLanguage; label: string }[] = [
 
 export function SettingsPage({ settings, update }: Props) {
   const [shortcut, setShortcut] = useState(settings.shortcut)
+  const [login, setLogin] = useState<LoginItemStatus | null>(null)
+  const [platform, setPlatform] = useState('darwin')
+
+  useEffect(() => {
+    void window.api.system.loginItem().then(setLogin)
+    void window.api.system.platform().then(setPlatform)
+  }, [settings.openAtLogin])
 
   return (
     <div className="content">
@@ -190,6 +197,26 @@ export function SettingsPage({ settings, update }: Props) {
               <span className="hint">{t('settings.shortcutHint', { example: 'CommandOrControl+Shift+R' })}</span>
             </div>
           </div>
+        </div>
+
+        <div className="card">
+          <h3>{t('settings.startupSection')}</h3>
+          <Toggle
+            label={t('settings.openAtLogin')}
+            hint={login && !login.packaged ? t('settings.openAtLoginHint') : login?.status === 'requires-approval' ? t('settings.loginRequiresApproval') : undefined}
+            value={login?.packaged ? login.openAtLogin : settings.openAtLogin}
+            disabled={!login?.packaged}
+            onChange={(v) => update({ openAtLogin: v })}
+          />
+          <Toggle
+            label={t('settings.startHidden')}
+            hint={t('settings.startHiddenHint')}
+            value={settings.startHiddenAtLogin}
+            onChange={(v) => update({ startHiddenAtLogin: v })}
+          />
+          {platform === 'darwin' && (
+            <Toggle label={t('settings.showInDock')} hint={t('settings.showInDockHint')} value={settings.showInDock} onChange={(v) => update({ showInDock: v })} />
+          )}
         </div>
 
         <div className="card">

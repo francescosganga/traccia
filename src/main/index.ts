@@ -1,10 +1,11 @@
 import { app, globalShortcut } from 'electron'
 import type { AppState, RecordingRequest, Settings } from '../shared/types'
-import { onSettingsApplied } from './apply-settings'
+import { applyDockVisibility, onSettingsApplied } from './apply-settings'
 import { setupAutotest } from './autotest'
 import { registerIpc } from './ipc'
 import { RecordingSession } from './session'
 import { getSettings, updateSettings } from './settings'
+import { createTray, refreshTray, updateTray, type TrayActions } from './tray'
 import { cleanupLegacyModels, killWorker } from './whisper'
 import {
   broadcast,
@@ -32,6 +33,7 @@ const session = new RecordingSession({
   showMainWindow,
   onState: (state: AppState) => {
     broadcast('state', state)
+    void updateTray(state)
     autotestState(state)
   }
 })
@@ -65,6 +67,17 @@ function toggleRecording(): void {
   }
 }
 
+const trayActions: TrayActions = {
+  recordScreen: () => void startRecording({ mode: 'screen', displayId: getSettings().lastDisplayId ?? undefined }),
+  recordRegion: () => void startRecording({ mode: 'region' }),
+  stop: () => session.requestStop(),
+  open: () => showMainWindow(),
+  settings: () => {
+    showMainWindow()
+    broadcast('navigate', 'settings')
+  }
+}
+
 function registerShortcut(settings: Settings): void {
   globalShortcut.unregisterAll()
   if (!settings.shortcut) return
@@ -83,16 +96,23 @@ app.whenReady().then(() => {
   registerIpc({ session, startRecording })
   onSettingsApplied((s, patch) => {
     if ('shortcut' in patch) registerShortcut(s)
+    void refreshTray()
   })
 
-  createMainWindow({ show: true })
+  applyDockVisibility(settings.showInDock)
+  // When launched as a login item the app can live in the menu bar only.
+  const openedAtLogin = process.platform === 'darwin' && app.isPackaged && app.getLoginItemSettings().wasOpenedAtLogin
+  createMainWindow({ show: !(openedAtLogin && settings.startHiddenAtLogin) })
+  createTray(trayActions)
   registerShortcut(settings)
   void cleanupLegacyModels()
 })
 
 app.on('second-instance', () => showMainWindow())
 app.on('activate', () => showMainWindow())
-app.on('window-all-closed', () => app.quit())
+app.on('window-all-closed', () => {
+  // Stay alive in the menu bar; the user quits from the tray or Cmd+Q.
+})
 app.on('before-quit', () => {
   setQuitting()
   globalShortcut.unregisterAll()
