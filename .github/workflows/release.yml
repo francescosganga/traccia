@@ -1,0 +1,45 @@
+name: Release
+
+# Runs when a version tag is pushed (e.g. `npm version patch && git push --follow-tags`).
+# Builds the macOS DMGs on GitHub's runners and attaches them to a draft
+# GitHub Release, ready to be reviewed and published.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write # needed by electron-builder to create the release with GITHUB_TOKEN
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # One runner per architecture: the native modules (sharp, onnxruntime-node,
+          # ffmpeg-static) only ship the binaries of the host arch, so cross-building
+          # x64 from an arm64 machine produces a broken app.
+          - os: macos-latest # Apple Silicon
+            arch: arm64
+          - os: macos-15-intel # Intel
+            arch: x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run typecheck
+
+      - run: npm run build
+
+      - name: Package and upload to GitHub Release
+        run: npx electron-builder --mac --${{ matrix.arch }} --config electron-builder.yml --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
