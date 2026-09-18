@@ -3,6 +3,7 @@ import type { AppState, RecordingRequest, Settings } from '../shared/types'
 import { applyDockVisibility, onSettingsApplied } from './apply-settings'
 import { setupAutotest } from './autotest'
 import { registerIpc } from './ipc'
+import { setupScreenshots, useScreenshotProfile } from './screenshots'
 import { RecordingSession } from './session'
 import { getSettings, updateSettings } from './settings'
 import { createTray, refreshTray, updateTray, type TrayActions } from './tray'
@@ -24,6 +25,7 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 app.setName('Traccia')
+useScreenshotProfile()
 
 const session = new RecordingSession({
   engine: () => getMainWindow()?.webContents ?? null,
@@ -102,7 +104,8 @@ app.whenReady().then(() => {
   applyDockVisibility(settings.showInDock)
   // When launched as a login item the app can live in the menu bar only.
   const openedAtLogin = process.platform === 'darwin' && app.isPackaged && app.getLoginItemSettings().wasOpenedAtLogin
-  createMainWindow({ show: !(openedAtLogin && settings.startHiddenAtLogin) })
+  const win = createMainWindow({ show: !(openedAtLogin && settings.startHiddenAtLogin) })
+  setupScreenshots(win)
   createTray(trayActions)
   registerShortcut(settings)
   void cleanupLegacyModels()

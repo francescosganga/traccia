@@ -5,6 +5,7 @@ import { Icon, Logo } from './components/Icon'
 import { installEngine } from './engine'
 import { Home } from './pages/Home'
 import { SettingsPage } from './pages/Settings'
+import { Wizard } from './pages/Wizard'
 
 type Page = 'home' | 'settings'
 
@@ -47,6 +48,7 @@ export function App() {
   }, [settings?.whisperModel, page, state.status])
 
   if (!settings) return null
+  if (!settings.onboardingDone) return <Wizard settings={settings} update={update} platform={platform} onDone={() => setPage('home')} />
 
   return (
     <div className="app">

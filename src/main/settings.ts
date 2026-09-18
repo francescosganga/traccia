@@ -7,6 +7,7 @@ import type { Settings } from '../shared/types'
 const FILE = () => join(app.getPath('userData'), 'settings.json')
 
 export const DEFAULTS: Settings = {
+  onboardingDone: false,
   uiLanguage: 'en',
   outputDir: join(app.getPath('videos'), 'Traccia'),
   format: 'mp4',

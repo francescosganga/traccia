@@ -15,6 +15,7 @@ export interface Rect {
 }
 
 export interface Settings {
+  onboardingDone: boolean
   uiLanguage: UiLanguage
   outputDir: string
   format: OutputFormat

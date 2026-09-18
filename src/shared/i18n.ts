@@ -13,6 +13,9 @@ export const UI_LANGUAGES: { id: UiLanguage; label: string }[] = [
 const en = {
   // common
   'common.cancel': 'Cancel',
+  'common.back': 'Back',
+  'common.next': 'Next',
+  'common.continue': 'Continue',
   'common.save': 'Save',
   'common.change': 'Change…',
   'common.use': 'Use',
@@ -28,6 +31,27 @@ const en = {
   // navigation
   'nav.record': 'Record',
   'nav.settings': 'Settings',
+
+  // wizard
+  'wizard.welcome.title': 'Welcome to Traccia',
+  'wizard.welcome.subtitle': 'Record your screen to explain something to an AI, not just to a person.',
+  'wizard.welcome.language': 'Language',
+  'wizard.feature.screen.title': 'Full screen or a region',
+  'wizard.feature.screen.desc': 'Choose the format (MP4, MOV, WebM or a JPG sequence) and the resolution.',
+  'wizard.feature.cursor.title': 'Pointer and clicks in a text file',
+  'wizard.feature.cursor.desc': 'Next to the video you get {file}: for every instant, the cursor position and the clicks, in video pixels.',
+  'wizard.feature.voice.title': 'Voice transcribed with Whisper, locally',
+  'wizard.feature.voice.desc': 'If you record the microphone, a timestamped transcript ends up in the same file. Nothing leaves your computer.',
+  'wizard.feature.ai.title': 'Ready for AI',
+  'wizard.feature.ai.desc': 'In JPG mode you get a few frames per second (no duplicates) plus the text: perfect to feed to a model.',
+  'wizard.permissions.title': 'macOS permissions',
+  'wizard.permissions.subtitle': 'Needed to capture the screen, the microphone and the clicks. You can also grant them later from Settings.',
+  'wizard.whisper.title': 'Transcription with Whisper',
+  'wizard.whisper.subtitle': 'Optional. Download a model to transcribe your voice locally. You can download, switch or delete it at any time from Settings.',
+  'wizard.output.title': 'Where to save recordings',
+  'wizard.output.subtitle': 'Each recording goes into a folder named with date and time, containing the video (or the frames) and the text file.',
+  'wizard.shortcut.text': 'Shortcut: {shortcut} starts and stops a recording from any app. You will also find the icon in the menu bar.',
+  'wizard.finish': 'Get started',
 
   // permissions panel
   'perm.screen.label': 'Screen Recording',
@@ -213,6 +237,9 @@ export type TranslationKey = keyof typeof en
 
 const it: Record<TranslationKey, string> = {
   'common.cancel': 'Annulla',
+  'common.back': 'Indietro',
+  'common.next': 'Avanti',
+  'common.continue': 'Continua',
   'common.save': 'Salva',
   'common.change': 'Cambia…',
   'common.use': 'Usa',
@@ -228,6 +255,25 @@ const it: Record<TranslationKey, string> = {
   'nav.record': 'Registra',
   'nav.settings': 'Impostazioni',
 
+  'wizard.welcome.title': 'Benvenuto in Traccia',
+  'wizard.welcome.subtitle': "Registra lo schermo per spiegare qualcosa a un'AI, non solo a una persona.",
+  'wizard.welcome.language': 'Lingua',
+  'wizard.feature.screen.title': "Schermo intero o un'area",
+  'wizard.feature.screen.desc': 'Scegli formato (MP4, MOV, WebM o sequenza di JPG) e risoluzione.',
+  'wizard.feature.cursor.title': 'Puntatore e click in un file di testo',
+  'wizard.feature.cursor.desc': 'Accanto al video trovi {file}: per ogni istante la posizione del cursore e i click, in pixel del video.',
+  'wizard.feature.voice.title': 'Voce trascritta con Whisper, in locale',
+  'wizard.feature.voice.desc': 'Se registri il microfono, la trascrizione con timestamp finisce nello stesso file. Nessun dato lascia il tuo computer.',
+  'wizard.feature.ai.title': "Pronto per l'AI",
+  'wizard.feature.ai.desc': 'In modalità JPG ottieni pochi frame al secondo (senza duplicati) più il testo: perfetto da dare in pasto a un modello.',
+  'wizard.permissions.title': 'Permessi di macOS',
+  'wizard.permissions.subtitle': 'Servono per catturare lo schermo, il microfono e i click. Puoi concederli anche più tardi dalle Impostazioni.',
+  'wizard.whisper.title': 'Trascrizione con Whisper',
+  'wizard.whisper.subtitle': 'Facoltativo. Scarica un modello per trascrivere la voce in locale. Puoi scaricarlo, cambiarlo o eliminarlo in qualsiasi momento dalle Impostazioni.',
+  'wizard.output.title': 'Dove salvare le registrazioni',
+  'wizard.output.subtitle': 'Ogni registrazione va in una cartella con data e ora, che contiene il video (o i frame) e il file di testo.',
+  'wizard.shortcut.text': 'Scorciatoia: {shortcut} avvia e ferma la registrazione da qualsiasi app. Trovi anche l\'icona nella barra dei menu.',
+  'wizard.finish': 'Inizia',
 
   'perm.screen.label': 'Registrazione schermo',
   'perm.screen.why': 'Necessario per catturare lo schermo.',
