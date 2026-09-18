@@ -16,6 +16,7 @@ import type {
 import { t } from '../shared/i18n'
 import { CursorTracker } from './cursor'
 import { h264Encoder, h264EncoderArgs, runFfmpeg } from './ffmpeg'
+import { extractFrames } from './frames'
 import { getPermissions, openPrivacySettings } from './permissions'
 import { getSettings } from './settings'
 import { buildTimeline, mapPoint, type Geometry } from './timeline'
@@ -252,22 +253,49 @@ export class RecordingSession {
     if (this.region) filters.push(`crop=${g.cropPx.width}:${g.cropPx.height}:${g.cropPx.x}:${g.cropPx.y}`)
     if (g.outWidth !== g.cropPx.width) filters.push(`scale=${g.outWidth}:${g.outHeight}`)
 
-    const mediaPath = join(this.dir, `recording.${format}`)
-    const convertStep = t('step.convert', { format: format.toUpperCase() })
-    this.progress({ step: convertStep, progress: 0 })
-    const args = ['-i', this.rawPath]
-    if (filters.length) args.push('-vf', filters.join(','))
-    if (format === 'webm') {
-      if (filters.length) args.push('-c:v', 'libvpx-vp9', '-deadline', 'realtime', '-cpu-used', '8', '-row-mt', '1', '-crf', '32', '-b:v', '0', '-c:a', 'libopus')
-      else args.push('-c', 'copy')
+    let mediaPath = ''
+    let frames: { file: string; tMs: number }[] | undefined
+    let skipped = 0
+
+    if (format === 'jpg') {
+      this.progress({ step: t('step.frames'), progress: 0 })
+      const res = await extractFrames({
+        input: this.rawPath,
+        recordingDir: this.dir,
+        fps: settings.jpgFps,
+        filters,
+        durationMs,
+        skipUnchanged: settings.skipUnchangedFrames,
+        geometry: g,
+        samples: tracking.samples,
+        t0: info.t0,
+        onProgress: (p) => this.progress({ step: t('step.frames'), progress: p })
+      })
+      frames = res.frames
+      skipped = res.skipped
+      mediaPath = join(this.dir, 'frames')
+      if (info.hasAudio) {
+        this.progress({ step: t('step.saveAudio'), progress: -1 })
+        await runFfmpeg(['-i', this.rawPath, '-vn', '-c:a', 'aac', '-b:a', '128k', join(this.dir, 'audio.m4a')])
+      }
     } else {
-      const canCopy = !filters.length && /h264|avc1/i.test(info.mimeType)
-      if (canCopy) args.push('-c:v', 'copy')
-      else args.push(...h264EncoderArgs(await h264Encoder(), g.outWidth, g.outHeight))
-      args.push('-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart')
+      mediaPath = join(this.dir, `recording.${format}`)
+      const convertStep = t('step.convert', { format: format.toUpperCase() })
+      this.progress({ step: convertStep, progress: 0 })
+      const args = ['-i', this.rawPath]
+      if (filters.length) args.push('-vf', filters.join(','))
+      if (format === 'webm') {
+        if (filters.length) args.push('-c:v', 'libvpx-vp9', '-deadline', 'realtime', '-cpu-used', '8', '-row-mt', '1', '-crf', '32', '-b:v', '0', '-c:a', 'libopus')
+        else args.push('-c', 'copy')
+      } else {
+        const canCopy = !filters.length && /h264|avc1/i.test(info.mimeType)
+        if (canCopy) args.push('-c:v', 'copy')
+        else args.push(...h264EncoderArgs(await h264Encoder(), g.outWidth, g.outHeight))
+        args.push('-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart')
+      }
+      args.push(mediaPath)
+      await runFfmpeg(args, { durationMs, onProgress: (p) => this.progress({ step: convertStep, progress: p }) })
     }
-    args.push(mediaPath)
-    await runFfmpeg(args, { durationMs, onProgress: (p) => this.progress({ step: convertStep, progress: p }) })
 
     this.progress({ step: t('step.timeline'), progress: -1 })
     const txtPath = join(this.dir, 'recording.txt')
@@ -276,10 +304,10 @@ export class RecordingSession {
     const timelineInput = {
       createdAt: this.startedAtDate,
       format,
-      mediaName: `recording.${format}`,
+      mediaName: format === 'jpg' ? 'frames/' : `recording.${format}`,
       width: g.outWidth,
       height: g.outHeight,
-      fps: FRAME_RATE,
+      fps: format === 'jpg' ? settings.jpgFps : FRAME_RATE,
       durationMs,
       audio: settings.audio && info.hasAudio,
       t0: info.t0,
@@ -287,6 +315,8 @@ export class RecordingSession {
       clicks: tracking.clicks,
       cursorHz: settings.cursorHz,
       geometry: g,
+      frames,
+      skippedFrames: skipped,
       warnings
     }
     // recording.txt: clicks, speech and frames. recording-raw.txt: the same plus pointer movement.
@@ -298,12 +328,12 @@ export class RecordingSession {
       app: 'traccia',
       createdAt: this.startedAtDate.toISOString(),
       format,
-      media: `recording.${format}`,
+      media: format === 'jpg' ? 'frames/' : `recording.${format}`,
       timeline: 'recording.txt',
       rawTimeline: 'recording-raw.txt',
       width: g.outWidth,
       height: g.outHeight,
-      fps: FRAME_RATE,
+      fps: format === 'jpg' ? settings.jpgFps : FRAME_RATE,
       durationMs,
       display: { id: this.display!.id, bounds: this.display!.bounds, scaleFactor: this.display!.scaleFactor },
       capture: { width: info.width, height: info.height, mimeType: info.mimeType },
@@ -323,6 +353,8 @@ export class RecordingSession {
           const p = mapPoint(g, c.x, c.y)
           return { t: c.t - info.t0, button: c.button, x: p.x, y: p.y }
         }),
+      frames,
+      skippedFrames: skipped,
       warnings
     }
     await writeFile(jsonPath, JSON.stringify(json), 'utf8')
@@ -338,6 +370,8 @@ export class RecordingSession {
       format,
       width: g.outWidth,
       height: g.outHeight,
+      frames: frames?.length,
+      skippedFrames: skipped,
       warnings
     }
   }

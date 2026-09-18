@@ -11,6 +11,8 @@ export const DEFAULTS: Settings = {
   outputDir: join(app.getPath('videos'), 'Traccia'),
   format: 'mp4',
   resolution: 'native',
+  jpgFps: 2,
+  skipUnchangedFrames: true,
   audio: true,
   trackClicks: true,
   cursorHz: 10,

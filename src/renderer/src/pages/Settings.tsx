@@ -69,7 +69,25 @@ export function SettingsPage({ settings, update }: Props) {
                 ))}
               </div>
             </div>
+            <div className="field">
+              <label>{t('settings.jpgFps')}</label>
+              <input
+                type="number"
+                min={0.25}
+                max={30}
+                step={0.25}
+                value={settings.jpgFps}
+                onChange={(e) => update({ jpgFps: Math.max(0.25, Math.min(30, Number(e.target.value) || 2)) })}
+              />
+              <span className="hint">{t('settings.jpgFpsHint')}</span>
+            </div>
           </div>
+          <Toggle
+            label={t('settings.skipUnchanged')}
+            hint={t('settings.skipUnchangedHint')}
+            value={settings.skipUnchangedFrames}
+            onChange={(v) => update({ skipUnchangedFrames: v })}
+          />
         </div>
 
         <div className="card">

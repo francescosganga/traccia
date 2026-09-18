@@ -1,7 +1,7 @@
 // Types shared between main, preload and renderer.
 import type { UiLanguage } from './i18n'
 
-export type OutputFormat = 'mp4' | 'mov' | 'webm'
+export type OutputFormat = 'mp4' | 'mov' | 'webm' | 'jpg'
 export type Resolution = 'native' | '1080' | '720' | '480'
 export type CaptureMode = 'screen' | 'region'
 
@@ -17,6 +17,10 @@ export interface Settings {
   outputDir: string
   format: OutputFormat
   resolution: Resolution
+  /** Frames per second when format is "jpg" */
+  jpgFps: number
+  /** Drop frames that are visually identical to the previous kept frame (jpg mode) */
+  skipUnchangedFrames: boolean
   /** Record the microphone */
   audio: boolean
   /** Log global mouse clicks (needs Accessibility permission on macOS) */
@@ -91,6 +95,8 @@ export interface RecordingResult {
   format: OutputFormat
   width: number
   height: number
+  frames?: number
+  skippedFrames?: number
   warnings: string[]
 }
 

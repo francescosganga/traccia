@@ -3,7 +3,7 @@ import { t } from '../../../shared/i18n'
 import type { AppState, CaptureMode, DisplayInfo, RecordingEntry, Settings } from '../../../shared/types'
 import { Icon } from '../components/Icon'
 import { formatDate, formatDuration, formatShortcut } from '../format'
-import { FORMATS, RESOLUTIONS, resolutionLabel } from '../options'
+import { FORMATS, JPG_FPS, RESOLUTIONS, resolutionLabel } from '../options'
 
 interface Props {
   settings: Settings
@@ -76,6 +76,8 @@ export function Home({ settings, update, state, platform, goSettings }: Props) {
             </div>
             <p className="dim mt-2">
               {formatDuration(state.result.durationMs)} · {state.result.width}×{state.result.height} · {state.result.format.toUpperCase()}
+              {state.result.frames !== undefined &&
+                ` · ${t('home.frames', { n: state.result.frames })}${state.result.skippedFrames ? ' ' + t('home.skipped', { n: state.result.skippedFrames }) : ''}`}
             </p>
             {state.result.warnings.map((w, i) => (
               <div key={i} className="notice warn">
@@ -95,9 +97,11 @@ export function Home({ settings, update, state, platform, goSettings }: Props) {
               <button className="btn" onClick={() => window.api.recordings.open(state.result.rawTxtPath)}>
                 {t('home.openRawTxt')}
               </button>
-              <button className="btn" onClick={() => window.api.recordings.open(state.result.mediaPath)}>
-                {t('home.openVideo')}
-              </button>
+              {state.result.format !== 'jpg' && (
+                <button className="btn" onClick={() => window.api.recordings.open(state.result.mediaPath)}>
+                  {t('home.openVideo')}
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -176,6 +180,18 @@ export function Home({ settings, update, state, platform, goSettings }: Props) {
                     ))}
                   </div>
                 </div>
+                {settings.format === 'jpg' && (
+                  <div className="field">
+                    <label>{t('home.jpgFps')}</label>
+                    <div className="segmented">
+                      {JPG_FPS.map((f) => (
+                        <button key={f} className={settings.jpgFps === f ? 'active' : ''} onClick={() => update({ jpgFps: f })}>
+                          {f} fps
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div className="field">
                   <label>{t('home.audio')}</label>
                   <div className="segmented">

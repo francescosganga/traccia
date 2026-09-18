@@ -32,6 +32,26 @@ export function formatTime(ms: number): string {
   return h > 0 ? `${h}:${mmss}` : mmss
 }
 
+/** Returns the last sample taken at or before epoch `t` (or the first one if none). */
+export function sampleAt(samples: CursorSample[], t: number): CursorSample | null {
+  if (samples.length === 0) return null
+  let lo = 0
+  let hi = samples.length - 1
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1
+    if (samples[mid].t <= t) lo = mid
+    else hi = mid - 1
+  }
+  return samples[lo]
+}
+
+export interface FrameRef {
+  /** Path relative to the recording folder */
+  file: string
+  /** ms from the start of the recording */
+  tMs: number
+}
+
 export interface TimelineInput {
   createdAt: Date
   format: OutputFormat
@@ -46,6 +66,8 @@ export interface TimelineInput {
   clicks: ClickEvent[]
   cursorHz: number
   geometry: Geometry
+  frames?: FrameRef[]
+  skippedFrames?: number
   warnings: string[]
   /** 'clicks' (default) lists only mouse clicks; 'full' also logs pointer movement */
   cursorMode?: 'full' | 'clicks'
@@ -60,8 +82,20 @@ interface Event {
 export function buildTimeline(input: TimelineInput): string {
   const g = input.geometry
   const events: Event[] = []
+  const isFrames = input.format === 'jpg'
   const clicksOnly = input.cursorMode !== 'full'
 
+  if (isFrames && input.frames) {
+    for (const f of input.frames) {
+      let cursor = ''
+      if (!clicksOnly) {
+        const s = sampleAt(input.samples, input.t0 + f.tMs)
+        const pos = s ? mapPoint(g, s.x, s.y) : null
+        cursor = pos && pos.inside ? ` cursor ${pos.x},${pos.y}` : ' cursor outside'
+      }
+      events.push({ t: f.tMs, order: 0, line: `${formatTime(f.tMs)} frame ${f.file}${cursor}` })
+    }
+  }
   if (!clicksOnly) {
     // Downsample the 120 Hz stream to cursorHz and only log when the pointer actually moved.
     const minGap = 1000 / Math.max(1, input.cursorHz)
@@ -95,12 +129,18 @@ export function buildTimeline(input: TimelineInput): string {
   const date = input.createdAt.toLocaleString(locale())
   const duration = formatTime(input.durationMs)
   const header: string[] = [t('tl.title', { date })]
-  header.push(t('tl.video', { name: input.mediaName, w: input.width, h: input.height, fps: input.fps, duration }))
+  if (isFrames) {
+    const skipped = input.skippedFrames ? t('tl.skipped', { n: input.skippedFrames }) : ''
+    header.push(t('tl.frames', { w: input.width, h: input.height, fps: input.fps, n: input.frames?.length ?? 0, skipped, duration }))
+  } else {
+    header.push(t('tl.video', { name: input.mediaName, w: input.width, h: input.height, fps: input.fps, duration }))
+  }
   header.push(input.audio ? t('tl.audio') : t('tl.audioNone'))
-  const unit = t('tl.unitVideo')
+  const unit = isFrames ? t('tl.unitImage') : t('tl.unitVideo')
   header.push(clicksOnly ? t('tl.cursorClicksOnly', { unit }) : t('tl.cursorFull', { unit, hz: input.cursorHz }))
   header.push('#')
   header.push(t('tl.formatTitle'))
+  if (isFrames) header.push(clicksOnly ? t('tl.fmtFrameNoCursor') : t('tl.fmtFrame'))
   if (!clicksOnly) header.push(t('tl.fmtCursor'))
   header.push(t('tl.fmtClick'))
   if (input.warnings.length) {
