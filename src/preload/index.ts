@@ -2,12 +2,15 @@ import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import type {
   AppState,
   DisplayInfo,
+  DownloadProgress,
   EngineStartCommand,
   EngineStartedInfo,
   Permissions,
   RecordingEntry,
   RecordingRequest,
-  Settings
+  Settings,
+  WhisperModelId,
+  WhisperModelInfo
 } from '../shared/types'
 
 type Unsubscribe = () => void
@@ -32,6 +35,15 @@ const api = {
     openPrivacySettings: (kind: 'screen' | 'microphone' | 'accessibility'): Promise<void> => ipcRenderer.invoke('permissions:open', kind),
     version: (): Promise<string> => ipcRenderer.invoke('app:version'),
     platform: (): Promise<string> => ipcRenderer.invoke('app:platform')
+  },
+  whisper: {
+    models: (): Promise<WhisperModelInfo[]> => ipcRenderer.invoke('whisper:models'),
+    dir: (): Promise<string> => ipcRenderer.invoke('whisper:dir'),
+    download: (id: WhisperModelId): Promise<void> => ipcRenderer.invoke('whisper:download', id),
+    cancel: (id: WhisperModelId): Promise<void> => ipcRenderer.invoke('whisper:cancel', id),
+    delete: (id: WhisperModelId): Promise<void> => ipcRenderer.invoke('whisper:delete', id),
+    deleteAll: (): Promise<void> => ipcRenderer.invoke('whisper:deleteAll'),
+    onProgress: (cb: (p: DownloadProgress) => void) => on<DownloadProgress>('whisper:progress', cb)
   },
   recording: {
     state: (): Promise<AppState> => ipcRenderer.invoke('recording:state'),

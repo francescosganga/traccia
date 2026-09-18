@@ -1,5 +1,5 @@
 import { locale, t } from '../shared/i18n'
-import type { ClickEvent, CursorSample, OutputFormat, Rect } from '../shared/types'
+import type { ClickEvent, CursorSample, OutputFormat, Rect, TranscriptSegment, TranscriptWord } from '../shared/types'
 
 /** Everything needed to map a global cursor position (DIP) to output pixels. */
 export interface Geometry {
@@ -21,6 +21,29 @@ export function mapPoint(g: Geometry, x: number, y: number): { x: number; y: num
   const ox = Math.round(cx * g.outScale)
   const oy = Math.round(cy * g.outScale)
   return { x: ox, y: oy, inside: ox >= 0 && oy >= 0 && ox < g.outWidth && oy < g.outHeight }
+}
+
+const SPEECH_BEFORE = 1.5
+const SPEECH_AFTER = 0.5
+const SPEECH_MAX_WORDS = 10
+
+/** Words being spoken around instant `t` (seconds), to annotate clicks. Empty string when silent. */
+export function wordsAround(words: TranscriptWord[], t: number): string {
+  const hits = words.filter((w) => w.end >= t - SPEECH_BEFORE && w.start <= t + SPEECH_AFTER)
+  return hits
+    .slice(-SPEECH_MAX_WORDS)
+    .map((w) => w.text.trim())
+    .join(' ')
+}
+
+/**
+ * Drops transcript entries that start at or after the end of the recording and clamps the
+ * rest to it. Whisper pads short audio with silence and sometimes "transcribes" that padding
+ * (subtitle credits and the like), with timestamps past the end of the real audio.
+ */
+export function clipToDuration<T extends { start: number; end: number }>(items: T[], durationMs: number): T[] {
+  const limit = durationMs / 1000
+  return items.filter((s) => s.start < limit).map((s) => (s.end > limit ? { ...s, end: limit } : s))
 }
 
 export function formatTime(ms: number): string {
@@ -61,9 +84,13 @@ export interface TimelineInput {
   fps: number
   durationMs: number
   audio: boolean
+  whisperModel?: string
+  language?: string
   t0: number
   samples: CursorSample[]
   clicks: ClickEvent[]
+  segments: TranscriptSegment[] | null
+  words?: TranscriptWord[]
   cursorHz: number
   geometry: Geometry
   frames?: FrameRef[]
@@ -84,6 +111,9 @@ export function buildTimeline(input: TimelineInput): string {
   const events: Event[] = []
   const isFrames = input.format === 'jpg'
   const clicksOnly = input.cursorMode !== 'full'
+  // Like cursor samples and clicks below, speech is limited to the recording's time span.
+  const segments = input.segments ? clipToDuration(input.segments, input.durationMs) : null
+  const words = input.words ? clipToDuration(input.words, input.durationMs) : []
 
   if (isFrames && input.frames) {
     for (const f of input.frames) {
@@ -121,7 +151,16 @@ export function buildTimeline(input: TimelineInput): string {
     if (rel < 0 || rel > input.durationMs) continue
     const p = mapPoint(g, c.x, c.y)
     const where = p.inside ? `${p.x},${p.y}` : `${p.x},${p.y} (outside)`
-    events.push({ t: rel, order: 2, line: `${formatTime(rel)} click ${c.button} ${where}` })
+    const said = words.length ? wordsAround(words, rel / 1000) : ''
+    events.push({ t: rel, order: 2, line: `${formatTime(rel)} click ${c.button} ${where}${said ? ` "${said}"` : ''}` })
+  }
+
+  if (segments) {
+    for (const seg of segments) {
+      const start = seg.start * 1000
+      const end = seg.end * 1000
+      events.push({ t: start, order: 3, line: `[${formatTime(start)} → ${formatTime(end)}] ${seg.text}` })
+    }
   }
 
   events.sort((a, b) => a.t - b.t || a.order - b.order)
@@ -135,14 +174,23 @@ export function buildTimeline(input: TimelineInput): string {
   } else {
     header.push(t('tl.video', { name: input.mediaName, w: input.width, h: input.height, fps: input.fps, duration }))
   }
-  header.push(input.audio ? t('tl.audio') : t('tl.audioNone'))
+  if (input.audio) {
+    header.push(
+      input.segments
+        ? t('tl.audioTranscribed', { model: input.whisperModel ?? '', lang: input.language ?? 'auto' })
+        : t('tl.audioNoTranscript')
+    )
+  } else {
+    header.push(t('tl.audioNone'))
+  }
   const unit = isFrames ? t('tl.unitImage') : t('tl.unitVideo')
   header.push(clicksOnly ? t('tl.cursorClicksOnly', { unit }) : t('tl.cursorFull', { unit, hz: input.cursorHz }))
   header.push('#')
   header.push(t('tl.formatTitle'))
   if (isFrames) header.push(clicksOnly ? t('tl.fmtFrameNoCursor') : t('tl.fmtFrame'))
   if (!clicksOnly) header.push(t('tl.fmtCursor'))
-  header.push(t('tl.fmtClick'))
+  header.push(words.length ? t('tl.fmtClickSpeech') : t('tl.fmtClick'))
+  if (input.segments) header.push(t('tl.fmtSpeech'))
   if (input.warnings.length) {
     header.push('#')
     for (const w of input.warnings) header.push(t('tl.warning', { text: w }))

@@ -17,6 +17,9 @@ extraResources:
 asarUnpack:
   - node_modules/ffmpeg-static/**
   - node_modules/uiohook-napi/**
+  - node_modules/onnxruntime-node/**
+  - node_modules/sharp/**
+  - node_modules/@img/**
 mac:
   category: public.app-category.productivity
   target:

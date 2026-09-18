@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { t } from '../../../shared/i18n'
-import type { Settings } from '../../../shared/types'
+import type { Settings, SpeechLanguage } from '../../../shared/types'
 import { LanguagePicker } from '../components/LanguagePicker'
+import { ModelManager } from '../components/ModelManager'
 import { PermissionsPanel } from '../components/PermissionsPanel'
 import { Toggle } from '../components/Toggle'
 import { FORMATS, RESOLUTIONS, resolutionLabel } from '../options'
@@ -10,6 +11,15 @@ interface Props {
   settings: Settings
   update: (patch: Partial<Settings>) => Promise<void>
 }
+
+const SPEECH_LANGUAGES: { id: SpeechLanguage; label: string }[] = [
+  { id: 'en', label: 'English' },
+  { id: 'it', label: 'Italiano' },
+  { id: 'es', label: 'Español' },
+  { id: 'fr', label: 'Français' },
+  { id: 'de', label: 'Deutsch' },
+  { id: 'pt', label: 'Português' }
+]
 
 export function SettingsPage({ settings, update }: Props) {
   const [shortcut, setShortcut] = useState(settings.shortcut)
@@ -93,6 +103,40 @@ export function SettingsPage({ settings, update }: Props) {
         <div className="card">
           <h3>{t('settings.audioSection')}</h3>
           <Toggle label={t('settings.recordMic')} value={settings.audio} onChange={(v) => update({ audio: v })} />
+          <Toggle
+            label={t('settings.transcribe')}
+            hint={t('settings.transcribeHint')}
+            value={settings.transcribe}
+            disabled={!settings.audio}
+            onChange={(v) => update({ transcribe: v })}
+          />
+          <div className="field mt-4">
+            <label>{t('settings.speechLanguage')}</label>
+            <select value={settings.speechLanguage} onChange={(e) => update({ speechLanguage: e.target.value as SpeechLanguage })}>
+              <option value="auto">{t('settings.autoDetect')}</option>
+              {SPEECH_LANGUAGES.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.label}
+                </option>
+              ))}
+            </select>
+            <span className="hint">{t('settings.speechLanguageHint')}</span>
+          </div>
+          <div className="field">
+            <label>{t('settings.models')}</label>
+            <ModelManager selected={settings.whisperModel} onSelect={(id) => void update({ whisperModel: id })} />
+          </div>
+          <button
+            className="btn danger"
+            onClick={async () => {
+              if (confirm(t('settings.confirmDeleteAll'))) {
+                await window.api.whisper.deleteAll()
+                location.reload()
+              }
+            }}
+          >
+            {t('settings.deleteAll')}
+          </button>
         </div>
 
         <div className="card">

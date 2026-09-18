@@ -5,6 +5,7 @@ import { setupAutotest } from './autotest'
 import { registerIpc } from './ipc'
 import { RecordingSession } from './session'
 import { getSettings, updateSettings } from './settings'
+import { cleanupLegacyModels, killWorker } from './whisper'
 import {
   broadcast,
   createMainWindow,
@@ -86,6 +87,7 @@ app.whenReady().then(() => {
 
   createMainWindow({ show: true })
   registerShortcut(settings)
+  void cleanupLegacyModels()
 })
 
 app.on('second-instance', () => showMainWindow())
@@ -94,4 +96,5 @@ app.on('window-all-closed', () => app.quit())
 app.on('before-quit', () => {
   setQuitting()
   globalShortcut.unregisterAll()
+  killWorker()
 })

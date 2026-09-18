@@ -9,11 +9,12 @@ interface Props {
   settings: Settings
   update: (patch: Partial<Settings>) => Promise<void>
   state: AppState
+  modelInstalled: boolean
   platform: string
   goSettings: () => void
 }
 
-export function Home({ settings, update, state, platform, goSettings }: Props) {
+export function Home({ settings, update, state, modelInstalled, platform, goSettings }: Props) {
   const [displays, setDisplays] = useState<DisplayInfo[]>([])
   const [recordings, setRecordings] = useState<RecordingEntry[]>([])
   const [mode, setMode] = useState<CaptureMode>(settings.lastMode)
@@ -78,6 +79,7 @@ export function Home({ settings, update, state, platform, goSettings }: Props) {
               {formatDuration(state.result.durationMs)} · {state.result.width}×{state.result.height} · {state.result.format.toUpperCase()}
               {state.result.frames !== undefined &&
                 ` · ${t('home.frames', { n: state.result.frames })}${state.result.skippedFrames ? ' ' + t('home.skipped', { n: state.result.skippedFrames }) : ''}`}
+              {state.result.transcriptSegments !== undefined && ` · ${t('home.segments', { n: state.result.transcriptSegments })}`}
             </p>
             {state.result.warnings.map((w, i) => (
               <div key={i} className="notice warn">
@@ -205,7 +207,12 @@ export function Home({ settings, update, state, platform, goSettings }: Props) {
                 </div>
               </div>
               <div className="row wrap small dim mt-2">
-                <span>{t('home.clicks', { value: settings.trackClicks ? t('common.yes') : t('common.no') })}</span>
+                <span>
+                  {t('home.transcription', {
+                    value: settings.audio && settings.transcribe ? (modelInstalled ? `Whisper ${settings.whisperModel}` : t('home.modelMissing')) : t('home.off')
+                  })}
+                </span>
+                <span>· {t('home.clicks', { value: settings.trackClicks ? t('common.yes') : t('common.no') })}</span>
                 <span>
                   · {t('home.shortcut', { value: '' })}
                   {shortcut}

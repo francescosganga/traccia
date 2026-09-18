@@ -14,6 +14,7 @@ export function App() {
   const [settings, setSettingsState] = useState<Settings | null>(null)
   const [state, setState] = useState<AppState>({ status: 'idle' })
   const [page, setPage] = useState<Page>('home')
+  const [modelInstalled, setModelInstalled] = useState(false)
   const [version, setVersion] = useState('')
   const [platform, setPlatform] = useState('darwin')
 
@@ -40,6 +41,11 @@ export function App() {
     }
   }, [setSettings])
 
+  useEffect(() => {
+    if (!settings) return
+    void window.api.whisper.models().then((m) => setModelInstalled(m.some((x) => x.id === settings.whisperModel && x.installed)))
+  }, [settings?.whisperModel, page, state.status])
+
   if (!settings) return null
 
   return (
@@ -61,7 +67,7 @@ export function App() {
         <div className="version">v{version}</div>
       </nav>
       {page === 'home' ? (
-        <Home settings={settings} update={update} state={state} platform={platform} goSettings={() => setPage('settings')} />
+        <Home settings={settings} update={update} state={state} modelInstalled={modelInstalled} platform={platform} goSettings={() => setPage('settings')} />
       ) : (
         <SettingsPage settings={settings} update={update} />
       )}

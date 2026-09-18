@@ -4,6 +4,8 @@ import type { UiLanguage } from './i18n'
 export type OutputFormat = 'mp4' | 'mov' | 'webm' | 'jpg'
 export type Resolution = 'native' | '1080' | '720' | '480'
 export type CaptureMode = 'screen' | 'region'
+export type WhisperModelId = 'tiny' | 'base' | 'small' | 'large-v3-turbo'
+export type SpeechLanguage = 'auto' | 'it' | 'en' | 'es' | 'fr' | 'de' | 'pt'
 
 export interface Rect {
   x: number
@@ -23,6 +25,11 @@ export interface Settings {
   skipUnchangedFrames: boolean
   /** Record the microphone */
   audio: boolean
+  /** Run Whisper on the recorded audio */
+  transcribe: boolean
+  whisperModel: WhisperModelId
+  /** Language spoken in the recording, passed to Whisper */
+  speechLanguage: SpeechLanguage
   /** Log global mouse clicks (needs Accessibility permission on macOS) */
   trackClicks: boolean
   /** How many cursor samples per second are written to the timeline (video mode) */
@@ -68,6 +75,26 @@ export interface ClickEvent {
   y: number
 }
 
+export interface TranscriptSegment {
+  /** Seconds from the start of the recording */
+  start: number
+  end: number
+  text: string
+}
+
+export interface TranscriptWord {
+  start: number
+  end: number
+  text: string
+}
+
+export interface TranscriptResult {
+  /** Short phrases (split on punctuation, pauses and a maximum duration) */
+  segments: TranscriptSegment[]
+  /** Word-level timestamps, when the model provides them */
+  words: TranscriptWord[]
+}
+
 export interface ProcessingProgress {
   step: string
   /** 0..1, or -1 when indeterminate */
@@ -97,7 +124,29 @@ export interface RecordingResult {
   height: number
   frames?: number
   skippedFrames?: number
+  transcriptSegments?: number
   warnings: string[]
+}
+
+export interface WhisperModelInfo {
+  id: WhisperModelId
+  label: string
+  /** Approximate download size */
+  sizeLabel: string
+  description: string
+  installed: boolean
+  sizeOnDisk: number
+  /** Snapshot folder in the Hugging Face cache that can be imported instead of downloading */
+  cachedPath?: string
+}
+
+export interface DownloadProgress {
+  model: WhisperModelId
+  status: 'progress' | 'done' | 'error' | 'cancelled'
+  /** 0..1 across all files of the model */
+  progress: number
+  file?: string
+  error?: string
 }
 
 export type MediaAccessStatus = 'granted' | 'denied' | 'not-determined' | 'restricted' | 'unknown'

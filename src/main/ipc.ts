@@ -1,11 +1,12 @@
 import { app, dialog, ipcMain, screen, shell } from 'electron'
-import type { DisplayInfo, EngineStartedInfo, RecordingRequest, Settings } from '../shared/types'
+import type { DisplayInfo, EngineStartedInfo, RecordingRequest, Settings, WhisperModelId } from '../shared/types'
 import { applySettings } from './apply-settings'
 import { getPermissions, openPrivacySettings, requestPermission } from './permissions'
 import { listRecordings } from './recordings'
 import type { RecordingSession } from './session'
 import { getSettings } from './settings'
-import { getMainWindow, resolveRegion, showMainWindow } from './windows'
+import * as whisper from './whisper'
+import { broadcast, getMainWindow, resolveRegion, showMainWindow } from './windows'
 
 export interface IpcDeps {
   session: RecordingSession
@@ -40,6 +41,23 @@ export function registerIpc({ session, startRecording }: IpcDeps): void {
   ipcMain.handle('permissions:open', (_e, kind) => openPrivacySettings(kind))
   ipcMain.handle('app:version', () => app.getVersion())
   ipcMain.handle('app:platform', () => process.platform)
+
+  // whisper models
+  ipcMain.handle('whisper:models', () => whisper.listModels())
+  ipcMain.handle('whisper:dir', () => whisper.modelsDir())
+  ipcMain.handle('whisper:download', async (_e, id: WhisperModelId) => {
+    try {
+      await whisper.downloadModel(id, (progress, file) => broadcast('whisper:progress', { model: id, status: 'progress', progress, file }))
+      broadcast('whisper:progress', { model: id, status: 'done', progress: 1 })
+    } catch (e) {
+      const msg = (e as Error).message
+      broadcast('whisper:progress', { model: id, status: msg === 'cancelled' ? 'cancelled' : 'error', progress: 0, error: msg })
+      if (msg !== 'cancelled') throw e
+    }
+  })
+  ipcMain.handle('whisper:cancel', (_e, id: WhisperModelId) => whisper.cancelDownload(id))
+  ipcMain.handle('whisper:delete', (_e, id: WhisperModelId) => whisper.deleteModel(id))
+  ipcMain.handle('whisper:deleteAll', () => whisper.deleteAllModels())
 
   // recording
   ipcMain.handle('recording:state', () => session.state)

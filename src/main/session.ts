@@ -11,7 +11,9 @@ import type {
   ProcessingProgress,
   RecordingRequest,
   RecordingResult,
-  Rect
+  Rect,
+  TranscriptSegment,
+  TranscriptWord
 } from '../shared/types'
 import { t } from '../shared/i18n'
 import { CursorTracker } from './cursor'
@@ -19,7 +21,8 @@ import { h264Encoder, h264EncoderArgs, runFfmpeg } from './ffmpeg'
 import { extractFrames } from './frames'
 import { getPermissions, openPrivacySettings } from './permissions'
 import { getSettings } from './settings'
-import { buildTimeline, mapPoint, type Geometry } from './timeline'
+import { buildTimeline, clipToDuration, mapPoint, wordsAround, type Geometry } from './timeline'
+import { isModelInstalled, transcribe } from './whisper'
 
 export interface SessionHost {
   /** WebContents of the hidden main window, where the MediaRecorder engine lives */
@@ -297,6 +300,33 @@ export class RecordingSession {
       await runFfmpeg(args, { durationMs, onProgress: (p) => this.progress({ step: convertStep, progress: p }) })
     }
 
+    let segments: TranscriptSegment[] | null = null
+    let words: TranscriptWord[] = []
+    if (settings.audio && info.hasAudio && settings.transcribe) {
+      if (!isModelInstalled(settings.whisperModel)) {
+        warnings.push(t('warn.modelMissing', { model: settings.whisperModel }))
+      } else {
+        try {
+          this.progress({ step: t('step.extractAudio'), progress: -1 })
+          const audioPath = join(this.dir, 'audio.f32')
+          await runFfmpeg(['-i', this.rawPath, '-vn', '-ac', '1', '-ar', '16000', '-f', 'f32le', '-acodec', 'pcm_f32le', audioPath])
+          const transcribeStep = t('step.transcribe', { model: settings.whisperModel })
+          this.progress({ step: transcribeStep, progress: -1 })
+          const transcript = await transcribe(audioPath, settings.whisperModel, settings.speechLanguage, (p) =>
+            this.progress({ step: transcribeStep, progress: p > 0 ? p : -1 })
+          )
+          // Like cursor samples and clicks, speech is limited to the recording's time span
+          // (Whisper can hallucinate text timestamped past the end of the audio).
+          segments = clipToDuration(transcript.segments, durationMs)
+          words = clipToDuration(transcript.words, durationMs)
+          await rm(audioPath, { force: true })
+        } catch (e) {
+          console.error('transcription failed', e)
+          warnings.push(t('warn.transcriptionFailed', { error: (e as Error).message }))
+        }
+      }
+    }
+
     this.progress({ step: t('step.timeline'), progress: -1 })
     const txtPath = join(this.dir, 'recording.txt')
     const rawTxtPath = join(this.dir, 'recording-raw.txt')
@@ -310,9 +340,13 @@ export class RecordingSession {
       fps: format === 'jpg' ? settings.jpgFps : FRAME_RATE,
       durationMs,
       audio: settings.audio && info.hasAudio,
+      whisperModel: settings.whisperModel,
+      language: settings.speechLanguage,
       t0: info.t0,
       samples: tracking.samples,
       clicks: tracking.clicks,
+      segments,
+      words,
       cursorHz: settings.cursorHz,
       geometry: g,
       frames,
@@ -340,6 +374,7 @@ export class RecordingSession {
       region: this.region,
       cropPx: g.cropPx,
       audio: settings.audio && info.hasAudio,
+      whisper: segments ? { model: settings.whisperModel, language: settings.speechLanguage } : null,
       /** [ms, x, y] in output pixels, full sample rate */
       cursor: tracking.samples
         .filter((s) => s.t >= info.t0 && s.t <= this.stoppedAt)
@@ -351,8 +386,10 @@ export class RecordingSession {
         .filter((c) => c.t >= info.t0 && c.t <= this.stoppedAt)
         .map((c) => {
           const p = mapPoint(g, c.x, c.y)
-          return { t: c.t - info.t0, button: c.button, x: p.x, y: p.y }
+          return { t: c.t - info.t0, button: c.button, x: p.x, y: p.y, speech: wordsAround(words, (c.t - info.t0) / 1000) }
         }),
+      transcript: segments,
+      words,
       frames,
       skippedFrames: skipped,
       warnings
@@ -372,6 +409,7 @@ export class RecordingSession {
       height: g.outHeight,
       frames: frames?.length,
       skippedFrames: skipped,
+      transcriptSegments: segments?.length,
       warnings
     }
   }
