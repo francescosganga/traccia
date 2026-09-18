@@ -113,14 +113,7 @@ Scegli cosa catturare, formato e risoluzione, poi registra. La selezione dell'ar
 
 Scarica dalla [pagina Releases](../../releases/latest) la DMG per il tuo Mac: `arm64` per Apple Silicon (M1 e successivi), `x64` per Intel. Aprila e trascina **Traccia** in Applicazioni.
 
-L'app non è firmata con un certificato sviluppatore Apple, quindi al primo avvio macOS si rifiuta di aprirla ("Apple non è in grado di verificare…"). Due modi per procedere:
-
-- **Impostazioni di Sistema → Privacy e sicurezza**, scorri fino al messaggio su Traccia e clicca **Apri comunque** (serve solo la prima volta);
-- oppure rimuovi il flag di quarantena dal terminale:
-
-```bash
-xattr -cr "/Applications/Traccia.app"
-```
+Le DMG sono firmate con un certificato Developer ID e notarizzate da Apple, quindi l'app si apre senza avvisi.
 
 Se attivi le scorciatoie con i tasti degli screenshot di macOS (⇧⌘5, ⇧⌘4), macOS continua a gestirli finché non li disattivi in **Impostazioni di Sistema → Tastiera → Abbreviazioni da tastiera → Istantanee schermo**; l'app rimanda a quel pannello. I tasti alternativi non richiedono modifiche.
 
@@ -134,7 +127,7 @@ Richiede Node 20+.
 npm install
 npm run dev        # avvia l'app con hot reload
 npm run build      # build di produzione in out/
-npm run dist       # crea la DMG in dist/ (non firmata)
+npm run dist       # crea la DMG in dist/ (firmata solo se nel portachiavi c'è un certificato Developer ID)
 npm run typecheck
 ```
 
@@ -160,7 +153,7 @@ In sviluppo l'app gira dentro `node_modules/electron/dist/Electron.app`, quindi 
 
 ### Release
 
-Le release le costruisce GitHub Actions ([release.yml](.github/workflows/release.yml)): il push di un tag `v*` compila le DMG arm64 e x64 su runner macOS e le allega a una release in bozza, da rivedere e pubblicare dalla pagina Releases.
+Le release le costruisce GitHub Actions ([release.yml](.github/workflows/release.yml)): il push di un tag `v*` compila, firma e notarizza le DMG arm64 e x64 su runner macOS e le allega a una release in bozza, da rivedere e pubblicare dalla pagina Releases. La firma richiede i secret del repository elencati in cima al workflow.
 
 ```bash
 npm version patch   # o minor / major: aggiorna package.json e crea il tag

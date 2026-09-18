@@ -113,14 +113,7 @@ Choose what to capture, the format and the resolution, then record. Dragging a r
 
 Download the DMG for your Mac from the [Releases page](../../releases/latest): `arm64` for Apple Silicon (M1 and later), `x64` for Intel. Open it and drag **Traccia** into Applications.
 
-The app is not signed with an Apple developer certificate, so on first launch macOS refuses to open it ("Apple could not verify…"). Two ways to get past that:
-
-- **System Settings → Privacy & Security**, scroll down to the message about Traccia and click **Open Anyway** (only needed the first time);
-- or remove the quarantine flag from the terminal:
-
-```bash
-xattr -cr "/Applications/Traccia.app"
-```
+The DMGs are signed with a Developer ID certificate and notarized by Apple, so the app opens without warnings.
 
 If you enable the shortcuts with the macOS screenshot keys (⇧⌘5, ⇧⌘4), macOS keeps handling them until you turn them off in **System Settings → Keyboard → Keyboard Shortcuts → Screenshots**; the app links to that pane. The alternative keys need no change.
 
@@ -134,7 +127,7 @@ Requires Node 20+.
 npm install
 npm run dev        # start the app with hot reload
 npm run build      # production build into out/
-npm run dist       # create the DMG in dist/ (unsigned)
+npm run dist       # create the DMG in dist/ (signed only if a Developer ID certificate is in the keychain)
 npm run typecheck
 ```
 
@@ -160,7 +153,7 @@ In development the app runs inside `node_modules/electron/dist/Electron.app`, so
 
 ### Releases
 
-Releases are built by GitHub Actions ([release.yml](.github/workflows/release.yml)): pushing a `v*` tag builds the arm64 and x64 DMGs on macOS runners and attaches them to a draft release, to be reviewed and published from the Releases page.
+Releases are built by GitHub Actions ([release.yml](.github/workflows/release.yml)): pushing a `v*` tag builds, signs and notarizes the arm64 and x64 DMGs on macOS runners and attaches them to a draft release, to be reviewed and published from the Releases page. Signing needs the repository secrets listed at the top of the workflow.
 
 ```bash
 npm version patch   # or minor / major: bumps package.json and creates the tag

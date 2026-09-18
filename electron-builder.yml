@@ -22,13 +22,18 @@ asarUnpack:
   - node_modules/@img/**
 mac:
   category: public.app-category.productivity
-  target:
-    - target: dmg
-      arch: [arm64, x64]
+  # No arch here on purpose: it comes from the CLI (--arm64 / --x64) or defaults to
+  # the host, because the native modules only work for the architecture they were
+  # installed on. An arch list here would override the CLI flag.
+  target: dmg
   icon: build/icon.png
-  # Unsigned build for GitHub releases (no Apple Developer account required).
-  identity: null
-  hardenedRuntime: false
+  # Signed with the Developer ID certificate found in the keychain (or in CSC_LINK) and
+  # notarized when APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD and APPLE_TEAM_ID are set;
+  # without them electron-builder skips both steps and the build is unsigned.
+  hardenedRuntime: true
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  notarize: true
   extendInfo:
     NSMicrophoneUsageDescription: Needed to record your voice along with the screen.
     NSScreenCaptureUsageDescription: Needed to record the screen.
@@ -38,5 +43,3 @@ dmg:
 win:
   target: nsis
   icon: build/icon.png
-publish:
-  provider: github

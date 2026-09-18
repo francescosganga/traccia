@@ -1,15 +1,24 @@
 name: Release
 
-# Runs when a version tag is pushed (e.g. `npm version patch && git push --follow-tags`).
-# Builds the macOS DMGs on GitHub's runners and attaches them to a draft
-# GitHub Release, ready to be reviewed and published.
+# Runs when a version tag is pushed (`npm version patch && git push --follow-tags`).
+# Each architecture is built, signed and notarized on its own macOS runner, then the
+# DMGs are attached to a draft GitHub Release, ready to be reviewed and published.
+#
+# Repository secrets (Settings > Secrets and variables > Actions):
+#   CSC_LINK                     Developer ID Application certificate with its private
+#                                key, exported from Keychain Access as .p12 and
+#                                base64-encoded (`base64 -i cert.p12 | pbcopy`)
+#   CSC_KEY_PASSWORD             password chosen when exporting the .p12
+#   APPLE_ID                     Apple ID of the developer account
+#   APPLE_APP_SPECIFIC_PASSWORD  app-specific password from account.apple.com
+#   APPLE_TEAM_ID                10-character team ID (developer.apple.com > Membership)
 on:
   push:
     tags:
       - 'v*'
 
 permissions:
-  contents: write # needed by electron-builder to create the release with GITHUB_TOKEN
+  contents: write # the release job creates the GitHub Release with GITHUB_TOKEN
 
 jobs:
   build:
@@ -39,7 +48,42 @@ jobs:
 
       - run: npm run build
 
-      - name: Package and upload to GitHub Release
-        run: npx electron-builder --mac --${{ matrix.arch }} --config electron-builder.yml --publish always
+      - name: Package, sign and notarize
+        run: npx electron-builder --mac --${{ matrix.arch }} --config electron-builder.yml --publish never
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      # electron-builder only warns when it cannot sign or notarize; fail here
+      # instead of shipping a DMG that Gatekeeper will reject.
+      - name: Verify signature and notarization
+        run: |
+          app=$(ls -d dist/mac*/*.app)
+          codesign --verify --deep --strict --verbose=2 "$app"
+          xcrun stapler validate "$app"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dmg-${{ matrix.arch }}
+          path: dist/*.dmg
+          if-no-files-found: error
+
+  # A single job creates the release: publishing from each build job in parallel
+  # raced and produced two draft releases for the same tag.
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: dmg-*
+          merge-multiple: true
+          path: dist
+
+      - name: Create draft release
+        run: gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft --title "${GITHUB_REF_NAME#v}" --generate-notes dist/*.dmg
+        env:
+          GH_TOKEN: ${{ github.token }}

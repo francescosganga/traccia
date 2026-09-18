@@ -10,7 +10,7 @@ npm run dev          # app with hot reload
 npm run typecheck    # both tsconfigs; must pass before every commit
 npm run build        # production build into out/
 npm run link         # unpacked .app symlinked into /Applications, for testing the packaged build
-npm run dist         # unsigned DMG in dist/
+npm run dist         # DMG in dist/, signed only if a Developer ID certificate is in the keychain
 npm run build && TRACCIA_AUTOTEST=6 npx electron .   # records 6 s of the primary display and quits
 npm run build && TRACCIA_SCREENSHOTS=docs/screenshots npx electron .   # regenerates the wizard/home/settings screenshots
 ```
@@ -40,7 +40,7 @@ Node 20+. There is no linter or formatter configured: match the surrounding code
 - macOS permissions in development are granted to `Electron.app` (the app runs from `node_modules/electron`), not to Traccia. After granting Screen Recording or Accessibility, restart the app.
 - The native modules (`uiohook-napi`, `onnxruntime-node`, `sharp`, `ffmpeg-static`) ship binaries for the host architecture only: build arm64 on Apple Silicon and x64 on Intel. That is why `release.yml` uses one runner per architecture, and why they are `asarUnpack`ed in `electron-builder.yml`.
 - Whisper models are the `_timestamped` ONNX exports from `onnx-community` (they give word-level timestamps); models already in the Hugging Face cache are hard-linked, not downloaded again.
-- The build is unsigned on purpose (`identity: null`): do not add steps that need an Apple Developer account.
+- Releases are signed with Developer ID and notarized, with the hardened runtime and the entitlements in `build/entitlements.mac.plist`. The credentials exist only as the GitHub secrets listed at the top of `release.yml`; never put them in the repo. Under the hardened runtime a device needs its entitlement: without `com.apple.security.device.audio-input` the microphone is silently denied.
 
 ## Git
 
