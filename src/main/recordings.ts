@@ -14,6 +14,7 @@ export async function listRecordings(outputDir: string, limit = 20): Promise<Rec
     try {
       const meta = JSON.parse(await readFile(jsonPath, 'utf8'))
       const s = await stat(jsonPath)
+      const promptPath = join(dir, 'PROMPT.md')
       entries.push({
         dir,
         name,
@@ -22,7 +23,8 @@ export async function listRecordings(outputDir: string, limit = 20): Promise<Rec
         durationMs: meta.durationMs ?? 0,
         mediaPath: join(dir, meta.media ?? ''),
         txtPath: join(dir, 'recording.txt'),
-        rawTxtPath: join(dir, 'recording-raw.txt')
+        rawTxtPath: join(dir, 'recording-raw.txt'),
+        promptPath: existsSync(promptPath) ? promptPath : undefined
       })
     } catch (e) {
       console.error('cannot read', jsonPath, e)

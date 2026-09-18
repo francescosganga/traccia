@@ -14,7 +14,8 @@ Every recording produces, in the same folder:
 - the video (`recording.mp4` / `.mov` / `.webm`) **or** a JPG sequence at a few frames per second (`frames/`);
 - `recording.txt`: a timeline a model can read, with the **mouse clicks** (and their coordinates) and the **voice transcript** (Whisper, running locally);
 - `recording-raw.txt`: the same timeline plus the **pointer movement** (position sampled at a configurable rate) — heavier, for when the path of the pointer matters;
-- `recording.json`: the same data in full (cursor at 120 Hz, geometry, etc.).
+- `recording.json`: the same data in full (cursor at 120 Hz, geometry, etc.);
+- `PROMPT.md`: the instructions for the AI — what the folder contains (with absolute paths), how to read the timeline and what to do with it. When the recording is done, **Copy prompt for AI** puts `Read the file …/PROMPT.md and follow its instructions.` in the clipboard: paste it into Claude Code, Cursor or any agent that can read files and it finds everything on its own.
 
 The `recording.txt` produced by the demo above (JPG mode, 2 fps):
 
@@ -58,6 +59,7 @@ The `recording.txt` produced by the demo above (JPG mode, 2 fps):
 - **Word-level timestamps**: speech is split into short phrases that interleave with the clicks, and every click line also carries the words being spoken at that moment (`click left 820,352 "now I click Save"`).
 - Pointer sampled at 120 Hz and global mouse clicks (with the Accessibility permission).
 - In JPG mode, frames identical to the previous one (cursor excluded) are skipped.
+- `PROMPT.md` in every recording folder and a one-click **Copy prompt for AI** (also in the recent recordings list and in the menu bar).
 - Floating widget with timer and Stop (excluded from the capture). Optional global shortcuts, off by default: the macOS screenshot keys (⇧⌘5 full screen, ⇧⌘4 region), alternative ones (⌃⌥⌘5, ⌃⌥⌘4) or your own; either one also stops.
 - Menu bar icon with quick actions: record screen/region, stop, format, resolution, fps, microphone, transcription, clicks, recent recordings.
 - Open at login (menu-bar-only start), optional Dock icon.

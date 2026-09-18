@@ -1,4 +1,4 @@
-import { app, dialog, ipcMain, screen, shell } from 'electron'
+import { app, clipboard, dialog, ipcMain, screen, shell } from 'electron'
 import type { DisplayInfo, EngineStartedInfo, LoginItemStatus, RecordingRequest, Settings, WhisperModelId } from '../shared/types'
 import { applySettings } from './apply-settings'
 import { getPermissions, openKeyboardShortcuts, openPrivacySettings, requestPermission } from './permissions'
@@ -42,6 +42,7 @@ export function registerIpc({ session, startRecording }: IpcDeps): void {
   ipcMain.handle('system:openKeyboardShortcuts', () => openKeyboardShortcuts())
   ipcMain.handle('app:version', () => app.getVersion())
   ipcMain.handle('app:platform', () => process.platform)
+  ipcMain.handle('clipboard:write', (_e, text: string) => clipboard.writeText(text))
   ipcMain.handle('app:loginItem', (): LoginItemStatus => {
     if (!app.isPackaged) return { openAtLogin: false, status: 'unknown', packaged: false }
     const s = app.getLoginItemSettings()

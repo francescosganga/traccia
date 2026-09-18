@@ -135,6 +135,8 @@ export interface RecordingResult {
   /** Same timeline plus pointer movement */
   rawTxtPath: string
   jsonPath: string
+  /** PROMPT.md: instructions for an AI on how to read the folder */
+  promptPath: string
   durationMs: number
   format: OutputFormat
   width: number
@@ -183,6 +185,8 @@ export interface RecordingEntry {
   mediaPath: string
   txtPath: string
   rawTxtPath: string
+  /** Missing for recordings made before PROMPT.md existed */
+  promptPath?: string
 }
 
 /** Sent from main to the recorder engine living in the main window's renderer */

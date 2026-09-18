@@ -88,7 +88,8 @@ export function Home({ settings, update, state, modelInstalled, platform, goSett
               </div>
             ))}
             <div className="row wrap mt-3">
-              <button className="btn primary" onClick={() => window.api.recordings.showInFolder(state.result.txtPath)}>
+              <CopyPromptButton promptPath={state.result.promptPath} className="btn primary" />
+              <button className="btn" onClick={() => window.api.recordings.showInFolder(state.result.txtPath)}>
                 <Icon name="folder" />
                 {reveal}
               </button>
@@ -245,6 +246,7 @@ export function Home({ settings, update, state, modelInstalled, platform, goSett
                     </span>
                   </div>
                   <div className="row">
+                    {r.promptPath && <CopyPromptButton promptPath={r.promptPath} className="btn ghost sm" />}
                     <button className="btn ghost sm" onClick={() => window.api.recordings.open(r.txtPath)}>
                       {t('home.openTxt')}
                     </button>
@@ -263,6 +265,26 @@ export function Home({ settings, update, state, modelInstalled, platform, goSett
         )}
       </div>
     </div>
+  )
+}
+
+/**
+ * Puts "Read the file …/PROMPT.md" in the clipboard: the one line to paste into an
+ * AI agent so it finds the recording and the instructions on how to read it.
+ */
+function CopyPromptButton({ promptPath, className }: { promptPath: string; className: string }) {
+  const [copied, setCopied] = useState(false)
+  useEffect(() => {
+    if (!copied) return
+    const timer = setTimeout(() => setCopied(false), 2000)
+    return () => clearTimeout(timer)
+  }, [copied])
+  const copy = () => void window.api.system.copyText(t('prompt.clipboard', { path: promptPath })).then(() => setCopied(true))
+  return (
+    <button className={className} onClick={copy} title={t('prompt.clipboard', { path: promptPath })}>
+      <Icon name={copied ? 'check' : 'copy'} />
+      {copied ? t('home.copied') : t('home.copyPrompt')}
+    </button>
   )
 }
 

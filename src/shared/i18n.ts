@@ -111,6 +111,8 @@ const en = {
   'home.openTxt': 'Open recording.txt',
   'home.openRawTxt': 'Open recording-raw.txt',
   'home.openVideo': 'Open video',
+  'home.copyPrompt': 'Copy prompt for AI',
+  'home.copied': 'Copied!',
   'home.selectArea': 'Select the area on screen',
   'home.recording': 'Recording',
   'home.what': 'What to record',
@@ -201,6 +203,7 @@ const en = {
   'tray.openFolder': 'Open recordings folder',
   'tray.openTxt': 'Open recording.txt',
   'tray.openRawTxt': 'Open recording-raw.txt',
+  'tray.copyPrompt': 'Copy prompt for AI',
   'tray.revealMac': 'Show in Finder',
   'tray.revealOther': 'Show in folder',
 
@@ -245,7 +248,65 @@ const en = {
   'tl.fmtClick': '#   mm:ss.mmm click left|right|middle X,Y  mouse click',
   'tl.fmtClickSpeech': '#   mm:ss.mmm click left|right|middle X,Y "words"  mouse click and the words being spoken at that moment',
   'tl.fmtSpeech': '#   [mm:ss.mmm → mm:ss.mmm] text          transcribed speech',
-  'tl.warning': '# Warning: {text}'
+  'tl.warning': '# Warning: {text}',
+
+  // PROMPT.md (instructions for the AI) and the sentence copied to the clipboard
+  'prompt.clipboard': 'Read the file {path} and follow its instructions.',
+  'prompt.title': '# Screen recording for an AI',
+  'prompt.intro':
+    'This folder contains a screen recording made with Traccia. A person recorded their screen{talking} to explain something to you: a task to carry out, a bug to reproduce, a procedure to follow, something to check. Go through it as if you were sitting next to them, watching the screen.',
+  'prompt.introTalking': ' while talking',
+  'prompt.folder': 'Folder: `{dir}`',
+  'prompt.and': ' and ',
+  'prompt.filesTitle': '## Files',
+  'prompt.fileTxt': '- `{path}` — **start here**. A text timeline with {items}. Its header explains the line format.',
+  'prompt.itemFrames': 'the instant each frame was captured',
+  'prompt.itemClicks': 'the mouse clicks (with their coordinates{speech})',
+  'prompt.itemClicksSpeech': ' and the words being spoken at that moment',
+  'prompt.itemTranscript': 'the voice transcript in short timestamped phrases',
+  'prompt.itemNothing': 'only a header (no clicks and no transcript were recorded)',
+  'prompt.fileFrames': '- `{path}` — {n} JPG screenshots ({w}x{h}) taken {fps} times per second: `frame_00001.jpg` … `{last}`.',
+  'prompt.fileFramesSkipped':
+    ' Consecutive frames that were identical apart from the cursor were dropped ({n} skipped): to know when each frame was taken use the timestamps in recording.txt, not the file numbers.',
+  'prompt.fileVideo': '- `{path}` — the video ({w}x{h}, {fps} fps, duration {duration}){audio}.',
+  'prompt.fileVideoAudio': ', with the microphone audio',
+  'prompt.fileAudio': '- `{path}` — the microphone audio.',
+  'prompt.fileRawTxt':
+    '- `{path}` — the same timeline plus the pointer movement ({hz} positions per second). Open it only when the path of the pointer matters (drag and drop, drawing, hovering).',
+  'prompt.fileJson':
+    '- `{path}` — everything in machine-readable form: cursor samples at 120 Hz, clicks, transcript with word-level timestamps, frame list, capture geometry.',
+  'prompt.readingTitle': '## How to read the timeline',
+  'prompt.readTimes': '- Times are `mm:ss.mmm` from the start of the recording (duration {duration}).',
+  'prompt.readPaths': '- File names in the timeline are relative to `{dir}`.',
+  'prompt.readCoords': '- Coordinates are pixels of the {unit}, origin at the top-left corner.',
+  'prompt.readClick':
+    '- `00:05.120 click left 820,352{speech}`: at 5.12 s the person left-clicked at x=820, y=352{meaning}. To see what was clicked, {howToSee} and look at that position.',
+  'prompt.readClickSpeech': ' "now I click Save"',
+  'prompt.readClickMeaning': ' while saying those words',
+  'prompt.readClickSeeFrame': 'open the last frame listed before that instant',
+  'prompt.readClickSeeVideo': 'extract a frame at that instant (see below)',
+  'prompt.readSpeech':
+    '- `[00:04.000 → 00:10.000] text`: what the person said in that interval. The transcript was produced automatically by Whisper {model} (language: {lang}): names, technical terms and code identifiers can be mis-transcribed — when the words and the screen disagree, trust the screen.',
+  'prompt.readVideo': '- To look at the screen at a given instant, extract a frame from the video: `ffmpeg -ss 00:05.120 -i "{path}" -frames:v 1 frame.jpg`.',
+  'prompt.noTranscript': '- The voice was recorded but not transcribed: {where}. Transcribe it if you can (for example with Whisper), otherwise rely on what is shown.',
+  'prompt.noTranscriptFile': 'it is in `{path}`',
+  'prompt.noTranscriptVideo': 'it is the audio track of `{path}`',
+  'prompt.noAudio': '- No audio was recorded: the explanation is only visual (screen{clicks}); the request may come in the message that accompanies this file.',
+  'prompt.noAudioClicks': ' and clicks',
+  'prompt.noClicks': '- Mouse clicks were not recorded.',
+  'prompt.notesTitle': '## Notes',
+  'prompt.warning': '- {text}',
+  'prompt.todoTitle': '## What to do',
+  'prompt.todo1': '1. Read `{path}` in full.',
+  'prompt.todo2Frames': '2. Look at the frames in order{clicks} to see what the person is showing you.',
+  'prompt.todo2FramesClicks': ' — at least the ones just before each click —',
+  'prompt.todo2Video': '2. Extract and look at frames around the moments that matter{hints} to see what the person is showing you.',
+  'prompt.todo2VideoClicks': 'each click',
+  'prompt.todo2VideoSpeech': 'each thing mentioned in the transcript',
+  'prompt.todo3':
+    '3. Combine what is shown with what is said to work out what the person is asking for, then carry it out (or answer). If the request is ambiguous, ask before acting.',
+  'prompt.todo3NoAudio':
+    '3. Work out from what is shown what the person is asking for, then carry it out (or answer). If the request is ambiguous, ask before acting.'
 }
 
 export type TranslationKey = keyof typeof en
@@ -345,6 +406,8 @@ const it: Record<TranslationKey, string> = {
   'home.openTxt': 'Apri recording.txt',
   'home.openRawTxt': 'Apri recording-raw.txt',
   'home.openVideo': 'Apri video',
+  'home.copyPrompt': "Copia prompt per l'AI",
+  'home.copied': 'Copiato!',
   'home.selectArea': "Seleziona l'area sullo schermo",
   'home.recording': 'Registrazione in corso',
   'home.what': 'Cosa registrare',
@@ -432,6 +495,7 @@ const it: Record<TranslationKey, string> = {
   'tray.openFolder': 'Apri cartella registrazioni',
   'tray.openTxt': 'Apri recording.txt',
   'tray.openRawTxt': 'Apri recording-raw.txt',
+  'tray.copyPrompt': "Copia prompt per l'AI",
   'tray.revealMac': 'Mostra nel Finder',
   'tray.revealOther': 'Mostra nella cartella',
 
@@ -473,7 +537,64 @@ const it: Record<TranslationKey, string> = {
   'tl.fmtClick': '#   mm:ss.mmm click left|right|middle X,Y  click del mouse',
   'tl.fmtClickSpeech': '#   mm:ss.mmm click left|right|middle X,Y "parole"  click del mouse e le parole pronunciate in quel momento',
   'tl.fmtSpeech': '#   [mm:ss.mmm → mm:ss.mmm] testo          parlato trascritto',
-  'tl.warning': '# Avviso: {text}'
+  'tl.warning': '# Avviso: {text}',
+
+  'prompt.clipboard': 'Leggi il file {path} e segui le istruzioni che contiene.',
+  'prompt.title': "# Registrazione dello schermo per un'AI",
+  'prompt.intro':
+    'Questa cartella contiene una registrazione dello schermo fatta con Traccia. Una persona ha registrato il proprio schermo{talking} per spiegarti qualcosa: un compito da svolgere, un bug da riprodurre, una procedura da seguire, qualcosa da controllare. Seguila come se fossi seduto accanto a lei a guardare lo schermo.',
+  'prompt.introTalking': ' parlando',
+  'prompt.folder': 'Cartella: `{dir}`',
+  'prompt.and': ' e ',
+  'prompt.filesTitle': '## File',
+  'prompt.fileTxt': "- `{path}` — **parti da qui**. Una timeline testuale con {items}. L'intestazione spiega il formato delle righe.",
+  'prompt.itemFrames': "l'istante in cui è stato catturato ogni frame",
+  'prompt.itemClicks': 'i click del mouse (con le coordinate{speech})',
+  'prompt.itemClicksSpeech': ' e le parole pronunciate in quel momento',
+  'prompt.itemTranscript': 'la trascrizione della voce in brevi frasi con timestamp',
+  'prompt.itemNothing': 'la sola intestazione (non sono stati registrati né click né trascrizione)',
+  'prompt.fileFrames': '- `{path}` — {n} screenshot JPG ({w}x{h}) presi {fps} volte al secondo: `frame_00001.jpg` … `{last}`.',
+  'prompt.fileFramesSkipped':
+    ' I frame consecutivi identici (cursore a parte) sono stati scartati ({n} saltati): per sapere quando è stato preso ogni frame usa i timestamp in recording.txt, non la numerazione dei file.',
+  'prompt.fileVideo': '- `{path}` — il video ({w}x{h}, {fps} fps, durata {duration}){audio}.',
+  'prompt.fileVideoAudio': ", con l'audio del microfono",
+  'prompt.fileAudio': "- `{path}` — l'audio del microfono.",
+  'prompt.fileRawTxt':
+    '- `{path}` — la stessa timeline più il movimento del puntatore ({hz} posizioni al secondo). Aprilo solo quando conta il percorso del puntatore (drag and drop, disegno, hover).',
+  'prompt.fileJson':
+    '- `{path}` — tutto in forma leggibile da un programma: campioni del cursore a 120 Hz, click, trascrizione con timestamp per parola, elenco dei frame, geometria della cattura.',
+  'prompt.readingTitle': '## Come leggere la timeline',
+  'prompt.readTimes': "- I tempi sono `mm:ss.mmm` dall'inizio della registrazione (durata {duration}).",
+  'prompt.readPaths': '- I nomi dei file nella timeline sono relativi a `{dir}`.',
+  'prompt.readCoords': '- Le coordinate sono pixel {unit}, origine in alto a sinistra.',
+  'prompt.readClick':
+    '- `00:05.120 click left 820,352{speech}`: a 5,12 s la persona ha cliccato col tasto sinistro in x=820, y=352{meaning}. Per vedere cosa ha cliccato, {howToSee} e guarda in quella posizione.',
+  'prompt.readClickSpeech': ' "ora clicco su Salva"',
+  'prompt.readClickMeaning': ' mentre diceva quelle parole',
+  'prompt.readClickSeeFrame': "apri l'ultimo frame elencato prima di quell'istante",
+  'prompt.readClickSeeVideo': "estrai un frame in quell'istante (vedi sotto)",
+  'prompt.readSpeech':
+    "- `[00:04.000 → 00:10.000] testo`: ciò che la persona ha detto in quell'intervallo. La trascrizione è stata prodotta automaticamente da Whisper {model} (lingua: {lang}): nomi, termini tecnici e identificatori di codice possono essere trascritti male — se parole e schermo non concordano, fidati dello schermo.",
+  'prompt.readVideo': '- Per vedere lo schermo in un dato istante estrai un frame dal video: `ffmpeg -ss 00:05.120 -i "{path}" -frames:v 1 frame.jpg`.',
+  'prompt.noTranscript': '- La voce è stata registrata ma non trascritta: {where}. Trascrivila se puoi (per esempio con Whisper), altrimenti basati su ciò che viene mostrato.',
+  'prompt.noTranscriptFile': 'la trovi in `{path}`',
+  'prompt.noTranscriptVideo': 'è la traccia audio di `{path}`',
+  'prompt.noAudio': '- Non è stato registrato audio: la spiegazione è solo visiva (schermo{clicks}); la richiesta può arrivare nel messaggio che accompagna questo file.',
+  'prompt.noAudioClicks': ' e click',
+  'prompt.noClicks': '- I click del mouse non sono stati registrati.',
+  'prompt.notesTitle': '## Note',
+  'prompt.warning': '- {text}',
+  'prompt.todoTitle': '## Cosa fare',
+  'prompt.todo1': '1. Leggi `{path}` per intero.',
+  'prompt.todo2Frames': '2. Guarda i frame in ordine{clicks} per vedere cosa ti sta mostrando la persona.',
+  'prompt.todo2FramesClicks': ' — almeno quelli subito prima di ogni click —',
+  'prompt.todo2Video': '2. Estrai e guarda i frame nei momenti che contano{hints} per vedere cosa ti sta mostrando la persona.',
+  'prompt.todo2VideoClicks': 'ogni click',
+  'prompt.todo2VideoSpeech': 'ogni cosa citata nella trascrizione',
+  'prompt.todo3':
+    '3. Metti insieme ciò che viene mostrato e ciò che viene detto per capire cosa ti sta chiedendo la persona, poi fallo (o rispondi). Se la richiesta è ambigua, chiedi prima di agire.',
+  'prompt.todo3NoAudio':
+    '3. Capisci da ciò che viene mostrato cosa ti sta chiedendo la persona, poi fallo (o rispondi). Se la richiesta è ambigua, chiedi prima di agire.'
 }
 
 const dictionaries: Record<UiLanguage, Record<TranslationKey, string>> = { en, it }

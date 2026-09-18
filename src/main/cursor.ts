@@ -13,11 +13,14 @@ export class CursorTracker {
   samples: CursorSample[] = []
   clicks: ClickEvent[] = []
   warnings: string[] = []
+  /** True once the global mouse hook is actually running */
+  private clicksTracked = false
 
   start(trackClicks: boolean, sampleHz = 120): void {
     this.samples = []
     this.clicks = []
     this.warnings = []
+    this.clicksTracked = false
     this.timer = setInterval(() => {
       const p = screen.getCursorScreenPoint()
       this.samples.push({ t: Date.now(), x: p.x, y: p.y })
@@ -38,6 +41,7 @@ export class CursorTracker {
         this.clicks.push({ t: Date.now(), button, x: p.x, y: p.y })
       })
       uIOhook.start()
+      this.clicksTracked = true
     } catch (e) {
       console.error('uiohook failed to start', e)
       this.hook = null
@@ -45,7 +49,7 @@ export class CursorTracker {
     }
   }
 
-  stop(): { samples: CursorSample[]; clicks: ClickEvent[]; warnings: string[] } {
+  stop(): { samples: CursorSample[]; clicks: ClickEvent[]; warnings: string[]; clicksTracked: boolean } {
     if (this.timer) clearInterval(this.timer)
     this.timer = null
     if (this.hook) {
@@ -57,6 +61,6 @@ export class CursorTracker {
       }
       this.hook = null
     }
-    return { samples: this.samples, clicks: this.clicks, warnings: this.warnings }
+    return { samples: this.samples, clicks: this.clicks, warnings: this.warnings, clicksTracked: this.clicksTracked }
   }
 }

@@ -37,6 +37,7 @@ const api = {
     openKeyboardShortcuts: (): Promise<void> => ipcRenderer.invoke('system:openKeyboardShortcuts'),
     version: (): Promise<string> => ipcRenderer.invoke('app:version'),
     platform: (): Promise<string> => ipcRenderer.invoke('app:platform'),
+    copyText: (text: string): Promise<void> => ipcRenderer.invoke('clipboard:write', text),
     loginItem: (): Promise<LoginItemStatus> => ipcRenderer.invoke('app:loginItem')
   },
   whisper: {

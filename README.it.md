@@ -14,7 +14,8 @@ Ogni registrazione produce, nella stessa cartella:
 - il video (`recording.mp4` / `.mov` / `.webm`) **oppure** una sequenza di JPG a pochi fps (`frames/`);
 - `recording.txt`: una timeline leggibile da un modello con i **click del mouse** (e le loro coordinate) e la **trascrizione della voce** (Whisper, in locale);
 - `recording-raw.txt`: la stessa timeline più i **movimenti del puntatore** (posizione campionata a frequenza configurabile) — più pesante, per quando conta il percorso del puntatore;
-- `recording.json`: gli stessi dati in forma completa (cursore a 120 Hz, geometria, ecc.).
+- `recording.json`: gli stessi dati in forma completa (cursore a 120 Hz, geometria, ecc.);
+- `PROMPT.md`: le istruzioni per l'AI — cosa contiene la cartella (con percorsi assoluti), come leggere la timeline e cosa farne. A registrazione finita, **Copia prompt per l'AI** mette negli appunti `Leggi il file …/PROMPT.md e segui le istruzioni che contiene.`: incollalo in Claude Code, Cursor o qualsiasi agente che sappia leggere file e trova tutto da solo.
 
 Il `recording.txt` prodotto dalla demo qui sopra (modalità JPG, 2 fps; l'interfaccia era in inglese):
 
@@ -58,6 +59,7 @@ Il `recording.txt` prodotto dalla demo qui sopra (modalità JPG, 2 fps; l'interf
 - **Timestamp a livello di parola**: il parlato è spezzato in frasi brevi che si intercalano ai click, e ogni riga di click riporta anche le parole pronunciate in quel momento (`click left 820,352 "ora clicco su Salva"`).
 - Puntatore campionato a 120 Hz e click globali (con permesso Accessibilità).
 - In modalità JPG i frame identici al precedente (cursore escluso) vengono saltati.
+- `PROMPT.md` in ogni cartella di registrazione e **Copia prompt per l'AI** con un click (anche nell'elenco delle registrazioni recenti e nella barra dei menu).
 - Widget flottante con timer e Stop (escluso dalla registrazione). Scorciatoie globali opzionali, disattivate di default: i tasti degli screenshot di macOS (⇧⌘5 tutto lo schermo, ⇧⌘4 area), quelli alternativi (⌃⌥⌘5, ⌃⌥⌘4) o i tuoi; entrambe fermano anche la registrazione.
 - Icona nella barra dei menu con azioni rapide: registra schermo/area, stop, formato, risoluzione, fps, microfono, trascrizione, click, registrazioni recenti.
 - Apertura al login (avvio solo nella barra dei menu), icona nel Dock opzionale.

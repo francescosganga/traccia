@@ -20,6 +20,7 @@ import { CursorTracker } from './cursor'
 import { h264Encoder, h264EncoderArgs, runFfmpeg } from './ffmpeg'
 import { extractFrames } from './frames'
 import { getPermissions, openPrivacySettings } from './permissions'
+import { buildPrompt } from './prompt'
 import { getSettings } from './settings'
 import { buildTimeline, clipToDuration, mapPoint, wordsAround, type Geometry } from './timeline'
 import { isModelInstalled, transcribe } from './whisper'
@@ -244,7 +245,12 @@ export class RecordingSession {
     return { displayBounds: display.bounds, scale, cropPx, outScale: outWidth / cropPx.width, outWidth, outHeight }
   }
 
-  private async process(tracking: { samples: CursorSample[]; clicks: ClickEvent[]; warnings: string[] }): Promise<RecordingResult> {
+  private async process(tracking: {
+    samples: CursorSample[]
+    clicks: ClickEvent[]
+    warnings: string[]
+    clicksTracked: boolean
+  }): Promise<RecordingResult> {
     const settings = getSettings()
     const info = this.info!
     const durationMs = this.stoppedAt - info.t0
@@ -331,6 +337,7 @@ export class RecordingSession {
     const txtPath = join(this.dir, 'recording.txt')
     const rawTxtPath = join(this.dir, 'recording-raw.txt')
     const jsonPath = join(this.dir, 'recording.json')
+    const promptPath = join(this.dir, 'PROMPT.md')
     const timelineInput = {
       createdAt: this.startedAtDate,
       format,
@@ -356,6 +363,30 @@ export class RecordingSession {
     // recording.txt: clicks, speech and frames. recording-raw.txt: the same plus pointer movement.
     await writeFile(txtPath, buildTimeline({ ...timelineInput, cursorMode: 'clicks' }), 'utf8')
     await writeFile(rawTxtPath, buildTimeline({ ...timelineInput, cursorMode: 'full' }), 'utf8')
+    // PROMPT.md: what an AI needs to know to read this folder, with absolute paths.
+    await writeFile(
+      promptPath,
+      buildPrompt({
+        dir: this.dir,
+        format,
+        mediaName: timelineInput.mediaName,
+        width: g.outWidth,
+        height: g.outHeight,
+        fps: timelineInput.fps,
+        durationMs,
+        audio: timelineInput.audio,
+        transcribed: segments !== null,
+        hasWords: words.length > 0,
+        whisperModel: settings.whisperModel,
+        language: settings.speechLanguage,
+        clicksTracked: tracking.clicksTracked,
+        cursorHz: settings.cursorHz,
+        frames: frames?.length,
+        skippedFrames: skipped,
+        warnings
+      }),
+      'utf8'
+    )
 
     const json = {
       version: 1,
@@ -365,6 +396,7 @@ export class RecordingSession {
       media: format === 'jpg' ? 'frames/' : `recording.${format}`,
       timeline: 'recording.txt',
       rawTimeline: 'recording-raw.txt',
+      prompt: 'PROMPT.md',
       width: g.outWidth,
       height: g.outHeight,
       fps: format === 'jpg' ? settings.jpgFps : FRAME_RATE,
@@ -403,6 +435,7 @@ export class RecordingSession {
       txtPath,
       rawTxtPath,
       jsonPath,
+      promptPath,
       durationMs,
       format,
       width: g.outWidth,

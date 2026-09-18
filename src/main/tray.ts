@@ -1,4 +1,4 @@
-import { Menu, Tray, app, nativeImage, shell, type MenuItemConstructorOptions } from 'electron'
+import { Menu, Tray, app, clipboard, nativeImage, shell, type MenuItemConstructorOptions } from 'electron'
 import { join } from 'path'
 import { locale, t } from '../shared/i18n'
 import type { AppState, OutputFormat, Resolution } from '../shared/types'
@@ -72,6 +72,9 @@ export async function refreshTray(): Promise<void> {
     ? recordings.map((r) => ({
         label: `${new Date(r.createdAt).toLocaleString(locale(), { dateStyle: 'short', timeStyle: 'short' })} · ${formatTime(r.durationMs).slice(0, 5)} · ${r.format.toUpperCase()}`,
         submenu: [
+          ...(r.promptPath
+            ? [{ label: t('tray.copyPrompt'), click: () => clipboard.writeText(t('prompt.clipboard', { path: r.promptPath! })) }]
+            : []),
           { label: t('tray.openTxt'), click: () => void shell.openPath(r.txtPath) },
           { label: t('tray.openRawTxt'), click: () => void shell.openPath(r.rawTxtPath) },
           { label: reveal, click: () => shell.showItemInFolder(r.txtPath) }
