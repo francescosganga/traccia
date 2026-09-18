@@ -58,7 +58,7 @@ The `recording.txt` produced by the demo above (JPG mode, 2 fps):
 - **Word-level timestamps**: speech is split into short phrases that interleave with the clicks, and every click line also carries the words being spoken at that moment (`click left 820,352 "now I click Save"`).
 - Pointer sampled at 120 Hz and global mouse clicks (with the Accessibility permission).
 - In JPG mode, frames identical to the previous one (cursor excluded) are skipped.
-- Floating widget with timer and Stop (excluded from the capture), global shortcut.
+- Floating widget with timer and Stop (excluded from the capture). Optional global shortcuts, off by default: the macOS screenshot keys (⇧⌘5 full screen, ⇧⌘4 region), alternative ones (⌃⌥⌘5, ⌃⌥⌘4) or your own; either one also stops.
 - Menu bar icon with quick actions: record screen/region, stop, format, resolution, fps, microphone, transcription, clicks, recent recordings.
 - Open at login (menu-bar-only start), optional Dock icon.
 - Interface in English and Italian.
@@ -119,6 +119,8 @@ The app is not signed with an Apple developer certificate, so on first launch ma
 ```bash
 xattr -cr "/Applications/Traccia.app"
 ```
+
+If you enable the shortcuts with the macOS screenshot keys (⇧⌘5, ⇧⌘4), macOS keeps handling them until you turn them off in **System Settings → Keyboard → Keyboard Shortcuts → Screenshots**; the app links to that pane. The alternative keys need no change.
 
 ## Development
 

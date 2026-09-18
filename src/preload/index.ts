@@ -34,6 +34,7 @@ const api = {
     permissions: (): Promise<Permissions> => ipcRenderer.invoke('permissions:get'),
     requestPermission: (kind: 'screen' | 'microphone' | 'accessibility'): Promise<Permissions> => ipcRenderer.invoke('permissions:request', kind),
     openPrivacySettings: (kind: 'screen' | 'microphone' | 'accessibility'): Promise<void> => ipcRenderer.invoke('permissions:open', kind),
+    openKeyboardShortcuts: (): Promise<void> => ipcRenderer.invoke('system:openKeyboardShortcuts'),
     version: (): Promise<string> => ipcRenderer.invoke('app:version'),
     platform: (): Promise<string> => ipcRenderer.invoke('app:platform'),
     loginItem: (): Promise<LoginItemStatus> => ipcRenderer.invoke('app:loginItem')

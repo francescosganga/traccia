@@ -35,3 +35,9 @@ export function openPrivacySettings(kind: 'screen' | 'microphone' | 'accessibili
   const pane = { screen: 'Privacy_ScreenCapture', microphone: 'Privacy_Microphone', accessibility: 'Privacy_Accessibility' }[kind]
   void shell.openExternal(`x-apple.systempreferences:com.apple.preference.security?${pane}`)
 }
+
+/** Keyboard → Keyboard Shortcuts, where the macOS screenshot shortcuts (Shift+Cmd+3/4/5) must be disabled for Traccia to receive them. */
+export function openKeyboardShortcuts(): void {
+  if (!isMac) return
+  void shell.openExternal('x-apple.systempreferences:com.apple.Keyboard-Settings.extension?Shortcuts')
+}

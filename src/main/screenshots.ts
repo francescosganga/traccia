@@ -50,6 +50,8 @@ export function setupScreenshots(win: BrowserWindow): boolean {
     void (async () => {
       const lang = process.env.TRACCIA_SCREENSHOTS_LANG
       if (lang === 'it' || lang === 'en') applySettings({ uiLanguage: lang })
+      // Throwaway profile, so turning the shortcuts on only makes the pictures show the keys chooser
+      applySettings({ shortcutsEnabled: true })
       await wait(400)
       if (!getSettings().onboardingDone) {
         const steps = ['wizard-1-welcome', 'wizard-2-permissions', 'wizard-3-whisper', 'wizard-4-output']
@@ -66,7 +68,7 @@ export function setupScreenshots(win: BrowserWindow): boolean {
       await shot('settings-2-audio-whisper')
       await scrollToCard(3)
       await shot('settings-3-cursor-recording')
-      await scrollToCard(6)
+      await scrollToCard(7)
       await shot('settings-4-permissions')
       app.quit()
     })()

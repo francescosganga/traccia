@@ -1,7 +1,7 @@
 import { app, dialog, ipcMain, screen, shell } from 'electron'
 import type { DisplayInfo, EngineStartedInfo, LoginItemStatus, RecordingRequest, Settings, WhisperModelId } from '../shared/types'
 import { applySettings } from './apply-settings'
-import { getPermissions, openPrivacySettings, requestPermission } from './permissions'
+import { getPermissions, openKeyboardShortcuts, openPrivacySettings, requestPermission } from './permissions'
 import { listRecordings } from './recordings'
 import type { RecordingSession } from './session'
 import { getSettings } from './settings'
@@ -39,6 +39,7 @@ export function registerIpc({ session, startRecording }: IpcDeps): void {
   ipcMain.handle('permissions:get', () => getPermissions())
   ipcMain.handle('permissions:request', (_e, kind) => requestPermission(kind))
   ipcMain.handle('permissions:open', (_e, kind) => openPrivacySettings(kind))
+  ipcMain.handle('system:openKeyboardShortcuts', () => openKeyboardShortcuts())
   ipcMain.handle('app:version', () => app.getVersion())
   ipcMain.handle('app:platform', () => process.platform)
   ipcMain.handle('app:loginItem', (): LoginItemStatus => {

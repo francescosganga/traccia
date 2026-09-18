@@ -50,7 +50,22 @@ const en = {
   'wizard.whisper.subtitle': 'Optional. Download a model to transcribe your voice locally. You can download, switch or delete it at any time from Settings.',
   'wizard.output.title': 'Where to save recordings',
   'wizard.output.subtitle': 'Each recording goes into a folder named with date and time, containing the video (or the frames) and the text file.',
-  'wizard.shortcut.text': 'Shortcut: {shortcut} starts and stops a recording from any app. You will also find the icon in the menu bar.',
+
+  // shortcuts (wizard and settings)
+  'shortcut.enable': 'Global shortcuts',
+  'shortcut.enableHint': 'Start and stop a recording from any app, even while Traccia is hidden. The menu bar icon is always there.',
+  'shortcut.keys': 'Keys',
+  'shortcut.preset.mac': 'Like macOS screenshots',
+  'shortcut.preset.alt': 'Alternative',
+  'shortcut.preset.custom': 'Custom',
+  'shortcut.screen': 'full screen',
+  'shortcut.region': 'region',
+  'shortcut.stopNote': 'Either one also stops the recording in progress.',
+  'shortcut.macNote': 'macOS uses these keys for its own screenshots. To hand them to Traccia, turn them off in System Settings → Keyboard → Keyboard Shortcuts → Screenshots.',
+  'shortcut.altNote': 'Nothing to change in macOS.',
+  'shortcut.fieldScreen': 'Record full screen',
+  'shortcut.fieldRegion': 'Record region',
+  'shortcut.customHint': 'Electron accelerator format, e.g. {example}',
   'wizard.finish': 'Get started',
 
   // permissions panel
@@ -118,6 +133,7 @@ const en = {
   'home.recordButton': 'Record',
   'home.recordAreaButton': 'Select region and record',
   'home.hideNote': 'The window hides while recording. Stop with the widget, the menu bar icon or {shortcut}.',
+  'home.hideNoteNoShortcut': 'The window hides while recording. Stop with the widget or the menu bar icon.',
   'home.recent': 'Recent recordings',
 
   // settings
@@ -151,8 +167,7 @@ const en = {
   'settings.showControls': 'Show the widget with timer and Stop',
   'settings.showControlsHint': 'The widget does not appear in the video.',
   'settings.countdown': 'Countdown (seconds)',
-  'settings.shortcut': 'Global start/stop shortcut',
-  'settings.shortcutHint': 'Electron accelerator format, e.g. {example}',
+  'settings.shortcutsSection': 'Shortcuts',
   'settings.permissions': 'Permissions',
   'settings.startupSection': 'Startup & menu bar',
   'settings.openAtLogin': 'Open at login',
@@ -272,7 +287,22 @@ const it: Record<TranslationKey, string> = {
   'wizard.whisper.subtitle': 'Facoltativo. Scarica un modello per trascrivere la voce in locale. Puoi scaricarlo, cambiarlo o eliminarlo in qualsiasi momento dalle Impostazioni.',
   'wizard.output.title': 'Dove salvare le registrazioni',
   'wizard.output.subtitle': 'Ogni registrazione va in una cartella con data e ora, che contiene il video (o i frame) e il file di testo.',
-  'wizard.shortcut.text': 'Scorciatoia: {shortcut} avvia e ferma la registrazione da qualsiasi app. Trovi anche l\'icona nella barra dei menu.',
+
+  // shortcuts (wizard and settings)
+  'shortcut.enable': 'Scorciatoie globali',
+  'shortcut.enableHint': 'Avvia e ferma la registrazione da qualsiasi app, anche con Traccia nascosta. L\'icona nella barra dei menu c\'è comunque.',
+  'shortcut.keys': 'Tasti',
+  'shortcut.preset.mac': 'Come gli screenshot di macOS',
+  'shortcut.preset.alt': 'Alternativi',
+  'shortcut.preset.custom': 'Personalizzati',
+  'shortcut.screen': 'tutto lo schermo',
+  'shortcut.region': 'area',
+  'shortcut.stopNote': 'Entrambe fermano anche la registrazione in corso.',
+  'shortcut.macNote': 'macOS usa questi tasti per i propri screenshot. Per darli a Traccia, disattivali in Impostazioni di Sistema → Tastiera → Abbreviazioni da tastiera → Istantanee schermo.',
+  'shortcut.altNote': 'Niente da cambiare in macOS.',
+  'shortcut.fieldScreen': 'Registra tutto lo schermo',
+  'shortcut.fieldRegion': 'Registra un\'area',
+  'shortcut.customHint': 'Formato acceleratori Electron, es. {example}',
   'wizard.finish': 'Inizia',
 
   'perm.screen.label': 'Registrazione schermo',
@@ -337,6 +367,7 @@ const it: Record<TranslationKey, string> = {
   'home.recordButton': 'Registra',
   'home.recordAreaButton': 'Seleziona area e registra',
   'home.hideNote': "La finestra si nasconde durante la registrazione. Ferma con il widget, l'icona nella barra dei menu o {shortcut}.",
+  'home.hideNoteNoShortcut': "La finestra si nasconde durante la registrazione. Ferma con il widget o l'icona nella barra dei menu.",
   'home.recent': 'Registrazioni recenti',
 
   'settings.title': 'Impostazioni',
@@ -369,8 +400,7 @@ const it: Record<TranslationKey, string> = {
   'settings.showControls': 'Mostra il widget con timer e Stop',
   'settings.showControlsHint': 'Il widget non compare nel video.',
   'settings.countdown': 'Conto alla rovescia (secondi)',
-  'settings.shortcut': 'Scorciatoia globale avvia/ferma',
-  'settings.shortcutHint': 'Formato acceleratori Electron, es. {example}',
+  'settings.shortcutsSection': 'Scorciatoie',
   'settings.permissions': 'Permessi',
   'settings.startupSection': 'Avvio e barra dei menu',
   'settings.openAtLogin': 'Apri al login',

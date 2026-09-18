@@ -60,18 +60,21 @@ async function startRecording(req: RecordingRequest): Promise<void> {
   await session.start(req)
 }
 
-function toggleRecording(): void {
-  if (session.state.status === 'recording' || session.state.status === 'countdown') {
-    session.requestStop()
-  } else if (session.state.status === 'idle' || session.state.status === 'done' || session.state.status === 'error') {
-    const s = getSettings()
-    void startRecording({ mode: s.lastMode, displayId: s.lastDisplayId ?? undefined })
+const recordScreen = (): void => void startRecording({ mode: 'screen', displayId: getSettings().lastDisplayId ?? undefined })
+const recordRegion = (): void => void startRecording({ mode: 'region' })
+
+/** A shortcut stops the recording in progress, otherwise it starts one. */
+function stopOrStart(start: () => void): () => void {
+  return () => {
+    const { status } = session.state
+    if (status === 'recording' || status === 'countdown') session.requestStop()
+    else if (status === 'idle' || status === 'done' || status === 'error') start()
   }
 }
 
 const trayActions: TrayActions = {
-  recordScreen: () => void startRecording({ mode: 'screen', displayId: getSettings().lastDisplayId ?? undefined }),
-  recordRegion: () => void startRecording({ mode: 'region' }),
+  recordScreen,
+  recordRegion,
   stop: () => session.requestStop(),
   open: () => showMainWindow(),
   settings: () => {
@@ -80,14 +83,21 @@ const trayActions: TrayActions = {
   }
 }
 
-function registerShortcut(settings: Settings): void {
+function registerShortcuts(settings: Settings): void {
   globalShortcut.unregisterAll()
-  if (!settings.shortcut) return
-  try {
-    const ok = globalShortcut.register(settings.shortcut, toggleRecording)
-    if (!ok) console.warn('shortcut not registered:', settings.shortcut)
-  } catch (e) {
-    console.warn('invalid shortcut', settings.shortcut, e)
+  if (!settings.shortcutsEnabled) return
+  const bindings: [string, () => void][] = [
+    [settings.shortcutScreen, stopOrStart(recordScreen)],
+    [settings.shortcutRegion, stopOrStart(recordRegion)]
+  ]
+  for (const [accelerator, handler] of bindings) {
+    if (!accelerator) continue
+    try {
+      const ok = globalShortcut.register(accelerator, handler)
+      if (!ok) console.warn('shortcut not registered:', accelerator)
+    } catch (e) {
+      console.warn('invalid shortcut', accelerator, e)
+    }
   }
 }
 
@@ -97,7 +107,7 @@ app.whenReady().then(() => {
   const settings = getSettings()
   registerIpc({ session, startRecording })
   onSettingsApplied((s, patch) => {
-    if ('shortcut' in patch) registerShortcut(s)
+    if ('shortcutsEnabled' in patch || 'shortcutScreen' in patch || 'shortcutRegion' in patch) registerShortcuts(s)
     void refreshTray()
   })
 
@@ -107,7 +117,7 @@ app.whenReady().then(() => {
   const win = createMainWindow({ show: !(openedAtLogin && settings.startHiddenAtLogin) })
   setupScreenshots(win)
   createTray(trayActions)
-  registerShortcut(settings)
+  registerShortcuts(settings)
   void cleanupLegacyModels()
 })
 

@@ -330,7 +330,7 @@
         <div class="type-row"><span class="k">body · 14 / 400</span><span>Record your screen to explain something to an AI, not just to a person.</span></div>
         <div class="type-row"><span class="k">dim · 14 / 400</span><span class="dim">Runs locally on your computer, after the recording.</span></div>
         <div class="type-row"><span class="k">small · 12</span><span class="small dim">2 or 4 fps are enough for an AI to follow a tutorial.</span></div>
-        <div class="type-row"><span class="k">control · 13 / 500</span><span><button class="btn">Change…</button> <kbd>⌘⇧R</kbd></span></div>
+        <div class="type-row"><span class="k">control · 13 / 500</span><span><button class="btn">Change…</button> <kbd>⌘⇧5</kbd></span></div>
         <div class="type-row"><span class="k">timer · mono 40 / 600</span><span class="timer">00:12</span></div>
         <div class="type-row"><span class="k">path · mono 12</span><code class="path">~/Movies/Traccia/2026-09-18 09-48/recording.txt</code></div>
       </section>
@@ -364,7 +364,7 @@
             <h3>Inputs</h3>
             <div class="field"><label>Spoken language</label><select><option>Detect automatically</option><option>English</option><option>Italiano</option></select><span class="hint">Setting the language improves accuracy and speed.</span></div>
             <div class="field"><label>Countdown (seconds)</label><input type="number" value="3" /></div>
-            <div class="field"><label>Global shortcut</label><div class="row"><input type="text" class="grow" value="CommandOrControl+Shift+R" /><button class="btn" disabled>Save</button></div></div>
+            <div class="field"><label>Record full screen</label><div class="row"><input type="text" class="grow" value="CommandOrControl+Shift+5" /><button class="btn" disabled>Save</button></div></div>
             <div class="field"><label>Recordings folder</label><div class="row between"><code class="path">~/Movies/Traccia</code><button class="btn">Change…</button></div></div>
           </div>
           <div class="card">
@@ -441,11 +441,11 @@
                     <div class="field"><label>Frames per second (JPG)</label><div class="segmented"><button>1 fps</button><button class="active">2 fps</button><button>4 fps</button></div></div>
                     <div class="field"><label>Audio</label><div class="segmented"><button class="active">Microphone</button><button>None</button></div></div>
                   </div>
-                  <div class="row wrap small dim mt-2"><span>Transcription: Whisper base</span><span>· Clicks: yes</span><span>· Shortcut: <kbd>⌘⇧R</kbd></span><button class="btn ghost sm">Settings</button></div>
+                  <div class="row wrap small dim mt-2"><span>Transcription: Whisper base</span><span>· Clicks: yes</span><span>· Shortcut: <kbd>⌘⇧5</kbd></span><button class="btn ghost sm">Settings</button></div>
                 </div>
                 <div class="record-panel">
                   <button class="btn primary big record">Select region and record</button>
-                  <p class="hint">The window hides while recording. Stop with the widget, the menu bar icon or <kbd>⌘⇧R</kbd>.</p>
+                  <p class="hint">The window hides while recording. Stop with the widget, the menu bar icon or <kbd>⌘⇧5</kbd>.</p>
                 </div>
                 <div class="card">
                   <h3>Recent recordings</h3>
@@ -481,7 +481,7 @@
             <ul>
               <li>One red button per view: the primary action, or Record/Stop.</li>
               <li>Use the segmented control for every enumerated setting, everywhere.</li>
-              <li>Show shortcuts as <kbd>⌘⇧R</kbd> via <code>formatShortcut()</code>.</li>
+              <li>Show shortcuts as <kbd>⌘⇧5</kbd> via <code>formatShortcut()</code>.</li>
               <li>Give status cards an icon tile and a border in their hue.</li>
               <li>Space with the 4 pt scale and the <code>.mt-*</code> utilities.</li>
             </ul>

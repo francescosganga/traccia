@@ -58,7 +58,7 @@ Il `recording.txt` prodotto dalla demo qui sopra (modalità JPG, 2 fps; l'interf
 - **Timestamp a livello di parola**: il parlato è spezzato in frasi brevi che si intercalano ai click, e ogni riga di click riporta anche le parole pronunciate in quel momento (`click left 820,352 "ora clicco su Salva"`).
 - Puntatore campionato a 120 Hz e click globali (con permesso Accessibilità).
 - In modalità JPG i frame identici al precedente (cursore escluso) vengono saltati.
-- Widget flottante con timer e Stop (escluso dalla registrazione), scorciatoia globale.
+- Widget flottante con timer e Stop (escluso dalla registrazione). Scorciatoie globali opzionali, disattivate di default: i tasti degli screenshot di macOS (⇧⌘5 tutto lo schermo, ⇧⌘4 area), quelli alternativi (⌃⌥⌘5, ⌃⌥⌘4) o i tuoi; entrambe fermano anche la registrazione.
 - Icona nella barra dei menu con azioni rapide: registra schermo/area, stop, formato, risoluzione, fps, microfono, trascrizione, click, registrazioni recenti.
 - Apertura al login (avvio solo nella barra dei menu), icona nel Dock opzionale.
 - Interfaccia in inglese e italiano.
@@ -119,6 +119,8 @@ L'app non è firmata con un certificato sviluppatore Apple, quindi al primo avvi
 ```bash
 xattr -cr "/Applications/Traccia.app"
 ```
+
+Se attivi le scorciatoie con i tasti degli screenshot di macOS (⇧⌘5, ⇧⌘4), macOS continua a gestirli finché non li disattivi in **Impostazioni di Sistema → Tastiera → Abbreviazioni da tastiera → Istantanee schermo**; l'app rimanda a quel pannello. I tasti alternativi non richiedono modifiche.
 
 ## Sviluppo
 

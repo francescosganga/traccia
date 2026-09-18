@@ -93,7 +93,7 @@ Line height 1.5 for text, 1.25 for headings. Weights: 400 body, 500 controls and
 | Progress / spinner | `.progress(.indeterminate)`, `.spinner` | Red fill; 4 px track. |
 | Notice | `.notice(.warn/.error)` | Inline message with icon, selectable text. |
 | Lists | `.list-item`, `.model` | Hairline-separated rows; actions on the right use `.sm` buttons. |
-| Record hero | `.record-panel > .btn.primary.big.record + .hint` | Centred; the hint shows the shortcut as `<kbd>⌘⇧R</kbd>` (`formatShortcut`). |
+| Record hero | `.record-panel > .btn.primary.big.record + .hint` | Centred; the hint shows the shortcut of the selected mode as `<kbd>⌘⇧5</kbd>` / `<kbd>⌘⇧4</kbd>` (`formatShortcut`). |
 | Recording panel | `.card.rec-panel > .timer(.rec-dot) + .btn.primary.big.stop` | Shown in the main window while recording. |
 | Floating widget | `.controls > .time(.rec-dot) + .btn.primary.stop` | 320 × 60, overlay background, draggable. |
 | Region overlay | `.region-root .region-rect .region-size .region-toolbar .region-hint` | 2 px `--rec` frame on a 40 % dim; toolbar = Record (red) + Cancel (neutral). |

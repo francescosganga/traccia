@@ -2,6 +2,7 @@ import { app } from 'electron'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { setLanguage } from '../shared/i18n'
+import { SHORTCUT_PRESETS } from '../shared/shortcuts'
 import type { Settings } from '../shared/types'
 
 const FILE = () => join(app.getPath('userData'), 'settings.json')
@@ -22,7 +23,10 @@ export const DEFAULTS: Settings = {
   cursorHz: 10,
   countdown: 3,
   showControls: true,
-  shortcut: 'CommandOrControl+Shift+R',
+  // Off until the user picks the keys: the macOS ones fire the system screenshot until disabled in System Settings
+  shortcutsEnabled: false,
+  shortcutScreen: SHORTCUT_PRESETS.mac.screen,
+  shortcutRegion: SHORTCUT_PRESETS.mac.region,
   lastMode: 'screen',
   lastDisplayId: null,
   openAtLogin: false,
@@ -40,6 +44,8 @@ export function getSettings(): Settings {
   } catch (e) {
     console.error('settings: cannot read, using defaults', e)
   }
+  // Earlier versions stored a single "shortcut" (Cmd+Shift+R); the two new ones replace it
+  delete (stored as Record<string, unknown>).shortcut
   cache = { ...DEFAULTS, ...stored }
   setLanguage(cache.uiLanguage)
   return cache

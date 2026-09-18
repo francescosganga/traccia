@@ -36,7 +36,7 @@ export function Home({ settings, update, state, modelInstalled, platform, goSett
   const start = () => void window.api.recording.start({ mode, displayId })
   const reveal = platform === 'darwin' ? t('home.revealMac') : t('home.revealOther')
   const busy = state.status === 'processing' || state.status === 'recording' || state.status === 'countdown' || state.status === 'selecting'
-  const shortcut = <kbd>{formatShortcut(settings.shortcut, platform)}</kbd>
+  const shortcut = settings.shortcutsEnabled ? formatShortcut(mode === 'region' ? settings.shortcutRegion : settings.shortcutScreen, platform) : null
   const dismiss = (
     <button className="btn ghost icon-btn" aria-label={t('common.cancel')} onClick={() => window.api.recording.reset()}>
       <Icon name="x" />
@@ -215,7 +215,7 @@ export function Home({ settings, update, state, modelInstalled, platform, goSett
                 <span>· {t('home.clicks', { value: settings.trackClicks ? t('common.yes') : t('common.no') })}</span>
                 <span>
                   · {t('home.shortcut', { value: '' })}
-                  {shortcut}
+                  {shortcut ? <kbd>{shortcut}</kbd> : t('home.off')}
                 </span>
                 <button className="btn ghost sm" onClick={goSettings}>
                   {t('nav.settings')}
@@ -227,7 +227,7 @@ export function Home({ settings, update, state, modelInstalled, platform, goSett
               <button className="btn primary big record" onClick={start}>
                 {mode === 'region' ? t('home.recordAreaButton') : t('home.recordButton')}
               </button>
-              <p className="hint">{t('home.hideNote', { shortcut: formatShortcut(settings.shortcut, platform) })}</p>
+              <p className="hint">{shortcut ? t('home.hideNote', { shortcut }) : t('home.hideNoteNoShortcut')}</p>
             </div>
           </>
         )}

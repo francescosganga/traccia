@@ -20,8 +20,8 @@ export function formatDate(ts: number): string {
 }
 
 /**
- * Human-readable version of an Electron accelerator ("CommandOrControl+Shift+R"):
- * "⌘⇧R" on macOS, "Ctrl+Shift+R" elsewhere.
+ * Human-readable version of an Electron accelerator ("CommandOrControl+Shift+5"):
+ * "⌘⇧5" on macOS, "Ctrl+Shift+5" elsewhere.
  */
 export function formatShortcut(accelerator: string, platform: string): string {
   const mac = platform === 'darwin'
@@ -31,4 +31,14 @@ export function formatShortcut(accelerator: string, platform: string): string {
     : { commandorcontrol: 'Ctrl', cmdorctrl: 'Ctrl', command: 'Win', cmd: 'Win', control: 'Ctrl', ctrl: 'Ctrl', shift: 'Shift', alt: 'Alt', option: 'Alt', super: 'Win', meta: 'Win' }
   const mapped = parts.map((p) => symbols[p.toLowerCase()] ?? p.toUpperCase())
   return mac ? mapped.join('') : mapped.join('+')
+}
+
+/**
+ * True for the combinations macOS reserves for screenshots (Shift+Cmd+3/4/5/6): the app only
+ * receives them once the user disables them in System Settings.
+ */
+export function isMacScreenshotShortcut(accelerator: string): boolean {
+  const parts = accelerator.split('+').map((p) => p.trim().toLowerCase())
+  const cmd = ['commandorcontrol', 'cmdorctrl', 'command', 'cmd', 'super', 'meta']
+  return parts.length === 3 && parts.some((p) => cmd.includes(p)) && parts.includes('shift') && ['3', '4', '5', '6'].includes(parts[2])
 }

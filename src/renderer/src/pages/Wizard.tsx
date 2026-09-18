@@ -5,7 +5,7 @@ import { Icon, Logo, type IconName } from '../components/Icon'
 import { LanguagePicker } from '../components/LanguagePicker'
 import { ModelManager } from '../components/ModelManager'
 import { PermissionsPanel } from '../components/PermissionsPanel'
-import { formatShortcut } from '../format'
+import { ShortcutSettings } from '../components/ShortcutSettings'
 
 interface Props {
   settings: Settings
@@ -102,7 +102,7 @@ export function Wizard({ settings, update, platform, onDone }: Props) {
               </div>
             </div>
             <div className="card">
-              <p>{t('wizard.shortcut.text', { shortcut: formatShortcut(settings.shortcut, platform) })}</p>
+              <ShortcutSettings settings={settings} update={update} platform={platform} />
             </div>
           </>
         )}

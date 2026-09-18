@@ -3,6 +3,7 @@ import { t } from '../../../shared/i18n'
 import type { LoginItemStatus, Settings, SpeechLanguage } from '../../../shared/types'
 import { LanguagePicker } from '../components/LanguagePicker'
 import { ModelManager } from '../components/ModelManager'
+import { ShortcutSettings } from '../components/ShortcutSettings'
 import { PermissionsPanel } from '../components/PermissionsPanel'
 import { Toggle } from '../components/Toggle'
 import { FORMATS, RESOLUTIONS, resolutionLabel } from '../options'
@@ -22,7 +23,6 @@ const SPEECH_LANGUAGES: { id: SpeechLanguage; label: string }[] = [
 ]
 
 export function SettingsPage({ settings, update }: Props) {
-  const [shortcut, setShortcut] = useState(settings.shortcut)
   const [login, setLogin] = useState<LoginItemStatus | null>(null)
   const [platform, setPlatform] = useState('darwin')
 
@@ -175,28 +175,21 @@ export function SettingsPage({ settings, update }: Props) {
             value={settings.showControls}
             onChange={(v) => update({ showControls: v })}
           />
-          <div className="grid-2 mt-4">
-            <div className="field">
-              <label>{t('settings.countdown')}</label>
-              <input
-                type="number"
-                min={0}
-                max={10}
-                value={settings.countdown}
-                onChange={(e) => update({ countdown: Math.max(0, Math.min(10, Number(e.target.value) || 0)) })}
-              />
-            </div>
-            <div className="field">
-              <label>{t('settings.shortcut')}</label>
-              <div className="row">
-                <input type="text" className="grow" value={shortcut} onChange={(e) => setShortcut(e.target.value)} />
-                <button className="btn" disabled={shortcut === settings.shortcut} onClick={() => update({ shortcut })}>
-                  {t('common.save')}
-                </button>
-              </div>
-              <span className="hint">{t('settings.shortcutHint', { example: 'CommandOrControl+Shift+R' })}</span>
-            </div>
+          <div className="field mt-4">
+            <label>{t('settings.countdown')}</label>
+            <input
+              type="number"
+              min={0}
+              max={10}
+              value={settings.countdown}
+              onChange={(e) => update({ countdown: Math.max(0, Math.min(10, Number(e.target.value) || 0)) })}
+            />
           </div>
+        </div>
+
+        <div className="card">
+          <h3>{t('settings.shortcutsSection')}</h3>
+          <ShortcutSettings settings={settings} update={update} platform={platform} />
         </div>
 
         <div className="card">

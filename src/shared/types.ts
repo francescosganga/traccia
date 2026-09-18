@@ -39,8 +39,10 @@ export interface Settings {
   countdown: number
   /** Show the floating "REC / Stop" widget while recording */
   showControls: boolean
-  /** Global shortcut that starts/stops a recording */
-  shortcut: string
+  /** Global shortcuts (Electron accelerators) for a full-screen and a region recording; either one also stops the recording in progress */
+  shortcutsEnabled: boolean
+  shortcutScreen: string
+  shortcutRegion: string
   /** Last used capture mode and display */
   lastMode: CaptureMode
   lastDisplayId: number | null
