@@ -19,6 +19,7 @@
     "build": "electron-vite build",
     "start": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "test": "vitest run",
     "dist": "electron-vite build && electron-builder --mac --config electron-builder.yml",
     "link": "electron-vite build && electron-builder --mac --dir --$(uname -m | sed s/x86_64/x64/) --config electron-builder.yml && node scripts/link-app.cjs"
   },
@@ -40,6 +41,7 @@
     "electron-builder": "^26.15.3",
     "electron-vite": "^5.0.0",
     "typescript": "^7.0.2",
-    "vite": "^7.0.0"
+    "vite": "^7.0.0",
+    "vitest": "^3.2.7"
   }
 }

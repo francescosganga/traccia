@@ -53,7 +53,7 @@ export async function extractFrames(opts: ExtractOptions): Promise<{ frames: Fra
 
   if (opts.skipUnchanged && files.length > 1) {
     try {
-      keep = await computeKeepMask(thumbsPath, files.length, opts, frameMs)
+      keep = computeKeepMask(await readFile(thumbsPath), files.length, opts, frameMs)
     } catch (e) {
       console.error('frame dedup failed, keeping all frames', e)
     }
@@ -78,8 +78,16 @@ export async function extractFrames(opts: ExtractOptions): Promise<{ frames: Fra
   return { frames, skipped }
 }
 
-async function computeKeepMask(thumbsPath: string, count: number, opts: ExtractOptions, frameMs: number): Promise<boolean[]> {
-  const buf = await readFile(thumbsPath)
+/**
+ * Which frames to keep: each grayscale thumbnail is compared with the last kept one, ignoring
+ * a small square around the pointer. `buf` is the raw THUMB_WIDTH-wide stream written by ffmpeg.
+ */
+export function computeKeepMask(
+  buf: Buffer,
+  count: number,
+  opts: Pick<ExtractOptions, 'geometry' | 'samples' | 't0'>,
+  frameMs: number
+): boolean[] {
   const w = THUMB_WIDTH
   const h = Math.floor(buf.length / (w * count))
   if (h <= 0 || w * h * count !== buf.length) throw new Error(`unexpected thumbnail buffer size ${buf.length}`)
