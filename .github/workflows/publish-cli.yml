@@ -13,6 +13,9 @@ name: Publish CLI
 on:
   release:
     types: [published]
+  # By hand, for a release whose automatic run failed: publishes whatever version the
+  # checked-out branch carries in package.json.
+  workflow_dispatch:
 
 permissions:
   contents: read
