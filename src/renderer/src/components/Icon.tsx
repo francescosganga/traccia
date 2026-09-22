@@ -1,7 +1,7 @@
 import type { ReactElement, SVGProps } from 'react'
 
 /** Inline icon set (outlines based on Lucide, ISC). Stroke and size come from the `.icon` class. */
-export type IconName = 'record' | 'settings' | 'monitor' | 'pointer' | 'mic' | 'sparkles' | 'check' | 'x' | 'alert' | 'folder' | 'file' | 'copy'
+export type IconName = 'record' | 'settings' | 'monitor' | 'pointer' | 'mic' | 'sparkles' | 'check' | 'x' | 'alert' | 'folder' | 'file' | 'copy' | 'arrow-left' | 'more'
 
 const PATHS: Record<IconName, ReactElement> = {
   record: (
@@ -54,6 +54,14 @@ const PATHS: Record<IconName, ReactElement> = {
     <>
       <rect x="8" y="8" width="14" height="14" rx="2" />
       <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+    </>
+  ),
+  'arrow-left': <path d="m12 19-7-7 7-7M19 12H5" />,
+  more: (
+    <>
+      <circle className="fill" cx="5" cy="12" r="1.6" />
+      <circle className="fill" cx="12" cy="12" r="1.6" />
+      <circle className="fill" cx="19" cy="12" r="1.6" />
     </>
   )
 }

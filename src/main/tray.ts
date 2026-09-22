@@ -69,7 +69,9 @@ export async function refreshTray(): Promise<void> {
   const reveal = process.platform === 'darwin' ? t('tray.revealMac') : t('tray.revealOther')
   const recentItems: MenuItemConstructorOptions[] = recordings.length
     ? recordings.map((r) => ({
-        label: `${new Date(r.createdAt).toLocaleString(locale(), { dateStyle: 'short', timeStyle: 'short' })} · ${formatTime(r.durationMs).slice(0, 5)} · ${r.format.toUpperCase()}`,
+        label: [r.title, new Date(r.createdAt).toLocaleString(locale(), { dateStyle: 'short', timeStyle: 'short' }), formatTime(r.durationMs).slice(0, 5), r.format.toUpperCase()]
+          .filter(Boolean)
+          .join(' · '),
         submenu: [
           ...(r.promptPath
             ? [{ label: t('tray.copyPrompt'), click: () => clipboard.writeText(t('prompt.clipboard', { path: r.promptPath! })) }]

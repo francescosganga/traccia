@@ -70,7 +70,9 @@ const api = {
   recordings: {
     list: (): Promise<RecordingEntry[]> => ipcRenderer.invoke('recordings:list'),
     showInFolder: (p: string): Promise<void> => ipcRenderer.invoke('recordings:showInFolder', p),
-    open: (p: string): Promise<string> => ipcRenderer.invoke('recordings:open', p)
+    open: (p: string): Promise<string> => ipcRenderer.invoke('recordings:open', p),
+    rename: (dir: string, title: string): Promise<void> => ipcRenderer.invoke('recordings:rename', dir, title),
+    trash: (dir: string): Promise<void> => ipcRenderer.invoke('recordings:trash', dir)
   },
   region: {
     confirm: (displayId: number, rect: { x: number; y: number; width: number; height: number }) => ipcRenderer.send('region:confirm', { displayId, rect }),

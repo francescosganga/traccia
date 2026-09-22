@@ -224,6 +224,8 @@ export interface RecordingEntry {
   /** Folder name inside the output directory, e.g. 2026-09-18_08-51-52 */
   id: string
   dir: string
+  /** Name given by the user, kept in recording.json; the folder name never changes */
+  title?: string
   createdAt: number
   format: OutputFormat
   durationMs: number

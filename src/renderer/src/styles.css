@@ -837,6 +837,100 @@ input[type='text'] {
   border-radius: 3px;
 }
 
+/* text button that reads as a link: same underline as <a> */
+.link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: var(--text-muted);
+  transition: color var(--dur-fast) var(--ease), text-decoration-color var(--dur-fast) var(--ease);
+}
+.link:hover {
+  color: var(--text);
+  text-decoration-color: currentColor;
+}
+/* inline-block keeps the underline from running under the key cap */
+.link kbd {
+  display: inline-block;
+  margin-left: 2px;
+}
+
+/* overflow menu: the secondary actions of a row */
+.menu {
+  position: relative;
+}
+.menu-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 10;
+  min-width: 200px;
+  padding: var(--sp-1);
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-md);
+}
+.menu-list.up {
+  top: auto;
+  bottom: calc(100% + 4px);
+}
+.menu-item {
+  display: block;
+  width: 100%;
+  height: var(--ctl-h);
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-md);
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.menu-item:hover {
+  background: var(--hover);
+}
+.menu-item.danger {
+  color: var(--danger-text);
+}
+.menu-item.danger:hover {
+  background: var(--danger-soft);
+}
+
+/* shortcut recorder: a field that takes the keys by pressing them */
+.shortcut-recorder {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-3);
+  height: var(--ctl-h);
+  padding: 0 10px;
+  font: inherit;
+  color: var(--text);
+  background: var(--bg-elev-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+}
+.shortcut-recorder:hover {
+  border-color: var(--border-strong);
+}
+.shortcut-recorder.listening {
+  border-color: var(--border-strong);
+  box-shadow: 0 0 0 3px var(--focus-soft);
+}
+.shortcut-recorder kbd {
+  background: var(--bg-elev);
+}
+
 /* ============================================================================
    status
    ========================================================================== */
@@ -947,6 +1041,14 @@ input[type='text'] {
 }
 .list-item > .stack {
   white-space: nowrap;
+  min-width: 0;
+}
+.list-item > .stack strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.list-item > .stack form {
+  white-space: normal;
 }
 .list-item > .row {
   flex-wrap: wrap;

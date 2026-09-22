@@ -3,7 +3,7 @@ import type { AgentTarget, DisplayInfo, EngineStartedInfo, LoginItemStatus, Reco
 import { agentTargets, installAgent, installAgentInFile, mcpCommands } from './agents'
 import { applySettings } from './apply-settings'
 import { getPermissions, openKeyboardShortcuts, openPrivacySettings, requestPermission } from './permissions'
-import { listRecordings } from '../shared/recording-reader'
+import { listRecordings, setRecordingTitle } from '../shared/recording-reader'
 import type { RecordingSession } from './session'
 import { getSettings } from './settings'
 import * as whisper from './whisper'
@@ -93,5 +93,10 @@ export function registerIpc({ session, startRecording }: IpcDeps): void {
   ipcMain.handle('recordings:list', () => listRecordings(getSettings().outputDir))
   ipcMain.handle('recordings:showInFolder', (_e, p: string) => shell.showItemInFolder(p))
   ipcMain.handle('recordings:open', (_e, p: string) => shell.openPath(p))
+  ipcMain.handle('recordings:rename', (_e, dir: string, title: string) => setRecordingTitle(dir, title))
+  ipcMain.handle('recordings:trash', async (_e, dir: string) => {
+    await shell.trashItem(dir)
+    if (session.state.status === 'done' && session.state.result.dir === dir) session.reset()
+  })
   ipcMain.handle('window:show', () => showMainWindow())
 }

@@ -4,7 +4,7 @@
  * Electron, no native modules.
  */
 import { existsSync } from 'fs'
-import { readFile, readdir, stat } from 'fs/promises'
+import { readFile, readdir, stat, writeFile } from 'fs/promises'
 import { createHash } from 'crypto'
 import { homedir, tmpdir } from 'os'
 import { basename, isAbsolute, join, resolve } from 'path'
@@ -116,6 +116,8 @@ export interface RecordingJson {
   version: number
   app: string
   createdAt: string
+  /** Name given by the user after the recording */
+  title?: string
   format: OutputFormat
   /** Media file name, or "frames/" in JPG mode */
   media: string
@@ -157,6 +159,7 @@ function toEntry(dir: string, id: string, meta: RecordingJson, fallbackCreatedAt
   return {
     id,
     dir,
+    title: meta.title || undefined,
     createdAt: meta.createdAt ? Date.parse(meta.createdAt) : fallbackCreatedAt,
     format: meta.format,
     durationMs: meta.durationMs ?? 0,
@@ -171,6 +174,15 @@ function toEntry(dir: string, id: string, meta: RecordingJson, fallbackCreatedAt
     promptPath: existsSync(join(dir, 'PROMPT.md')) ? join(dir, 'PROMPT.md') : undefined,
     warnings: meta.warnings ?? []
   }
+}
+
+/** Gives a recording a name (or removes it with an empty string); only recording.json changes. */
+export async function setRecordingTitle(dir: string, title: string): Promise<void> {
+  const meta = await readRecordingJson(dir)
+  const trimmed = title.trim()
+  if (trimmed) meta.title = trimmed
+  else delete meta.title
+  await writeFile(join(dir, 'recording.json'), JSON.stringify(meta), 'utf8')
 }
 
 /** Lists past recordings (folders containing recording.json), newest first. */
