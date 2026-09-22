@@ -30,6 +30,7 @@ export function Wizard({ settings, update, platform, onDone }: Props) {
 
   return (
     <div className="content">
+      <div className="titlebar-drag" />
       <div className="wizard">
         <div className="steps">
           {Array.from({ length: STEPS }).map((_, i) => (

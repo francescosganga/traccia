@@ -437,6 +437,15 @@ a:hover {
 .drag {
   -webkit-app-region: drag;
 }
+/* windows without a sidebar (the wizard): the strip where the hidden title bar is moves the window */
+.titlebar-drag {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 28px;
+  -webkit-app-region: drag;
+}
 
 /* ============================================================================
    icons
