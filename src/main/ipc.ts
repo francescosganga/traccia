@@ -80,6 +80,7 @@ export function registerIpc({ session, startRecording }: IpcDeps): void {
   ipcMain.handle('recording:start', (_e, req: RecordingRequest) => startRecording(req))
   ipcMain.handle('recording:stop', () => session.requestStop())
   ipcMain.handle('recording:reset', () => session.reset())
+  ipcMain.handle('recording:skipTranscription', () => session.skipTranscription())
   ipcMain.on('region:confirm', (_e, selection) => resolveRegion(selection))
   ipcMain.on('region:cancel', () => resolveRegion(null))
 

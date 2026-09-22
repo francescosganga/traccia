@@ -64,6 +64,7 @@ const api = {
     start: (req: RecordingRequest): Promise<void> => ipcRenderer.invoke('recording:start', req),
     stop: (): Promise<void> => ipcRenderer.invoke('recording:stop'),
     reset: (): Promise<void> => ipcRenderer.invoke('recording:reset'),
+    skipTranscription: (): Promise<void> => ipcRenderer.invoke('recording:skipTranscription'),
     onState: (cb: (s: AppState) => void) => on<AppState>('state', cb),
     onNavigate: (cb: (page: string) => void) => on<string>('navigate', cb)
   },

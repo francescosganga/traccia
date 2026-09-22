@@ -27,7 +27,7 @@ import { getPermissions, openPrivacySettings } from './permissions'
 import { buildPrompt } from './prompt'
 import { getSettings } from './settings'
 import { buildTimeline, clipToDuration, mapPoint, wordsAround, type Geometry } from './timeline'
-import { isModelInstalled, transcribe } from './whisper'
+import { isModelInstalled, killWorker, transcribe } from './whisper'
 
 export interface SessionHost {
   /** WebContents of the hidden main window, where the MediaRecorder engine lives */
@@ -65,6 +65,7 @@ export class RecordingSession {
   private startTimer: NodeJS.Timeout | null = null
   private countdownAbort = false
   private overrides: RecordingOverrides = {}
+  private transcribing = false
 
   constructor(private host: SessionHost) {}
 
@@ -194,6 +195,11 @@ export class RecordingSession {
       return
     }
     if (this.state.status === 'recording') this.host.engine()?.send('engine:stop')
+  }
+
+  /** Gives up the transcription in progress; the recording is saved without it. */
+  skipTranscription(): void {
+    if (this.transcribing) killWorker()
   }
 
   // ---- events coming from the renderer engine --------------------------------
@@ -344,18 +350,25 @@ export class RecordingSession {
           const audioPath = join(this.dir, 'audio.f32')
           await runFfmpeg(['-i', this.rawPath, '-vn', '-ac', '1', '-ar', '16000', '-f', 'f32le', '-acodec', 'pcm_f32le', audioPath])
           const transcribeStep = t('step.transcribe', { model: settings.whisperModel })
-          this.progress({ step: transcribeStep, progress: -1 })
+          this.progress({ step: transcribeStep, progress: -1, canSkipTranscription: true })
+          this.transcribing = true
           const transcript = await transcribe(audioPath, settings.whisperModel, settings.speechLanguage, (p) =>
-            this.progress({ step: transcribeStep, progress: p > 0 ? p : -1 })
-          )
+            this.progress({ step: transcribeStep, progress: p > 0 ? p : -1, canSkipTranscription: true })
+          ).finally(() => {
+            this.transcribing = false
+            void rm(audioPath, { force: true })
+          })
           // Like cursor samples and clicks, speech is limited to the recording's time span
           // (Whisper can hallucinate text timestamped past the end of the audio).
           segments = clipToDuration(transcript.segments, durationMs)
           words = clipToDuration(transcript.words, durationMs)
-          await rm(audioPath, { force: true })
         } catch (e) {
-          console.error('transcription failed', e)
-          warnings.push(t('warn.transcriptionFailed', { error: (e as Error).message }))
+          // killWorker() rejects with "cancelled": that is the user skipping it, not a failure
+          if ((e as Error).message === 'cancelled') warnings.push(t('warn.transcriptionSkipped'))
+          else {
+            console.error('transcription failed', e)
+            warnings.push(t('warn.transcriptionFailed', { error: (e as Error).message }))
+          }
         }
       }
     }

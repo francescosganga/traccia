@@ -247,6 +247,7 @@ const en = {
   'warn.clicksHookFailed': 'Clicks not recorded: could not start the mouse hook ({error})',
   'warn.modelMissing': 'Transcription skipped: the Whisper model "{model}" is not installed (Settings → Audio & transcription)',
   'warn.transcriptionFailed': 'Transcription failed: {error}',
+  'warn.transcriptionSkipped': 'Transcription skipped by the user',
 
   // processing steps
   'step.frames': 'Extracting frames',
@@ -565,6 +566,7 @@ const it: Record<TranslationKey, string> = {
   'warn.clicksHookFailed': 'Click non registrati: impossibile avviare il monitor del mouse ({error})',
   'warn.modelMissing': 'Trascrizione saltata: il modello Whisper "{model}" non è installato (Impostazioni → Audio e trascrizione)',
   'warn.transcriptionFailed': 'Trascrizione fallita: {error}',
+  'warn.transcriptionSkipped': "Trascrizione saltata dall'utente",
 
   'step.frames': 'Estrazione frame',
   'step.saveAudio': 'Salvataggio audio',
