@@ -63,7 +63,7 @@ The `recording.txt` produced by the demo above (JPG mode, 2 fps):
 - Floating widget with timer and Stop (excluded from the capture). Optional global shortcuts, off by default: the macOS screenshot keys (⇧⌘5 full screen, ⇧⌘4 region), alternative ones (⌃⌥⌘5, ⌃⌥⌘4) or your own; either one also stops.
 - Menu bar icon with quick actions: record screen/region, stop, format, resolution, fps, microphone, transcription, clicks, recent recordings.
 - Open at login (menu-bar-only start), optional Dock icon.
-- Interface in English and Italian.
+- Interface in English and Italian, light or dark with the system.
 - A **CLI and an MCP server** (`traccia-cli`), so an AI agent can read recordings and start or stop one without the app in front.
 
 ## Screenshots
@@ -189,7 +189,7 @@ Useful variables: `TRACCIA_AUTOTEST_MODE=region` with `TRACCIA_AUTOTEST_REGION=x
 
 The CLI and the MCP server live in `packages/cli` (an npm workspace); `npm run build` bundles them into `packages/cli/dist/traccia.cjs` along with the app, and the packaged app carries that file as `app.asar/cli/traccia.cjs`. `npm run typecheck` and `npm test` cover them too.
 
-UI screenshots for this README (wizard, home, settings) are regenerated with a throwaway profile and no screen-capture permission:
+UI screenshots for this README (wizard, home, settings) are regenerated with a throwaway profile and no screen-capture permission; the app follows the system appearance, `TRACCIA_SCREENSHOTS_THEME=dark` (or `light`) forces one:
 
 ```bash
 npm run build && TRACCIA_SCREENSHOTS=docs/screenshots npx electron .

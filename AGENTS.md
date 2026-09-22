@@ -12,7 +12,7 @@ npm run build        # production build into out/, plus the CLI (npm run build:c
 npm run link         # unpacked .app symlinked into /Applications, for testing the packaged build
 npm run dist         # DMG in dist/, signed only if a Developer ID certificate is in the keychain
 npm run build && TRACCIA_AUTOTEST=6 npx electron .   # records 6 s of the primary display and quits
-npm run build && TRACCIA_SCREENSHOTS=docs/screenshots npx electron .   # regenerates the wizard/home/settings screenshots
+npm run build && TRACCIA_SCREENSHOTS=docs/screenshots npx electron .   # regenerates the wizard/home/settings screenshots (TRACCIA_SCREENSHOTS_THEME=dark|light, TRACCIA_SCREENSHOTS_LANG=it)
 ```
 
 Node 20+. There is no linter or formatter configured: match the surrounding code.

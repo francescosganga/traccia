@@ -63,7 +63,7 @@ Il `recording.txt` prodotto dalla demo qui sopra (modalità JPG, 2 fps; l'interf
 - Widget flottante con timer e Stop (escluso dalla registrazione). Scorciatoie globali opzionali, disattivate di default: i tasti degli screenshot di macOS (⇧⌘5 tutto lo schermo, ⇧⌘4 area), quelli alternativi (⌃⌥⌘5, ⌃⌥⌘4) o i tuoi; entrambe fermano anche la registrazione.
 - Icona nella barra dei menu con azioni rapide: registra schermo/area, stop, formato, risoluzione, fps, microfono, trascrizione, click, registrazioni recenti.
 - Apertura al login (avvio solo nella barra dei menu), icona nel Dock opzionale.
-- Interfaccia in inglese e italiano.
+- Interfaccia in inglese e italiano, chiara o scura come il sistema.
 - Un **CLI e un server MCP** (`traccia-cli`), così un agente AI può leggere le registrazioni e avviarne o fermarne una senza avere l'app davanti.
 
 ## Schermate
@@ -189,7 +189,7 @@ Variabili utili: `TRACCIA_AUTOTEST_MODE=region` con `TRACCIA_AUTOTEST_REGION=x,y
 
 Il CLI e il server MCP stanno in `packages/cli` (un workspace npm); `npm run build` li impacchetta in `packages/cli/dist/traccia.cjs` insieme all'app, e l'app pacchettizzata porta con sé quel file come `app.asar/cli/traccia.cjs`. Anche `npm run typecheck` e `npm test` li coprono.
 
-Gli screenshot dell'interfaccia usati in questo README (wizard, home, impostazioni) si rigenerano con un profilo temporaneo e senza permesso di registrazione schermo:
+Gli screenshot dell'interfaccia usati in questo README (wizard, home, impostazioni) si rigenerano con un profilo temporaneo e senza permesso di registrazione schermo; l'app segue l'aspetto del sistema, `TRACCIA_SCREENSHOTS_THEME=dark` (o `light`) ne forza uno:
 
 ```bash
 npm run build && TRACCIA_SCREENSHOTS=docs/screenshots npx electron .

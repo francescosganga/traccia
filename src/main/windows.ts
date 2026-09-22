@@ -1,4 +1,4 @@
-import { BrowserWindow, screen, shell, type Display } from 'electron'
+import { BrowserWindow, nativeTheme, screen, shell, type Display } from 'electron'
 import { join } from 'path'
 import type { Rect } from '../shared/types'
 
@@ -38,7 +38,7 @@ export function createMainWindow(opts: { show?: boolean } = {}): BrowserWindow {
     title: 'Traccia',
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     trafficLightPosition: { x: 16, y: 18 },
-    backgroundColor: '#111114',
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#111114' : '#f5f5f7',
     show: false,
     webPreferences: {
       preload: PRELOAD(),
