@@ -65,7 +65,9 @@ const en = {
   'shortcut.altNote': 'Nothing to change in macOS.',
   'shortcut.fieldScreen': 'Record full screen',
   'shortcut.fieldRegion': 'Record region',
-  'shortcut.customHint': 'Electron accelerator format, e.g. {example}',
+  'shortcut.customHint': 'Click a field and press the combination you want.',
+  'shortcut.press': 'Press the keys…',
+  'shortcut.needModifier': 'Combine a key with at least one of {mods}.',
   'wizard.finish': 'Get started',
 
   // permissions panel
@@ -393,7 +395,9 @@ const it: Record<TranslationKey, string> = {
   'shortcut.altNote': 'Niente da cambiare in macOS.',
   'shortcut.fieldScreen': 'Registra tutto lo schermo',
   'shortcut.fieldRegion': 'Registra un\'area',
-  'shortcut.customHint': 'Formato acceleratori Electron, es. {example}',
+  'shortcut.customHint': 'Clicca un campo e premi la combinazione che vuoi.',
+  'shortcut.press': 'Premi i tasti…',
+  'shortcut.needModifier': 'Combina un tasto con almeno uno tra {mods}.',
   'wizard.finish': 'Inizia',
 
   'perm.screen.label': 'Registrazione schermo',

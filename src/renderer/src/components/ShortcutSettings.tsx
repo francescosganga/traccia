@@ -3,6 +3,8 @@ import { t } from '../../../shared/i18n'
 import { presetOf, SHORTCUT_PRESETS, type ShortcutPreset } from '../../../shared/shortcuts'
 import type { Settings } from '../../../shared/types'
 import { formatShortcut, isMacScreenshotShortcut } from '../format'
+import { Segmented } from './Segmented'
+import { ShortcutRecorder } from './ShortcutRecorder'
 import { Toggle } from './Toggle'
 
 interface Props {
@@ -12,22 +14,6 @@ interface Props {
 }
 
 const PRESETS: ShortcutPreset[] = ['mac', 'alt', 'custom']
-
-function ShortcutField({ label, value, onSave }: { label: string; value: string; onSave: (v: string) => void }) {
-  const [draft, setDraft] = useState(value)
-  useEffect(() => setDraft(value), [value])
-  return (
-    <div className="field">
-      <label>{label}</label>
-      <div className="row">
-        <input type="text" className="grow" value={draft} onChange={(e) => setDraft(e.target.value)} />
-        <button className="btn" disabled={draft === value} onClick={() => onSave(draft)}>
-          {t('common.save')}
-        </button>
-      </div>
-    </div>
-  )
-}
 
 /** On/off switch for the global shortcuts and the choice of keys; shared by the wizard and the settings page. */
 export function ShortcutSettings({ settings, update, platform }: Props) {
@@ -57,21 +43,15 @@ export function ShortcutSettings({ settings, update, platform }: Props) {
         <div className="mt-4">
           <div className="field">
             <label>{t('shortcut.keys')}</label>
-            <div className="segmented">
-              {PRESETS.map((p) => (
-                <button key={p} className={choice === p ? 'active' : ''} onClick={() => choose(p)}>
-                  {t(`shortcut.preset.${p}`)}
-                </button>
-              ))}
-            </div>
+            <Segmented options={PRESETS.map((p) => ({ id: p, label: t(`shortcut.preset.${p}`) }))} value={choice} onChange={choose} />
           </div>
           {choice === 'custom' ? (
             <>
               <div className="grid-2">
-                <ShortcutField label={t('shortcut.fieldScreen')} value={shortcutScreen} onSave={(shortcutScreen) => void update({ shortcutScreen })} />
-                <ShortcutField label={t('shortcut.fieldRegion')} value={shortcutRegion} onSave={(shortcutRegion) => void update({ shortcutRegion })} />
+                <ShortcutRecorder label={t('shortcut.fieldScreen')} value={shortcutScreen} platform={platform} onChange={(shortcutScreen) => void update({ shortcutScreen })} />
+                <ShortcutRecorder label={t('shortcut.fieldRegion')} value={shortcutRegion} platform={platform} onChange={(shortcutRegion) => void update({ shortcutRegion })} />
               </div>
-              <p className="small muted mt-2">{t('shortcut.customHint', { example: SHORTCUT_PRESETS.mac.screen })}</p>
+              <p className="small muted mt-2">{t('shortcut.customHint')}</p>
             </>
           ) : (
             <p>
