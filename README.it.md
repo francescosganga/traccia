@@ -64,6 +64,7 @@ Il `recording.txt` prodotto dalla demo qui sopra (modalità JPG, 2 fps; l'interf
 - Icona nella barra dei menu con azioni rapide: registra schermo/area, stop, formato, risoluzione, fps, microfono, trascrizione, click, registrazioni recenti.
 - Apertura al login (avvio solo nella barra dei menu), icona nel Dock opzionale.
 - Interfaccia in inglese e italiano.
+- Un **CLI e un server MCP** (`traccia-cli`), così un agente AI può leggere le registrazioni e avviarne o fermarne una senza avere l'app davanti.
 
 ## Schermate
 
@@ -117,6 +118,53 @@ Le DMG sono firmate con un certificato Developer ID e notarizzate da Apple, quin
 
 Se attivi le scorciatoie con i tasti degli screenshot di macOS (⇧⌘5, ⇧⌘4), macOS continua a gestirli finché non li disattivi in **Impostazioni di Sistema → Tastiera → Abbreviazioni da tastiera → Istantanee schermo**; l'app rimanda a quel pannello. I tasti alternativi non richiedono modifiche.
 
+## CLI e MCP
+
+L'app include un server [MCP](https://modelcontextprotocol.io) e uno strumento da riga di comando, così un agente AI può elencare le registrazioni, leggerne timeline e frame, avviare o fermare una registrazione senza avere l'app davanti. Per leggere bastano i file su disco; per avviare e fermare si parla con l'app in esecuzione attraverso un socket di controllo locale.
+
+### Server MCP
+
+**Impostazioni → Agenti AI** registra il server con un click in Claude Code, Claude Desktop, Cursor o Codex, oppure copia il JSON per qualsiasi altro client e lo aggiunge a un file di configurazione a tua scelta. Non c'è altro da installare: il server è la copia dell'app che stai usando, avviata dal client tramite il binario dell'app stessa in modalità Node.
+
+```json
+{
+  "mcpServers": {
+    "traccia": {
+      "command": "/Applications/Traccia.app/Contents/MacOS/Traccia",
+      "args": ["/Applications/Traccia.app/Contents/Resources/app.asar/cli/traccia.cjs", "mcp"],
+      "env": { "ELECTRON_RUN_AS_NODE": "1" }
+    }
+  }
+}
+```
+
+Il server espone:
+
+- **tool** — `list_recordings`, `get_timeline` (i click, oppure la versione raw con il movimento del puntatore), `get_transcript`, `get_frames` (immagini JPEG ridotte a 1024 px di larghezza, distribuite su un intervallo di tempo, al massimo 30 per chiamata), `get_status`, `start_recording`, `stop_recording`;
+- **prompt** — `write_bug_report` e `explain_recording`: la timeline più una manciata di frame, con le istruzioni;
+- **risorse** — `recording://<id>/recording.txt`, `recording-raw.txt`, `recording.json` e `recording://<id>/frames/<file>`.
+
+I frame delle registrazioni JPG arrivano direttamente da `frames/`; per le registrazioni video il server estrae i fotogrammi con l'`ffmpeg` incluso nell'app (o quello nel `PATH`, o `TRACCIA_FFMPEG`). Ogni immagine costa circa mille token: per questo `get_frames` prende un intervallo di tempo e un massimo. ChatGPT non supporta i server MCP locali; Codex sì.
+
+### Riga di comando
+
+Lo stesso programma è pubblicato su npm come [`traccia-cli`](packages/cli), per il terminale e per le macchine senza l'app (per esempio un agente che legge una cartella di registrazioni sincronizzata):
+
+```bash
+npx -y traccia-cli list                     # le registrazioni nella cartella di output, dalla più recente
+npx -y traccia-cli show latest              # stampa recording.txt (--raw per recording-raw.txt, --json per i metadati)
+npx -y traccia-cli status                   # cosa sta facendo l'app
+npx -y traccia-cli record start --jpg --no-audio --countdown 0   # l'app deve essere aperta (--launch la apre)
+npx -y traccia-cli record stop              # ferma, aspetta i file e dice dove sono
+npx -y traccia-cli mcp                      # il server MCP, ad es. claude mcp add traccia -- npx -y traccia-cli mcp
+```
+
+`npm install -g traccia-cli` dà un semplice comando `traccia`. L'id di una registrazione è il nome della cartella (`2026-09-18_08-51-52`), `latest`, oppure il percorso della cartella. `record start` accetta `--region` (trascina l'area sullo schermo, come dall'app) o `--rect x,y,w,h`, `--display`, `--format`, `--fps`, `--resolution`, `--no-audio`, `--no-transcribe` e `--countdown`; le opzioni che non passi vengono dalle impostazioni dell'app, quelle che passi valgono solo per quella registrazione. `--json` rende leggibile da macchina l'output di ogni comando; `--dir` legge le registrazioni da una cartella diversa da quella nelle impostazioni. `traccia --help` elenca tutto.
+
+### Socket di controllo
+
+Mentre è aperta, l'app ascolta su `~/Library/Application Support/traccia/control.sock` (un socket Unix, leggibile solo dall'utente corrente) un oggetto JSON per riga: `status`, `start`, `stop`, `settings`, `displays`; il protocollo è in [src/shared/control.ts](src/shared/control.ts). Su Windows servirebbe una named pipe; oggi l'app è solo per macOS, quindi quella strada non è testata.
+
 ## Sviluppo
 
 Il codice l'ho scritto io con un uso intensivo di Claude Code. Ogni riga è stata letta e capita; l'architettura, il formato di output e le scelte sono mie. Issue e PR sono benvenute, e rispondo personalmente.
@@ -137,7 +185,9 @@ Test rapido dell'intera pipeline senza cliccare nell'interfaccia (registra 6 sec
 npm run build && TRACCIA_AUTOTEST=6 npx electron .
 ```
 
-Variabili utili: `TRACCIA_AUTOTEST_MODE=region` con `TRACCIA_AUTOTEST_REGION=x,y,w,h` (in punti, relativi allo schermo); `TRACCIA_FFMPEG=/percorso/ffmpeg` per usare un ffmpeg diverso da quello incluso.
+Variabili utili: `TRACCIA_AUTOTEST_MODE=region` con `TRACCIA_AUTOTEST_REGION=x,y,w,h` (in punti, relativi allo schermo); `TRACCIA_FFMPEG=/percorso/ffmpeg` per usare un ffmpeg diverso da quello incluso; `TRACCIA_USER_DATA=/una/cartella` per usare un profilo separato (impostazioni, socket di controllo, lock di istanza singola), ad esempio accanto all'app installata.
+
+Il CLI e il server MCP stanno in `packages/cli` (un workspace npm); `npm run build` li impacchetta in `packages/cli/dist/traccia.cjs` insieme all'app, e l'app pacchettizzata porta con sé quel file come `app.asar/cli/traccia.cjs`. Anche `npm run typecheck` e `npm test` li coprono.
 
 Gli screenshot dell'interfaccia usati in questo README (wizard, home, impostazioni) si rigenerano con un profilo temporaneo e senza permesso di registrazione schermo:
 
@@ -160,6 +210,8 @@ npm version patch   # o minor / major: aggiorna package.json e crea il tag
 git push --follow-tags
 ```
 
+Pubblicare la release su GitHub pubblica anche `traccia-cli` su npm, con lo stesso numero di versione ([publish-cli.yml](.github/workflows/publish-cli.yml), trusted publishing di npm: nessun token nel repository).
+
 ## Come funziona
 
 | Parte | Tecnologia |
@@ -170,19 +222,20 @@ git push --follow-tags
 | Conversioni, crop, scaling, estrazione JPG | [`ffmpeg-static`](https://github.com/eugeneware/ffmpeg-static) (encoder hardware `h264_videotoolbox` su macOS) |
 | Trascrizione | modelli OpenAI Whisper in formato ONNX (le esportazioni `_timestamped` di [onnx-community](https://huggingface.co/onnx-community), che forniscono i timestamp per parola) eseguiti da [`@huggingface/transformers`](https://github.com/huggingface/transformers.js) in un utility process |
 | UI | Electron + Vite + React + TypeScript |
+| CLI e server MCP | Node puro, [`@modelcontextprotocol/sdk`](https://github.com/modelcontextprotocol/typescript-sdk), `sharp` per ridurre i frame; parla con l'app su un socket Unix |
 
-Struttura: `src/main` (processo principale: sessione di registrazione, ffmpeg, Whisper, timeline), `src/preload` (bridge IPC), `src/renderer` (interfaccia, engine di cattura, overlay di selezione area, widget), `src/shared` (tipi e traduzioni).
+Struttura: `src/main` (processo principale: sessione di registrazione, ffmpeg, Whisper, timeline, socket di controllo), `src/preload` (bridge IPC), `src/renderer` (interfaccia, engine di cattura, overlay di selezione area, widget), `src/shared` (tipi, traduzioni, il lettore di registrazioni usato sia dall'app sia dal CLI), `packages/cli` (CLI e server MCP).
 
 Le traduzioni sono in `src/shared/i18n.ts`; aggiungere una lingua significa aggiungere un dizionario lì.
 
 ## Roadmap
 
-- Un CLI e un server MCP, così gli agenti possono leggere le registrazioni e avviare/fermare una registrazione senza avere l'app davanti.
-- Un piccolo editor post-registrazione (taglio inizio/fine, rimozione di sezioni) che tiene la timeline allineata.
-- Audio di sistema su macOS.
-- Supporto Windows.
-- Backend `whisper.cpp` su Apple Silicon.
-- Altre lingue per l'interfaccia.
+- [x] Un CLI e un server MCP, così gli agenti possono leggere le registrazioni e avviare/fermare una registrazione senza avere l'app davanti (vedi [CLI e MCP](#cli-e-mcp)).
+- [ ] Un piccolo editor post-registrazione (taglio inizio/fine, rimozione di sezioni) che tiene la timeline allineata.
+- [ ] Audio di sistema su macOS.
+- [ ] Supporto Windows.
+- [ ] Backend `whisper.cpp` su Apple Silicon.
+- [ ] Altre lingue per l'interfaccia.
 
 ## Licenza
 

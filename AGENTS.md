@@ -7,8 +7,8 @@ Traccia is an Electron app for macOS that records the screen and writes output m
 ```bash
 npm install
 npm run dev          # app with hot reload
-npm run typecheck    # both tsconfigs; must pass before every commit
-npm run build        # production build into out/
+npm run typecheck    # app (both tsconfigs) and CLI; must pass before every commit
+npm run build        # production build into out/, plus the CLI (npm run build:cli) into packages/cli/dist/traccia.cjs
 npm run link         # unpacked .app symlinked into /Applications, for testing the packaged build
 npm run dist         # DMG in dist/, signed only if a Developer ID certificate is in the keychain
 npm run build && TRACCIA_AUTOTEST=6 npx electron .   # records 6 s of the primary display and quits
@@ -19,10 +19,11 @@ Node 20+. There is no linter or formatter configured: match the surrounding code
 
 ## Layout
 
-- `src/main` — main process. `session.ts` drives a recording end to end; `cursor.ts` (pointer sampling, global clicks), `ffmpeg.ts` + `frames.ts` (conversion, crop/scale, JPG extraction with duplicate skipping), `whisper.ts` + `whisper-worker.ts` (transcription in a utility process), `timeline.ts` (`recording.txt` / `-raw.txt` / `.json`), `tray.ts`, `windows.ts`, `ipc.ts`, `settings.ts`.
+- `src/main` — main process. `session.ts` drives a recording end to end; `cursor.ts` (pointer sampling, global clicks), `ffmpeg.ts` + `frames.ts` (conversion, crop/scale, JPG extraction with duplicate skipping), `whisper.ts` + `whisper-worker.ts` (transcription in a utility process), `timeline.ts` (`recording.txt` / `-raw.txt` / `.json`), `control.ts` (the control socket used by the CLI and the MCP server), `agents.ts` + `mcp-config.ts` (the settings button that registers the MCP server with Claude Code, Claude Desktop, Cursor, Codex or a chosen file), `tray.ts`, `windows.ts`, `ipc.ts`, `settings.ts`.
 - `src/preload` — the only bridge between main and renderer (`window.api`). Its types reach the renderer through `src/renderer/src/global.d.ts`.
 - `src/renderer` — React UI. Three windows: `index.html` (main), `region.html` (drag-to-select overlay), `controls.html` (floating widget, excluded from the capture). `src/components/Icon.tsx` is the icon set.
-- `src/shared` — `types.ts` and `i18n.ts` (English and Italian dictionaries).
+- `src/shared` — `types.ts`, `i18n.ts` (English and Italian dictionaries), `recording-reader.ts` (reads recordings and settings from disk, resolves the app's paths; Node built-ins only, because the CLI bundles it) and `control.ts` (the socket protocol).
+- `packages/cli` — the `traccia-cli` npm workspace: `traccia` CLI and `traccia mcp` server (`@modelcontextprotocol/sdk`). Plain Node, no Electron; esbuild bundles `src/main.ts` plus the shared modules into one script (`build.mjs`). Its only native dependency is `sharp`, for downscaling frames. The packaged app carries the bundle as `app.asar/cli/traccia.cjs` and runs it with its own binary in Node mode (`ELECTRON_RUN_AS_NODE=1`), which is how the settings page registers the MCP server without Node or npm on the user's machine; the `runAsNode` Electron fuse must therefore stay on. The same bundle is published to npm by `publish-cli.yml` when a GitHub Release is published; its `package.json` version is a placeholder (`0.0.0`), the root version is the one that counts.
 - `docs/` — what the README embeds: `screenshots/` (wizard, home and settings come from the `TRACCIA_SCREENSHOTS` helper; recording, widget, tray and the demo GIF are captured by hand), and `design-system.md` + `design-system.html`, which explain the tokens and component rules behind `styles.css`.
 
 ## Conventions
@@ -41,6 +42,9 @@ Node 20+. There is no linter or formatter configured: match the surrounding code
 - The native modules (`uiohook-napi`, `onnxruntime-node`, `sharp`, `ffmpeg-static`) ship binaries for the host architecture only: build arm64 on Apple Silicon and x64 on Intel. That is why `release.yml` uses one runner per architecture, and why they are `asarUnpack`ed in `electron-builder.yml`.
 - Whisper models are the `_timestamped` ONNX exports from `onnx-community` (they give word-level timestamps); models already in the Hugging Face cache are hard-linked, not downloaded again.
 - Releases are signed with Developer ID and notarized, with the hardened runtime and the entitlements in `build/entitlements.mac.plist`. The credentials exist only as the GitHub secrets listed at the top of `release.yml`; never put them in the repo. Under the hardened runtime a device needs its entitlement: without `com.apple.security.device.audio-input` the microphone is silently denied.
+- Processes started from an agent session (Claude Code and the like) usually have no Screen Recording permission, even through `open`: `record start` then fails with the permission error. Run recordings from your own terminal. `TRACCIA_USER_DATA=<dir>` gives the app (and the CLI) a separate profile, socket and single-instance lock, so a development build can run next to the installed one.
+- `claude mcp add` takes the server name before `-e`: that option is variadic and swallows the name as a variable otherwise.
+- Unix socket paths are limited to ~104 bytes on macOS: `controlSocketPath()` falls back to a per-user temp path when the profile folder is too deep. Electron names the profile folder after package.json's `name` (`traccia`, lowercase), not the product name.
 
 ## Git
 

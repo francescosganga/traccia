@@ -64,6 +64,7 @@ The `recording.txt` produced by the demo above (JPG mode, 2 fps):
 - Menu bar icon with quick actions: record screen/region, stop, format, resolution, fps, microphone, transcription, clicks, recent recordings.
 - Open at login (menu-bar-only start), optional Dock icon.
 - Interface in English and Italian.
+- A **CLI and an MCP server** (`traccia-cli`), so an AI agent can read recordings and start or stop one without the app in front.
 
 ## Screenshots
 
@@ -117,6 +118,53 @@ The DMGs are signed with a Developer ID certificate and notarized by Apple, so t
 
 If you enable the shortcuts with the macOS screenshot keys (⇧⌘5, ⇧⌘4), macOS keeps handling them until you turn them off in **System Settings → Keyboard → Keyboard Shortcuts → Screenshots**; the app links to that pane. The alternative keys need no change.
 
+## CLI & MCP
+
+The app includes an [MCP](https://modelcontextprotocol.io) server and a command-line tool, so an AI agent can list the recordings, read their timeline and frames, and start or stop a recording without the app in front. Reading works on the files alone; starting and stopping talk to the running app through a local control socket.
+
+### MCP server
+
+**Settings → AI agents** registers the server with one click in Claude Code, Claude Desktop, Cursor or Codex, or copies the JSON for any other client and adds it to a config file you choose. Nothing else to install: the server is the copy of the app you are running, started by the client through the app's own binary in Node mode.
+
+```json
+{
+  "mcpServers": {
+    "traccia": {
+      "command": "/Applications/Traccia.app/Contents/MacOS/Traccia",
+      "args": ["/Applications/Traccia.app/Contents/Resources/app.asar/cli/traccia.cjs", "mcp"],
+      "env": { "ELECTRON_RUN_AS_NODE": "1" }
+    }
+  }
+}
+```
+
+The server offers:
+
+- **tools** — `list_recordings`, `get_timeline` (clicks, or raw with the pointer movement), `get_transcript`, `get_frames` (JPEG images downscaled to 1024 px wide, spread over a time range, at most 30 per call), `get_status`, `start_recording`, `stop_recording`;
+- **prompts** — `write_bug_report` and `explain_recording`: the timeline plus a handful of frames, with instructions;
+- **resources** — `recording://<id>/recording.txt`, `recording-raw.txt`, `recording.json` and `recording://<id>/frames/<file>`.
+
+Frames of JPG recordings come straight from `frames/`; for video recordings the server extracts stills with the `ffmpeg` bundled in the app (or the one in the `PATH`, or `TRACCIA_FFMPEG`). Each image costs about a thousand tokens, which is why `get_frames` takes a time range and a maximum. ChatGPT does not support local MCP servers; Codex does.
+
+### Command line
+
+The same program is published on npm as [`traccia-cli`](packages/cli), for terminals and for machines without the app (an agent reading a synced recordings folder, for instance):
+
+```bash
+npx -y traccia-cli list                     # recordings in the output folder, newest first
+npx -y traccia-cli show latest              # print recording.txt (--raw for recording-raw.txt, --json for the metadata)
+npx -y traccia-cli status                   # what the app is doing
+npx -y traccia-cli record start --jpg --no-audio --countdown 0   # the app must be running (--launch opens it)
+npx -y traccia-cli record stop              # stop, wait for the files and print where they are
+npx -y traccia-cli mcp                      # the MCP server, e.g. claude mcp add traccia -- npx -y traccia-cli mcp
+```
+
+`npm install -g traccia-cli` gives you a plain `traccia` command. A recording id is the folder name (`2026-09-18_08-51-52`), `latest`, or the path of a recording folder. `record start` takes `--region` (drag the area on screen, as from the app) or `--rect x,y,w,h`, `--display`, `--format`, `--fps`, `--resolution`, `--no-audio`, `--no-transcribe` and `--countdown`; options you do not pass come from the app's settings, and the ones you pass apply to that recording only. `--json` makes every command machine-readable; `--dir` reads recordings from a folder other than the one in the settings. `traccia --help` lists everything.
+
+### Control socket
+
+While the app runs it listens on `~/Library/Application Support/traccia/control.sock` (a Unix socket, readable by the current user only) for one JSON object per line: `status`, `start`, `stop`, `settings`, `displays`; the protocol is in [src/shared/control.ts](src/shared/control.ts). Windows would need a named pipe instead; the app is macOS-only today, so that path is untested.
+
 ## Development
 
 The code was written by me with heavy use of Claude Code. Every line has been read and understood; the architecture, the output format and the trade-offs are mine. Issues and PRs are welcome, and I answer them personally.
@@ -137,7 +185,9 @@ Quick end-to-end test without clicking through the UI (records 6 seconds of the 
 npm run build && TRACCIA_AUTOTEST=6 npx electron .
 ```
 
-Useful variables: `TRACCIA_AUTOTEST_MODE=region` with `TRACCIA_AUTOTEST_REGION=x,y,w,h` (in points, relative to the display); `TRACCIA_FFMPEG=/path/to/ffmpeg` to use a different ffmpeg than the bundled one.
+Useful variables: `TRACCIA_AUTOTEST_MODE=region` with `TRACCIA_AUTOTEST_REGION=x,y,w,h` (in points, relative to the display); `TRACCIA_FFMPEG=/path/to/ffmpeg` to use a different ffmpeg than the bundled one; `TRACCIA_USER_DATA=/some/dir` to run with a separate profile (settings, control socket, single-instance lock), for instance next to the installed app.
+
+The CLI and the MCP server live in `packages/cli` (an npm workspace); `npm run build` bundles them into `packages/cli/dist/traccia.cjs` along with the app, and the packaged app carries that file as `app.asar/cli/traccia.cjs`. `npm run typecheck` and `npm test` cover them too.
 
 UI screenshots for this README (wizard, home, settings) are regenerated with a throwaway profile and no screen-capture permission:
 
@@ -160,6 +210,8 @@ npm version patch   # or minor / major: bumps package.json and creates the tag
 git push --follow-tags
 ```
 
+Publishing the release on GitHub also publishes `traccia-cli` to npm, with the same version number ([publish-cli.yml](.github/workflows/publish-cli.yml), npm trusted publishing: no token in the repository).
+
 ## How it works
 
 | Part | Technology |
@@ -170,19 +222,20 @@ git push --follow-tags
 | Conversion, crop, scaling, JPG extraction | [`ffmpeg-static`](https://github.com/eugeneware/ffmpeg-static) (hardware `h264_videotoolbox` encoder on macOS) |
 | Transcription | OpenAI Whisper models in ONNX format (the `_timestamped` exports from [onnx-community](https://huggingface.co/onnx-community), which provide word-level timestamps) run by [`@huggingface/transformers`](https://github.com/huggingface/transformers.js) in a utility process |
 | UI | Electron + Vite + React + TypeScript |
+| CLI and MCP server | plain Node, [`@modelcontextprotocol/sdk`](https://github.com/modelcontextprotocol/typescript-sdk), `sharp` to downscale frames; talks to the app over a Unix socket |
 
-Layout: `src/main` (main process: recording session, ffmpeg, Whisper, timeline), `src/preload` (IPC bridge), `src/renderer` (UI, capture engine, region overlay, widget), `src/shared` (types and translations).
+Layout: `src/main` (main process: recording session, ffmpeg, Whisper, timeline, control socket), `src/preload` (IPC bridge), `src/renderer` (UI, capture engine, region overlay, widget), `src/shared` (types, translations, the recording reader used by both the app and the CLI), `packages/cli` (CLI and MCP server).
 
 Translations live in `src/shared/i18n.ts`; adding a language means adding a dictionary there.
 
 ## Roadmap
 
-- A CLI and an MCP server, so agents can read recordings and start/stop a recording without the app in front.
-- A small post-recording editor (trim, cut sections) that keeps the timeline in sync.
-- System audio on macOS.
-- Windows support.
-- `whisper.cpp` backend on Apple Silicon.
-- More interface languages.
+- [x] A CLI and an MCP server, so agents can read recordings and start/stop a recording without the app in front (see [CLI & MCP](#cli--mcp)).
+- [ ] A small post-recording editor (trim, cut sections) that keeps the timeline in sync.
+- [ ] System audio on macOS.
+- [ ] Windows support.
+- [ ] `whisper.cpp` backend on Apple Silicon.
+- [ ] More interface languages.
 
 ## License
 
