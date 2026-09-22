@@ -34,8 +34,10 @@ jobs:
 
       - run: npm run typecheck -w packages/cli
 
+      # `npm pkg set` only edits the file: `npm version` would also re-run the install to
+      # sync the lockfile, pulling in the app's native modules and their downloads.
       - name: Take the version from the root package.json
-        run: npm version --no-git-tag-version "$(node -p "require('./package.json').version")" -w packages/cli
+        run: npm pkg set version="$(node -p "require('./package.json').version")" -w packages/cli
 
       - run: npm run build -w packages/cli
 
