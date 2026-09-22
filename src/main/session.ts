@@ -9,6 +9,7 @@ import type {
   EngineStartedInfo,
   OutputFormat,
   ProcessingProgress,
+  RecordingInfo,
   RecordingOverrides,
   RecordingRequest,
   RecordingResult,
@@ -33,6 +34,8 @@ export interface SessionHost {
   engine(): WebContents | null
   showControls(display: Display): void
   hideControls(): void
+  showRegionFrame(display: Display, rect: Rect): void
+  hideRegionFrame(): void
   hideMainWindow(): void
   showMainWindow(): void
   onState(state: AppState): void
@@ -78,6 +81,17 @@ export class RecordingSession {
   /** The saved settings, with the per-recording overrides of the current request on top. */
   private settings(): Settings {
     return { ...getSettings(), ...this.overrides }
+  }
+
+  /** What the widget shows while recording: the choices most often regretted afterwards. */
+  private recordingInfo(): RecordingInfo {
+    const s = this.settings()
+    return { mode: this.region ? 'region' : 'screen', format: s.format, jpgFps: s.jpgFps, audio: s.audio }
+  }
+
+  private hideOverlays(): void {
+    this.host.hideControls()
+    this.host.hideRegionFrame()
   }
 
   get isBusy(): boolean {
@@ -137,10 +151,12 @@ export class RecordingSession {
 
     this.host.hideMainWindow()
     if (settings.showControls) this.host.showControls(this.display)
+    if (this.region && settings.showRegionFrame) this.host.showRegionFrame(this.display, this.region)
 
+    const info = this.recordingInfo()
     this.countdownAbort = false
     for (let s = settings.countdown; s > 0; s--) {
-      this.setState({ status: 'countdown', seconds: s })
+      this.setState({ status: 'countdown', seconds: s, info })
       await new Promise((r) => setTimeout(r, 1000))
       if (this.countdownAbort) {
         await this.cleanupAborted()
@@ -154,7 +170,7 @@ export class RecordingSession {
       this.tracker.warnings.push(t('warn.clicksNoAccessibility'))
     }
 
-    this.setState({ status: 'countdown', seconds: 0 })
+    this.setState({ status: 'countdown', seconds: 0, info })
     engine.send('engine:start', { audio: settings.audio, frameRate: FRAME_RATE })
     this.startTimer = setTimeout(() => {
       if (this.state.status === 'countdown') this.fail(t('err.engineTimeout'))
@@ -162,7 +178,7 @@ export class RecordingSession {
   }
 
   private async cleanupAborted(): Promise<void> {
-    this.host.hideControls()
+    this.hideOverlays()
     this.file?.close()
     this.file = null
     await rm(this.dir, { recursive: true, force: true }).catch(() => {})
@@ -186,7 +202,7 @@ export class RecordingSession {
     if (this.startTimer) clearTimeout(this.startTimer)
     this.startTimer = null
     this.info = info
-    this.setState({ status: 'recording', startedAt: info.t0 })
+    this.setState({ status: 'recording', startedAt: info.t0, info: this.recordingInfo() })
   }
 
   onEngineChunk(chunk: ArrayBuffer | Buffer): void {
@@ -196,7 +212,7 @@ export class RecordingSession {
   async onEngineStopped(): Promise<void> {
     this.stoppedAt = Date.now()
     const tracking = this.tracker.stop()
-    this.host.hideControls()
+    this.hideOverlays()
     await new Promise<void>((resolve) => (this.file ? this.file.end(resolve) : resolve()))
     this.file = null
     this.host.showMainWindow()
@@ -222,7 +238,7 @@ export class RecordingSession {
   private fail(message: string): void {
     if (this.startTimer) clearTimeout(this.startTimer)
     this.tracker.stop()
-    this.host.hideControls()
+    this.hideOverlays()
     this.file?.close()
     this.file = null
     this.host.showMainWindow()

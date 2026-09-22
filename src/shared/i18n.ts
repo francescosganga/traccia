@@ -168,6 +168,8 @@ const en = {
   'settings.recordingSection': 'Recording',
   'settings.showControls': 'Show the widget with timer and Stop',
   'settings.showControlsHint': 'The widget does not appear in the video.',
+  'settings.showRegionFrame': 'Outline the region while recording',
+  'settings.showRegionFrameHint': 'A red frame around the recorded area, like the macOS recorder. It does not appear in the video.',
   'settings.countdown': 'Countdown (seconds)',
   'settings.shortcutsSection': 'Shortcuts',
   'settings.permissions': 'Permissions',
@@ -206,6 +208,8 @@ const en = {
   // floating controls & region overlay
   'controls.startingIn': 'Starting in {n}…',
   'controls.starting': 'Starting…',
+  'controls.mic': 'Mic on',
+  'controls.noMic': 'No mic',
   'region.hint': 'Drag to select the area to record · Esc to cancel',
 
   // tray
@@ -485,6 +489,8 @@ const it: Record<TranslationKey, string> = {
   'settings.recordingSection': 'Registrazione',
   'settings.showControls': 'Mostra il widget con timer e Stop',
   'settings.showControlsHint': 'Il widget non compare nel video.',
+  'settings.showRegionFrame': "Mostra il contorno dell'area durante la registrazione",
+  'settings.showRegionFrameHint': "Una cornice rossa attorno all'area registrata, come il registratore di macOS. Non compare nel video.",
   'settings.countdown': 'Conto alla rovescia (secondi)',
   'settings.shortcutsSection': 'Scorciatoie',
   'settings.permissions': 'Permessi',
@@ -522,6 +528,8 @@ const it: Record<TranslationKey, string> = {
 
   'controls.startingIn': 'Inizio tra {n}…',
   'controls.starting': 'Avvio…',
+  'controls.mic': 'Mic acceso',
+  'controls.noMic': 'Senza mic',
   'region.hint': "Trascina per selezionare l'area da registrare · Esc per annullare",
 
   'tray.recordScreen': 'Registra schermo intero',

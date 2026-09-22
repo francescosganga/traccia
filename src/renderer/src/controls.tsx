@@ -1,8 +1,14 @@
 import { StrictMode, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { setLanguage, t } from '../../shared/i18n'
-import type { AppState } from '../../shared/types'
+import type { AppState, RecordingInfo } from '../../shared/types'
 import { formatDuration } from './format'
+
+/** The two choices most often regretted after a long recording: the format and whether the voice is in. */
+function describe(info: RecordingInfo): string {
+  const format = info.format === 'jpg' ? `JPG ${info.jpgFps} fps` : info.format.toUpperCase()
+  return `${format} · ${info.audio ? t('controls.mic') : t('controls.noMic')}`
+}
 
 function Controls() {
   const [state, setState] = useState<AppState>({ status: 'idle' })
@@ -24,19 +30,23 @@ function Controls() {
   }, [])
 
   if (!ready) return null
+  const info = state.status === 'recording' || state.status === 'countdown' ? state.info : null
 
   return (
     <div className="controls">
       <div className="time">
-        {state.status === 'recording' && (
-          <>
-            <span className="rec-dot" /> {formatDuration(now - state.startedAt)}
-          </>
-        )}
-        {state.status === 'countdown' && (
-          <span className="countdown">{state.seconds > 0 ? t('controls.startingIn', { n: state.seconds }) : t('controls.starting')}</span>
-        )}
-        {state.status !== 'recording' && state.status !== 'countdown' && <span className="dim">—</span>}
+        <div className="main">
+          {state.status === 'recording' && (
+            <>
+              <span className="rec-dot" /> {formatDuration(now - state.startedAt)}
+            </>
+          )}
+          {state.status === 'countdown' && (
+            <span className="countdown">{state.seconds > 0 ? t('controls.startingIn', { n: state.seconds }) : t('controls.starting')}</span>
+          )}
+          {state.status !== 'recording' && state.status !== 'countdown' && <span className="dim">—</span>}
+        </div>
+        {info && <div className="meta">{describe(info)}</div>}
       </div>
       <button className="btn primary stop" onClick={() => window.api.recording.stop()}>
         {t('common.stop')}

@@ -39,6 +39,8 @@ export interface Settings {
   countdown: number
   /** Show the floating "REC / Stop" widget while recording */
   showControls: boolean
+  /** Outline the recorded region on screen while recording (excluded from the capture, like the widget) */
+  showRegionFrame: boolean
   /** Global shortcuts (Electron accelerators) for a full-screen and a region recording; either one also stops the recording in progress */
   shortcutsEnabled: boolean
   shortcutScreen: string
@@ -123,13 +125,23 @@ export interface ProcessingProgress {
   /** 0..1, or -1 when indeterminate */
   progress: number
   detail?: string
+  /** Whisper is running and the user may skip it */
+  canSkipTranscription?: boolean
+}
+
+/** What is being recorded, shown by the widget so a wrong choice is noticed before the end. */
+export interface RecordingInfo {
+  mode: CaptureMode
+  format: OutputFormat
+  jpgFps: number
+  audio: boolean
 }
 
 export type AppState =
   | { status: 'idle' }
   | { status: 'selecting' }
-  | { status: 'countdown'; seconds: number }
-  | { status: 'recording'; startedAt: number }
+  | { status: 'countdown'; seconds: number; info: RecordingInfo }
+  | { status: 'recording'; startedAt: number; info: RecordingInfo }
   | ({ status: 'processing' } & ProcessingProgress)
   | { status: 'done'; result: RecordingResult }
   | { status: 'error'; message: string }

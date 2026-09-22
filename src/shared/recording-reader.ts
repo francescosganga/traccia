@@ -74,6 +74,7 @@ export const SETTINGS_DEFAULTS: Omit<Settings, 'outputDir'> = {
   cursorHz: 10,
   countdown: 3,
   showControls: true,
+  showRegionFrame: true,
   // Off until the user picks the keys: the macOS ones fire the system screenshot until disabled in System Settings
   shortcutsEnabled: false,
   shortcutScreen: SHORTCUT_PRESETS.mac.screen,

@@ -176,3 +176,43 @@ export function hideControls(): void {
   if (controls && !controls.isDestroyed()) controls.close()
   controls = null
 }
+
+// ---- region frame ----------------------------------------------------------------
+
+let regionFrame: BrowserWindow | null = null
+// Room for the 2 px border outside the region, so nothing covers what is being captured
+const FRAME_PAD = 4
+
+/** Outline of the region being recorded: click-through, above everything and excluded from the capture like the widget. */
+export function showRegionFrame(display: Display, rect: Rect): void {
+  hideRegionFrame()
+  regionFrame = new BrowserWindow({
+    x: display.bounds.x + rect.x - FRAME_PAD,
+    y: display.bounds.y + rect.y - FRAME_PAD,
+    width: rect.width + FRAME_PAD * 2,
+    height: rect.height + FRAME_PAD * 2,
+    frame: false,
+    transparent: true,
+    hasShadow: false,
+    resizable: false,
+    movable: false,
+    minimizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    focusable: false,
+    skipTaskbar: true,
+    enableLargerThanScreen: true,
+    show: false
+  })
+  regionFrame.setIgnoreMouseEvents(true)
+  regionFrame.setContentProtection(true)
+  regionFrame.setAlwaysOnTop(true, 'screen-saver')
+  regionFrame.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+  regionFrame.once('ready-to-show', () => regionFrame?.showInactive())
+  load(regionFrame, 'frame')
+}
+
+export function hideRegionFrame(): void {
+  if (regionFrame && !regionFrame.isDestroyed()) regionFrame.close()
+  regionFrame = null
+}

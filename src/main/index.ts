@@ -15,10 +15,12 @@ import {
   getMainWindow,
   hideControls,
   hideMainWindow,
+  hideRegionFrame,
   selectRegion,
   setQuitting,
   showControls,
-  showMainWindow
+  showMainWindow,
+  showRegionFrame
 } from './windows'
 
 app.setName('Traccia')
@@ -35,6 +37,8 @@ const session = new RecordingSession({
   engine: () => getMainWindow()?.webContents ?? null,
   showControls,
   hideControls,
+  showRegionFrame,
+  hideRegionFrame,
   hideMainWindow,
   showMainWindow,
   onState: (state: AppState) => {
