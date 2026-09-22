@@ -48,7 +48,7 @@ const en = {
   'wizard.permissions.subtitle': 'Needed to capture the screen, the microphone and the clicks. You can also grant them later from Settings.',
   'wizard.whisper.title': 'Transcription with Whisper',
   'wizard.whisper.subtitle': 'Optional. Download a model to transcribe your voice locally. You can download, switch or delete it at any time from Settings.',
-  'wizard.output.title': 'Where to save recordings',
+  'wizard.output.title': 'Recordings folder and shortcuts',
   'wizard.output.subtitle': 'Each recording goes into a folder named with date and time, containing the video (or the frames) and the text file.',
 
   // shortcuts (wizard and settings)
@@ -69,6 +69,7 @@ const en = {
   'shortcut.press': 'Press the keys…',
   'shortcut.needModifier': 'Combine a key with at least one of {mods}.',
   'wizard.finish': 'Get started',
+  'wizard.skip': 'Skip for now',
 
   // permissions panel
   'perm.screen.label': 'Screen Recording',
@@ -384,7 +385,7 @@ const it: Record<TranslationKey, string> = {
   'wizard.permissions.subtitle': 'Servono per catturare lo schermo, il microfono e i click. Puoi concederli anche più tardi dalle Impostazioni.',
   'wizard.whisper.title': 'Trascrizione con Whisper',
   'wizard.whisper.subtitle': 'Facoltativo. Scarica un modello per trascrivere la voce in locale. Puoi scaricarlo, cambiarlo o eliminarlo in qualsiasi momento dalle Impostazioni.',
-  'wizard.output.title': 'Dove salvare le registrazioni',
+  'wizard.output.title': 'Cartella delle registrazioni e scorciatoie',
   'wizard.output.subtitle': 'Ogni registrazione va in una cartella con data e ora, che contiene il video (o i frame) e il file di testo.',
 
   // shortcuts (wizard and settings)
@@ -405,6 +406,7 @@ const it: Record<TranslationKey, string> = {
   'shortcut.press': 'Premi i tasti…',
   'shortcut.needModifier': 'Combina un tasto con almeno uno tra {mods}.',
   'wizard.finish': 'Inizia',
+  'wizard.skip': 'Per ora salta',
 
   'perm.screen.label': 'Registrazione schermo',
   'perm.screen.why': 'Necessario per catturare lo schermo.',

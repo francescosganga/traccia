@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { t } from '../../../shared/i18n'
 import type { Settings } from '../../../shared/types'
 import { Icon, Logo, type IconName } from '../components/Icon'
@@ -20,6 +20,15 @@ const ICONS: Record<(typeof FEATURES)[number], IconName> = { screen: 'monitor', 
 
 export function Wizard({ settings, update, platform, onDone }: Props) {
   const [step, setStep] = useState(0)
+  const [modelInstalled, setModelInstalled] = useState(false)
+
+  useEffect(() => {
+    const refresh = () => void window.api.whisper.models().then((m) => setModelInstalled(m.some((x) => x.installed)))
+    refresh()
+    return window.api.whisper.onProgress((p) => {
+      if (p.status === 'done') refresh()
+    })
+  }, [])
 
   const next = () => setStep((s) => Math.min(STEPS - 1, s + 1))
   const back = () => setStep((s) => Math.max(0, s - 1))
@@ -114,7 +123,7 @@ export function Wizard({ settings, update, platform, onDone }: Props) {
           </button>
           {step < STEPS - 1 ? (
             <button className="btn primary" onClick={next}>
-              {step === 2 ? t('common.continue') : t('common.next')}
+              {step === 2 && !modelInstalled ? t('wizard.skip') : t('common.next')}
             </button>
           ) : (
             <button className="btn primary" onClick={finish}>
