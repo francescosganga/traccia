@@ -9,13 +9,16 @@ import type {
   EngineStartedInfo,
   OutputFormat,
   ProcessingProgress,
+  RecordingOverrides,
   RecordingRequest,
   RecordingResult,
   Rect,
+  Settings,
   TranscriptSegment,
   TranscriptWord
 } from '../shared/types'
 import { t } from '../shared/i18n'
+import type { RecordingJson } from '../shared/recording-reader'
 import { CursorTracker } from './cursor'
 import { h264Encoder, h264EncoderArgs, runFfmpeg } from './ffmpeg'
 import { extractFrames } from './frames'
@@ -58,16 +61,23 @@ export class RecordingSession {
   private stoppedAt = 0
   private startTimer: NodeJS.Timeout | null = null
   private countdownAbort = false
+  private overrides: RecordingOverrides = {}
 
   constructor(private host: SessionHost) {}
 
-  private setState(state: AppState): void {
+  /** Also used by the region selection flow in index.ts, which runs before start(). */
+  setState(state: AppState): void {
     this.state = state
     this.host.onState(state)
   }
 
   private progress(p: ProcessingProgress): void {
     this.setState({ status: 'processing', ...p })
+  }
+
+  /** The saved settings, with the per-recording overrides of the current request on top. */
+  private settings(): Settings {
+    return { ...getSettings(), ...this.overrides }
   }
 
   get isBusy(): boolean {
@@ -92,7 +102,8 @@ export class RecordingSession {
         return
       }
     }
-    const settings = getSettings()
+    this.overrides = req.overrides ?? {}
+    const settings = this.settings()
     const displays = screen.getAllDisplays()
     this.display = displays.find((d) => d.id === req.displayId) ?? screen.getPrimaryDisplay()
     this.region = req.mode === 'region' && req.region ? req.region : null
@@ -235,7 +246,7 @@ export class RecordingSession {
         height: even(Math.min(info.height - y, Math.round(this.region.height * scale)))
       }
     }
-    const targetH = { native: cropPx.height, '1080': 1080, '720': 720, '480': 480 }[getSettings().resolution]
+    const targetH = { native: cropPx.height, '1080': 1080, '720': 720, '480': 480 }[this.settings().resolution]
     let outWidth = cropPx.width
     let outHeight = cropPx.height
     if (targetH < cropPx.height) {
@@ -251,7 +262,7 @@ export class RecordingSession {
     warnings: string[]
     clicksTracked: boolean
   }): Promise<RecordingResult> {
-    const settings = getSettings()
+    const settings = this.settings()
     const info = this.info!
     const durationMs = this.stoppedAt - info.t0
     const warnings = [...tracking.warnings]
@@ -388,7 +399,7 @@ export class RecordingSession {
       'utf8'
     )
 
-    const json = {
+    const json: RecordingJson = {
       version: 1,
       app: 'traccia',
       createdAt: this.startedAtDate.toISOString(),

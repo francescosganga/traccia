@@ -70,11 +70,17 @@ export interface DisplayInfo {
   primary: boolean
 }
 
+/** Settings a single recording may override without changing the saved ones (control socket). */
+export type RecordingOverrides = Partial<
+  Pick<Settings, 'format' | 'resolution' | 'jpgFps' | 'skipUnchangedFrames' | 'audio' | 'transcribe' | 'countdown'>
+>
+
 export interface RecordingRequest {
   mode: CaptureMode
   displayId?: number
   /** Region in DIP, relative to the display's top-left corner */
   region?: Rect
+  overrides?: RecordingOverrides
 }
 
 export interface CursorSample {

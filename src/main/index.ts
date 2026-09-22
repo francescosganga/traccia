@@ -2,6 +2,7 @@ import { app, globalShortcut } from 'electron'
 import type { AppState, RecordingRequest, Settings } from '../shared/types'
 import { applyDockVisibility, onSettingsApplied } from './apply-settings'
 import { setupAutotest } from './autotest'
+import { notifyControlState, startControlServer, stopControlServer } from './control'
 import { registerIpc } from './ipc'
 import { setupScreenshots, useScreenshotProfile } from './screenshots'
 import { RecordingSession } from './session'
@@ -21,6 +22,9 @@ import {
 } from './windows'
 
 app.setName('Traccia')
+// A separate profile (settings, socket, single-instance lock): for running a development
+// build next to the installed app, and for the CLI tests.
+if (process.env.TRACCIA_USER_DATA) app.setPath('userData', process.env.TRACCIA_USER_DATA)
 // Before the lock: it is tied to userData, so a screenshot run on its own profile can coexist with the running app
 useScreenshotProfile()
 if (!app.requestSingleInstanceLock()) {
@@ -36,6 +40,7 @@ const session = new RecordingSession({
   onState: (state: AppState) => {
     broadcast('state', state)
     void updateTray(state)
+    notifyControlState(state)
     autotestState(state)
   }
 })
@@ -45,17 +50,15 @@ async function startRecording(req: RecordingRequest): Promise<void> {
   if (session.isBusy) return
   updateSettings({ lastMode: req.mode, lastDisplayId: req.displayId ?? null })
   if (req.mode === 'region' && !req.region) {
-    session.state = { status: 'selecting' }
-    broadcast('state', session.state)
+    session.setState({ status: 'selecting' })
     hideMainWindow()
     const selection = await selectRegion()
     if (!selection) {
-      session.state = { status: 'idle' }
-      broadcast('state', session.state)
+      session.setState({ status: 'idle' })
       showMainWindow()
       return
     }
-    req = { mode: 'region', displayId: selection.displayId, region: selection.rect }
+    req = { ...req, displayId: selection.displayId, region: selection.rect }
   }
   await session.start(req)
 }
@@ -106,6 +109,7 @@ const autotestState = setupAutotest((req) => startRecording(req), () => session.
 app.whenReady().then(() => {
   const settings = getSettings()
   registerIpc({ session, startRecording })
+  startControlServer({ session, startRecording })
   onSettingsApplied((s, patch) => {
     if ('shortcutsEnabled' in patch || 'shortcutScreen' in patch || 'shortcutRegion' in patch) registerShortcuts(s)
     void refreshTray()
@@ -129,5 +133,6 @@ app.on('window-all-closed', () => {
 app.on('before-quit', () => {
   setQuitting()
   globalShortcut.unregisterAll()
+  stopControlServer()
   killWorker()
 })
