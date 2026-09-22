@@ -176,17 +176,27 @@ export interface Permissions {
   accessibility: boolean
 }
 
+/** A past recording as listed from the output folder (see shared/recording-reader.ts). */
 export interface RecordingEntry {
+  /** Folder name inside the output directory, e.g. 2026-09-18_08-51-52 */
+  id: string
   dir: string
-  name: string
   createdAt: number
   format: OutputFormat
   durationMs: number
+  width: number
+  height: number
+  /** Number of JPG frames (jpg format only) */
+  frames?: number
+  /** Number of transcript segments, undefined when there is no transcript */
+  transcriptSegments?: number
   mediaPath: string
   txtPath: string
   rawTxtPath: string
   /** Missing for recordings made before PROMPT.md existed */
   promptPath?: string
+  jsonPath: string
+  warnings: string[]
 }
 
 /** Sent from main to the recorder engine living in the main window's renderer */

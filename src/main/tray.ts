@@ -2,10 +2,9 @@ import { Menu, Tray, app, clipboard, nativeImage, shell, type MenuItemConstructo
 import { join } from 'path'
 import { locale, t } from '../shared/i18n'
 import type { AppState, OutputFormat, Resolution } from '../shared/types'
+import { formatTime, listRecordings } from '../shared/recording-reader'
 import { applySettings } from './apply-settings'
-import { listRecordings } from './recordings'
 import { getSettings } from './settings'
-import { formatTime } from './timeline'
 
 export interface TrayActions {
   recordScreen(): void

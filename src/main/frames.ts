@@ -1,7 +1,8 @@
 import { mkdir, readFile, readdir, rename, rm, unlink } from 'fs/promises'
 import { join } from 'path'
 import { runFfmpeg } from './ffmpeg'
-import { mapPoint, sampleAt, type FrameRef, type Geometry } from './timeline'
+import type { FrameRef } from '../shared/recording-reader'
+import { mapPoint, sampleAt, type Geometry } from './timeline'
 import type { CursorSample } from '../shared/types'
 
 const THUMB_WIDTH = 480

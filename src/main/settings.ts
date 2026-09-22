@@ -2,37 +2,12 @@ import { app } from 'electron'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { setLanguage } from '../shared/i18n'
-import { SHORTCUT_PRESETS } from '../shared/shortcuts'
+import { SETTINGS_DEFAULTS } from '../shared/recording-reader'
 import type { Settings } from '../shared/types'
 
 const FILE = () => join(app.getPath('userData'), 'settings.json')
 
-export const DEFAULTS: Settings = {
-  onboardingDone: false,
-  uiLanguage: 'en',
-  outputDir: join(app.getPath('videos'), 'Traccia'),
-  format: 'mp4',
-  resolution: 'native',
-  jpgFps: 2,
-  skipUnchangedFrames: true,
-  audio: true,
-  transcribe: true,
-  whisperModel: 'base',
-  speechLanguage: 'auto',
-  trackClicks: true,
-  cursorHz: 10,
-  countdown: 3,
-  showControls: true,
-  // Off until the user picks the keys: the macOS ones fire the system screenshot until disabled in System Settings
-  shortcutsEnabled: false,
-  shortcutScreen: SHORTCUT_PRESETS.mac.screen,
-  shortcutRegion: SHORTCUT_PRESETS.mac.region,
-  lastMode: 'screen',
-  lastDisplayId: null,
-  openAtLogin: false,
-  startHiddenAtLogin: true,
-  showInDock: true
-}
+export const DEFAULTS: Settings = { ...SETTINGS_DEFAULTS, outputDir: join(app.getPath('videos'), 'Traccia') }
 
 let cache: Settings | null = null
 

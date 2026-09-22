@@ -1,4 +1,5 @@
 import { locale, t } from '../shared/i18n'
+import { formatTime, type FrameRef } from '../shared/recording-reader'
 import type { ClickEvent, CursorSample, OutputFormat, Rect, TranscriptSegment, TranscriptWord } from '../shared/types'
 
 /** Everything needed to map a global cursor position (DIP) to output pixels. */
@@ -46,15 +47,6 @@ export function clipToDuration<T extends { start: number; end: number }>(items: 
   return items.filter((s) => s.start < limit).map((s) => (s.end > limit ? { ...s, end: limit } : s))
 }
 
-export function formatTime(ms: number): string {
-  const total = Math.max(0, ms) / 1000
-  const h = Math.floor(total / 3600)
-  const m = Math.floor((total % 3600) / 60)
-  const s = total % 60
-  const mmss = `${String(m).padStart(2, '0')}:${s.toFixed(3).padStart(6, '0')}`
-  return h > 0 ? `${h}:${mmss}` : mmss
-}
-
 /** Returns the last sample taken at or before epoch `t` (or the first one if none). */
 export function sampleAt(samples: CursorSample[], t: number): CursorSample | null {
   if (samples.length === 0) return null
@@ -66,13 +58,6 @@ export function sampleAt(samples: CursorSample[], t: number): CursorSample | nul
     else hi = mid - 1
   }
   return samples[lo]
-}
-
-export interface FrameRef {
-  /** Path relative to the recording folder */
-  file: string
-  /** ms from the start of the recording */
-  tMs: number
 }
 
 export interface TimelineInput {
