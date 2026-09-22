@@ -91,7 +91,7 @@ Line height 1.5 for text, 1.25 for headings. Weights: 400 body, 500 controls and
 | Inputs | `select`, `input[type=text|number]` | 32 px tall, `--bg-elev-2`, neutral focus glow, never stretched to full width inside a field. |
 | Badge | `.badge(.ok/.warn/.bad) > .dot` | Tinted pill; the dot takes `currentColor`. |
 | Progress / spinner | `.progress(.indeterminate)`, `.spinner` | Red fill; 4 px track. |
-| Notice | `.notice(.warn/.error)` | Inline message with icon, selectable text. |
+| Notice | `.notice(.ok/.warn/.error)` | Inline message with icon, selectable text. |
 | Lists | `.list-item`, `.model` | Hairline-separated rows; actions on the right use `.sm` buttons. |
 | Record hero | `.record-panel > .btn.primary.big.record + .hint` | Centred; the hint shows the shortcut of the selected mode as `<kbd>⌘⇧5</kbd>` / `<kbd>⌘⇧4</kbd>` (`formatShortcut`). |
 | Recording panel | `.card.rec-panel > .timer(.rec-dot) + .btn.primary.big.stop` | Shown in the main window while recording. |

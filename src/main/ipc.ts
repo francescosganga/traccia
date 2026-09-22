@@ -1,5 +1,6 @@
 import { app, clipboard, dialog, ipcMain, screen, shell } from 'electron'
-import type { DisplayInfo, EngineStartedInfo, LoginItemStatus, RecordingRequest, Settings, WhisperModelId } from '../shared/types'
+import type { AgentTarget, DisplayInfo, EngineStartedInfo, LoginItemStatus, RecordingRequest, Settings, WhisperModelId } from '../shared/types'
+import { agentTargets, installAgent, installAgentInFile, mcpCommands } from './agents'
 import { applySettings } from './apply-settings'
 import { getPermissions, openKeyboardShortcuts, openPrivacySettings, requestPermission } from './permissions'
 import { listRecordings } from '../shared/recording-reader'
@@ -48,6 +49,12 @@ export function registerIpc({ session, startRecording }: IpcDeps): void {
     const s = app.getLoginItemSettings()
     return { openAtLogin: s.openAtLogin, status: process.platform === 'darwin' ? s.status : 'unknown', packaged: true }
   })
+
+  // AI agents (MCP server registration, settings page)
+  ipcMain.handle('agents:targets', () => agentTargets())
+  ipcMain.handle('agents:install', (_e, target: AgentTarget) => installAgent(target))
+  ipcMain.handle('agents:installInFile', () => installAgentInFile())
+  ipcMain.handle('agents:commands', () => mcpCommands())
 
   // whisper models
   ipcMain.handle('whisper:models', () => whisper.listModels())

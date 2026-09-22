@@ -484,6 +484,10 @@ a:hover {
 .notice .icon {
   margin-top: 2px;
 }
+.notice.ok {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
 .notice.warn {
   background: var(--warn-soft);
   color: var(--warn);

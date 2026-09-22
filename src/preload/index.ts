@@ -1,11 +1,15 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import type {
+  AgentInstallResult,
+  AgentTarget,
+  AgentTargetStatus,
   AppState,
   DisplayInfo,
   DownloadProgress,
   EngineStartCommand,
   EngineStartedInfo,
   LoginItemStatus,
+  McpCommands,
   Permissions,
   RecordingEntry,
   RecordingRequest,
@@ -39,6 +43,12 @@ const api = {
     platform: (): Promise<string> => ipcRenderer.invoke('app:platform'),
     copyText: (text: string): Promise<void> => ipcRenderer.invoke('clipboard:write', text),
     loginItem: (): Promise<LoginItemStatus> => ipcRenderer.invoke('app:loginItem')
+  },
+  agents: {
+    targets: (): Promise<AgentTargetStatus[]> => ipcRenderer.invoke('agents:targets'),
+    install: (target: AgentTarget): Promise<AgentInstallResult> => ipcRenderer.invoke('agents:install', target),
+    installInFile: (): Promise<AgentInstallResult | null> => ipcRenderer.invoke('agents:installInFile'),
+    commands: (): Promise<McpCommands> => ipcRenderer.invoke('agents:commands')
   },
   whisper: {
     models: (): Promise<WhisperModelInfo[]> => ipcRenderer.invoke('whisper:models'),

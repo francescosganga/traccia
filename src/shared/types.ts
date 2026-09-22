@@ -182,6 +182,43 @@ export interface Permissions {
   accessibility: boolean
 }
 
+/** Clients the settings page can register the MCP server with (see main/agents.ts). */
+export type AgentTarget = 'claude-code' | 'claude-desktop' | 'cursor' | 'codex'
+
+export interface AgentTargetStatus {
+  id: AgentTarget
+  /** The client is installed (its config folder, or the "claude" command, exists) */
+  available: boolean
+  /** Config file, or the claude command, that would be written */
+  path: string | null
+  /** An entry for this app exists; "stale" when it points to another copy of the app */
+  configured: 'no' | 'yes' | 'stale'
+}
+
+/** How a client must launch the MCP server: the app's own binary as Node, running the bundled CLI. */
+export interface McpServerSpec {
+  command: string
+  args: string[]
+  env: Record<string, string>
+}
+
+export interface McpCommands {
+  /** The launch line itself, as a shell command */
+  launch: string
+  /** `claude mcp add ...` to paste in a terminal */
+  claude: string
+  /** The mcpServers snippet for claude_desktop_config.json, Cursor and most clients */
+  json: string
+}
+
+export interface AgentInstallResult {
+  ok: boolean
+  /** File written, or the claude command run */
+  path: string
+  /** Original error, already logged; the UI shows a translated line with it */
+  error?: string
+}
+
 /** A past recording as listed from the output folder (see shared/recording-reader.ts). */
 export interface RecordingEntry {
   /** Folder name inside the output directory, e.g. 2026-09-18_08-51-52 */

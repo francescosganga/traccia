@@ -70,6 +70,8 @@ export function setupScreenshots(win: BrowserWindow): boolean {
       await shot('settings-3-cursor-recording')
       await scrollToCard(7)
       await shot('settings-4-permissions')
+      await scrollToCard(6)
+      await shot('settings-5-agents')
       app.quit()
     })()
   })

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { t } from '../../../shared/i18n'
 import type { LoginItemStatus, Settings, SpeechLanguage } from '../../../shared/types'
+import { AgentsPanel } from '../components/AgentsPanel'
 import { LanguagePicker } from '../components/LanguagePicker'
 import { ModelManager } from '../components/ModelManager'
 import { ShortcutSettings } from '../components/ShortcutSettings'
@@ -190,6 +191,11 @@ export function SettingsPage({ settings, update }: Props) {
         <div className="card">
           <h3>{t('settings.shortcutsSection')}</h3>
           <ShortcutSettings settings={settings} update={update} platform={platform} />
+        </div>
+
+        <div className="card">
+          <h3>{t('settings.agentsSection')}</h3>
+          <AgentsPanel />
         </div>
 
         <div className="card">
