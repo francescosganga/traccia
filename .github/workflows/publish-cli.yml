@@ -44,4 +44,27 @@ jobs:
 
       - run: npm run build -w packages/cli
 
-      - run: npm publish -w packages/cli --access public --provenance
+      # The registry accepts the tarball and stages the version before it is readable; a
+      # retried PUT then meets its own upload as 409 "Cannot publish over previously staged
+      # version" (npm/cli#9889). That answer is a publish that landed, so the step treats it
+      # as success once the version reads back, and fails on anything else.
+      - name: Publish
+        run: |
+          set +e
+          output=$(npm publish -w packages/cli --access public --provenance 2>&1)
+          code=$?
+          set -e
+          printf '%s\n' "$output"
+          if [ "$code" -ne 0 ] && ! printf '%s' "$output" | grep -q 'previously staged version'; then
+            exit "$code"
+          fi
+          version=$(node -p "require('./packages/cli/package.json').version")
+          for _ in $(seq 1 12); do
+            if npm view "traccia-cli@$version" version >/dev/null 2>&1; then
+              echo "traccia-cli@$version is on the registry"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "traccia-cli@$version did not become readable within two minutes" >&2
+          exit 1
