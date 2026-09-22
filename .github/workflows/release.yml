@@ -77,6 +77,10 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # the notes need the previous tag and the commits since
+
       - uses: actions/download-artifact@v4
         with:
           pattern: dmg-*
@@ -84,6 +88,8 @@ jobs:
           path: dist
 
       - name: Create draft release
-        run: gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft --title "${GITHUB_REF_NAME#v}" --generate-notes dist/*.dmg
+        run: |
+          scripts/release-notes.sh "$GITHUB_REF_NAME" > notes.md
+          gh release create "$GITHUB_REF_NAME" --draft --title "${GITHUB_REF_NAME#v}" --notes-file notes.md dist/*.dmg
         env:
           GH_TOKEN: ${{ github.token }}

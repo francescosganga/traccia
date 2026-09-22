@@ -49,6 +49,7 @@ Node 20+. There is no linter or formatter configured: match the surrounding code
 ## Git
 
 - Small commits, one change each, with a message that says what changed and why. No generated trailers (`Co-Authored-By`, `Generated-by`, ...).
+- The subject of every `feat:` and `fix:` commit ends up verbatim in the release notes (`scripts/release-notes.sh`): write it for the people who use the app, not for the code.
 - `npm run typecheck` before committing; `npm test` too once it exists.
 - Never commit `out/`, `dist/`, `.claude/`, or screenshots you did not re-capture.
 

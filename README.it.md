@@ -211,6 +211,8 @@ npm version patch   # o minor / major: aggiorna package.json e crea il tag
 git push --follow-tags
 ```
 
+Le note di rilascio sono i commit `feat:` e `fix:` dal tag precedente (`scripts/release-notes.sh HEAD` le mostra in anteprima); si ritoccano nella bozza prima di pubblicare.
+
 Pubblicare la release su GitHub pubblica anche `traccia-cli` su npm, con lo stesso numero di versione ([publish-cli.yml](.github/workflows/publish-cli.yml), trusted publishing di npm: nessun token nel repository).
 
 ## Come funziona
