@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { setLanguage, t } from '../../shared/i18n'
 import type { AppState, Settings } from '../../shared/types'
 import { Icon, Logo } from './components/Icon'
 import { installEngine } from './engine'
 import { Home } from './pages/Home'
-import { SettingsPage } from './pages/Settings'
+import { SETTINGS_SECTIONS, SettingsPage, type SectionJump, type SettingsSection } from './pages/Settings'
 import { Wizard } from './pages/Wizard'
 
 type Page = 'home' | 'settings'
@@ -15,6 +15,9 @@ export function App() {
   const [settings, setSettingsState] = useState<Settings | null>(null)
   const [state, setState] = useState<AppState>({ status: 'idle' })
   const [page, setPage] = useState<Page>('home')
+  const [section, setSection] = useState<SettingsSection>('general')
+  const [jump, setJump] = useState<SectionJump | null>(null)
+  const jumps = useRef(0)
   const [modelInstalled, setModelInstalled] = useState(false)
   const [version, setVersion] = useState('')
   const [platform, setPlatform] = useState('darwin')
@@ -27,6 +30,12 @@ export function App() {
 
   const update = useCallback(async (patch: Partial<Settings>) => setSettings(await window.api.settings.update(patch)), [setSettings])
 
+  const openSettings = useCallback((target: SettingsSection = 'general') => {
+    setPage('settings')
+    setSection(target)
+    setJump({ section: target, seq: ++jumps.current })
+  }, [])
+
   useEffect(() => {
     void window.api.settings.get().then(setSettings)
     void window.api.recording.state().then(setState)
@@ -34,13 +43,13 @@ export function App() {
     void window.api.system.platform().then(setPlatform)
     const offState = window.api.recording.onState(setState)
     const offSettings = window.api.settings.onChange(setSettings)
-    const offNav = window.api.recording.onNavigate((p) => setPage(p as Page))
+    const offNav = window.api.recording.onNavigate((p) => (p === 'settings' ? openSettings() : setPage('home')))
     return () => {
       offState()
       offSettings()
       offNav()
     }
-  }, [setSettings])
+  }, [setSettings, openSettings])
 
   useEffect(() => {
     if (!settings) return
@@ -57,21 +66,38 @@ export function App() {
           <Logo />
           <span>Traccia</span>
         </div>
-        <button className={`nav ${page === 'home' ? 'active' : ''}`} onClick={() => setPage('home')}>
-          <Icon name="record" />
-          {t('nav.record')}
-        </button>
-        <button className={`nav ${page === 'settings' ? 'active' : ''}`} onClick={() => setPage('settings')}>
-          <Icon name="settings" />
-          {t('nav.settings')}
-        </button>
+        {page === 'settings' ? (
+          <>
+            <button className="nav" onClick={() => setPage('home')}>
+              <Icon name="arrow-left" />
+              {t('common.back')}
+            </button>
+            <div className="nav-label">{t('nav.settings')}</div>
+            {SETTINGS_SECTIONS.map((s) => (
+              <button key={s.id} className={`nav sub ${section === s.id ? 'active' : ''}`} data-section={s.id} onClick={() => openSettings(s.id)}>
+                {t(s.label)}
+              </button>
+            ))}
+          </>
+        ) : (
+          <>
+            <button className="nav active" onClick={() => setPage('home')}>
+              <Icon name="record" />
+              {t('nav.record')}
+            </button>
+            <button className="nav" onClick={() => openSettings()}>
+              <Icon name="settings" />
+              {t('nav.settings')}
+            </button>
+          </>
+        )}
         <div className="spacer" />
         <div className="version">v{version}</div>
       </nav>
       {page === 'home' ? (
-        <Home settings={settings} update={update} state={state} modelInstalled={modelInstalled} platform={platform} goSettings={() => setPage('settings')} />
+        <Home settings={settings} state={state} modelInstalled={modelInstalled} platform={platform} goSettings={openSettings} />
       ) : (
-        <SettingsPage settings={settings} update={update} />
+        <SettingsPage settings={settings} update={update} jump={jump} onSection={setSection} />
       )}
     </div>
   )

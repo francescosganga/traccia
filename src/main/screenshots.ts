@@ -45,8 +45,8 @@ export function setupScreenshots(win: BrowserWindow): boolean {
     console.log(`[screenshots] ${name}.png`)
   }
   const js = (code: string) => win.webContents.executeJavaScript(code)
-  const scrollToCard = (i: number) =>
-    js(`(() => { const c = document.querySelectorAll('.content-inner > .card')[${i}]; document.querySelector('.content').scrollTo(0, c ? c.offsetTop - 32 : 99999) })()`)
+  // Settings sections are reached the way the user does it: from the sidebar
+  const goSection = (id: string) => js(`document.querySelector('.nav.sub[data-section="${id}"]').click()`)
 
   win.webContents.once('did-finish-load', () => {
     void (async () => {
@@ -66,13 +66,13 @@ export function setupScreenshots(win: BrowserWindow): boolean {
       await shot('home')
       broadcast('navigate', 'settings')
       await shot('settings-1-general-output')
-      await scrollToCard(2)
+      await goSection('audio')
       await shot('settings-2-audio-whisper')
-      await scrollToCard(3)
+      await goSection('cursor')
       await shot('settings-3-cursor-recording')
-      await scrollToCard(7)
+      await goSection('permissions')
       await shot('settings-4-permissions')
-      await scrollToCard(6)
+      await goSection('agents')
       await shot('settings-5-agents')
       app.quit()
     })()

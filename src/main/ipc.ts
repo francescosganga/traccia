@@ -80,7 +80,6 @@ export function registerIpc({ session, startRecording, suspendShortcuts }: IpcDe
   })
   ipcMain.handle('whisper:cancel', (_e, id: WhisperModelId) => whisper.cancelDownload(id))
   ipcMain.handle('whisper:delete', (_e, id: WhisperModelId) => whisper.deleteModel(id))
-  ipcMain.handle('whisper:deleteAll', () => whisper.deleteAllModels())
 
   // recording
   ipcMain.handle('recording:state', () => session.state)

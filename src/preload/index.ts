@@ -58,7 +58,6 @@ const api = {
     download: (id: WhisperModelId): Promise<void> => ipcRenderer.invoke('whisper:download', id),
     cancel: (id: WhisperModelId): Promise<void> => ipcRenderer.invoke('whisper:cancel', id),
     delete: (id: WhisperModelId): Promise<void> => ipcRenderer.invoke('whisper:delete', id),
-    deleteAll: (): Promise<void> => ipcRenderer.invoke('whisper:deleteAll'),
     onProgress: (cb: (p: DownloadProgress) => void) => on<DownloadProgress>('whisper:progress', cb)
   },
   recording: {

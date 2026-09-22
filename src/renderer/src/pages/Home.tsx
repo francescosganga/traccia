@@ -1,26 +1,48 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { t } from '../../../shared/i18n'
-import type { AppState, CaptureMode, DisplayInfo, RecordingEntry, Settings } from '../../../shared/types'
+import type { AppState, CaptureMode, DisplayInfo, OutputFormat, RecordingEntry, RecordingOverrides, Settings } from '../../../shared/types'
 import { Icon } from '../components/Icon'
+import { Menu, type MenuItem } from '../components/Menu'
+import { Segmented } from '../components/Segmented'
 import { formatDate, formatDuration, formatShortcut } from '../format'
 import { FORMATS, JPG_FPS, RESOLUTIONS, resolutionLabel } from '../options'
+import type { SettingsSection } from './Settings'
 
 interface Props {
   settings: Settings
-  update: (patch: Partial<Settings>) => Promise<void>
   state: AppState
   modelInstalled: boolean
   platform: string
-  goSettings: () => void
+  goSettings: (section?: SettingsSection) => void
 }
 
-export function Home({ settings, update, state, modelInstalled, platform, goSettings }: Props) {
+/** The choices on this page apply to the next recording only; the defaults live in Settings. */
+type Choices = Required<Pick<RecordingOverrides, 'format' | 'resolution' | 'jpgFps' | 'audio'>>
+const defaultsOf = (s: Settings): Choices => ({ format: s.format, resolution: s.resolution, jpgFps: s.jpgFps, audio: s.audio })
+
+/** What the actions menu of a recording needs, whether it comes from the "done" card or from the recent list. */
+interface RecordingRef {
+  dir: string
+  name: string
+  format: OutputFormat
+  txtPath: string
+  rawTxtPath: string
+  mediaPath: string
+}
+
+const folderName = (dir: string): string => dir.split(/[\\/]/).pop() ?? dir
+
+export function Home({ settings, state, modelInstalled, platform, goSettings }: Props) {
   const [displays, setDisplays] = useState<DisplayInfo[]>([])
   const [recordings, setRecordings] = useState<RecordingEntry[]>([])
   const [mode, setMode] = useState<CaptureMode>(settings.lastMode)
   const [displayId, setDisplayId] = useState<number | undefined>(settings.lastDisplayId ?? undefined)
+  const [choices, setChoices] = useState<Choices>(() => defaultsOf(settings))
+  // Folder of the recording whose name is being edited
+  const [renaming, setRenaming] = useState<string | null>(null)
 
   const refreshRecordings = () => void window.api.recordings.list().then(setRecordings)
+  const choose = (patch: Partial<Choices>) => setChoices((c) => ({ ...c, ...patch }))
 
   useEffect(() => {
     void window.api.system.displays().then((d) => {
@@ -29,19 +51,48 @@ export function Home({ settings, update, state, modelInstalled, platform, goSett
     })
     refreshRecordings()
   }, [])
+  // The page goes back to the defaults when they change, and once a recording has ended
+  useEffect(() => setChoices(defaultsOf(settings)), [settings.format, settings.resolution, settings.jpgFps, settings.audio])
   useEffect(() => {
-    if (state.status === 'done') refreshRecordings()
+    if (state.status === 'done' || state.status === 'error') {
+      setChoices(defaultsOf(settings))
+      refreshRecordings()
+    }
   }, [state.status])
 
-  const start = () => void window.api.recording.start({ mode, displayId })
+  const start = () => void window.api.recording.start({ mode, displayId, overrides: choices })
   const reveal = platform === 'darwin' ? t('home.revealMac') : t('home.revealOther')
   const busy = state.status === 'processing' || state.status === 'recording' || state.status === 'countdown' || state.status === 'selecting'
   const shortcut = settings.shortcutsEnabled ? formatShortcut(mode === 'region' ? settings.shortcutRegion : settings.shortcutScreen, platform) : null
+  const modelMissing = choices.audio && settings.transcribe && !modelInstalled
+  const countdown = settings.countdown > 0 ? t('home.seconds', { n: settings.countdown }) : t('home.off')
   const dismiss = (
     <button className="btn ghost icon-btn" aria-label={t('common.cancel')} onClick={() => window.api.recording.reset()}>
       <Icon name="x" />
     </button>
   )
+
+  const rename = async (dir: string, title: string) => {
+    await window.api.recordings.rename(dir, title)
+    setRenaming(null)
+    refreshRecordings()
+  }
+  const trash = async (r: RecordingRef) => {
+    if (!confirm(t('home.confirmTrash', { name: r.name }))) return
+    await window.api.recordings.trash(r.dir)
+    refreshRecordings()
+  }
+  const actions = (r: RecordingRef): MenuItem[] => [
+    { label: t('home.openTxt'), onSelect: () => void window.api.recordings.open(r.txtPath) },
+    { label: t('home.openRawTxt'), onSelect: () => void window.api.recordings.open(r.rawTxtPath) },
+    ...(r.format !== 'jpg' ? [{ label: t('home.openVideo'), onSelect: () => void window.api.recordings.open(r.mediaPath) }] : []),
+    { label: t('home.rename'), onSelect: () => setRenaming(r.dir) },
+    { label: t('home.trash'), onSelect: () => void trash(r), danger: true }
+  ]
+
+  const done = state.status === 'done' ? state.result : null
+  // The list, refreshed when the recording ends, carries the name given to it
+  const doneEntry = done ? recordings.find((r) => r.dir === done.dir) : undefined
 
   return (
     <div className="content">
@@ -55,6 +106,11 @@ export function Home({ settings, update, state, modelInstalled, platform, goSett
             <div className="title-row">
               <span className="spinner" />
               <h2>{t('home.processing')}</h2>
+              {state.canSkipTranscription && (
+                <button className="btn sm" onClick={() => window.api.recording.skipTranscription()}>
+                  {t('home.skipTranscription')}
+                </button>
+              )}
             </div>
             <p className="dim mt-2">
               {state.step}
@@ -66,45 +122,47 @@ export function Home({ settings, update, state, modelInstalled, platform, goSett
           </div>
         )}
 
-        {state.status === 'done' && (
+        {done && (
           <div className="card success">
             <div className="title-row">
               <span className="status-icon ok">
                 <Icon name="check" />
               </span>
-              <h2>{t('home.done')}</h2>
+              <h2>{doneEntry?.title || t('home.done')}</h2>
               {dismiss}
             </div>
+            {renaming === done.dir && (
+              <NameEditor className="mt-3" initial={doneEntry?.title ?? ''} onSave={(title) => void rename(done.dir, title)} onCancel={() => setRenaming(null)} />
+            )}
             <p className="dim mt-2">
-              {formatDuration(state.result.durationMs)} · {state.result.width}×{state.result.height} · {state.result.format.toUpperCase()}
-              {state.result.frames !== undefined &&
-                ` · ${t('home.frames', { n: state.result.frames })}${state.result.skippedFrames ? ' ' + t('home.skipped', { n: state.result.skippedFrames }) : ''}`}
-              {state.result.transcriptSegments !== undefined && ` · ${t('home.segments', { n: state.result.transcriptSegments })}`}
+              {doneEntry?.title ? `${t('home.done')} · ` : ''}
+              {formatDuration(done.durationMs)} · {done.width}×{done.height} · {done.format.toUpperCase()}
+              {done.frames !== undefined && ` · ${t('home.frames', { n: done.frames })}${done.skippedFrames ? ' ' + t('home.skipped', { n: done.skippedFrames }) : ''}`}
+              {done.transcriptSegments !== undefined && ` · ${t('home.segments', { n: done.transcriptSegments })}`}
             </p>
-            {state.result.warnings.map((w, i) => (
+            {done.warnings.map((w, i) => (
               <div key={i} className="notice warn">
                 <Icon name="alert" />
                 <span>{w}</span>
               </div>
             ))}
             <div className="row wrap mt-3">
-              <CopyPromptButton promptPath={state.result.promptPath} className="btn primary" />
-              <button className="btn" onClick={() => window.api.recordings.showInFolder(state.result.txtPath)}>
+              <CopyPromptButton promptPath={done.promptPath} className="btn primary" />
+              <button className="btn" onClick={() => window.api.recordings.showInFolder(done.txtPath)}>
                 <Icon name="folder" />
                 {reveal}
               </button>
-              <button className="btn" onClick={() => window.api.recordings.open(state.result.txtPath)}>
-                <Icon name="file" />
-                {t('home.openTxt')}
-              </button>
-              <button className="btn" onClick={() => window.api.recordings.open(state.result.rawTxtPath)}>
-                {t('home.openRawTxt')}
-              </button>
-              {state.result.format !== 'jpg' && (
-                <button className="btn" onClick={() => window.api.recordings.open(state.result.mediaPath)}>
-                  {t('home.openVideo')}
-                </button>
-              )}
+              <Menu
+                label={t('home.more')}
+                items={actions({
+                  dir: done.dir,
+                  name: doneEntry?.title || folderName(done.dir),
+                  format: done.format,
+                  txtPath: done.txtPath,
+                  rawTxtPath: done.rawTxtPath,
+                  mediaPath: done.mediaPath
+                })}
+              />
             </div>
           </div>
         )}
@@ -141,14 +199,14 @@ export function Home({ settings, update, state, modelInstalled, platform, goSett
               <div className="grid-2">
                 <div className="field">
                   <label>{t('home.what')}</label>
-                  <div className="segmented">
-                    <button className={mode === 'screen' ? 'active' : ''} onClick={() => setMode('screen')}>
-                      {t('home.fullScreen')}
-                    </button>
-                    <button className={mode === 'region' ? 'active' : ''} onClick={() => setMode('region')}>
-                      {t('home.area')}
-                    </button>
-                  </div>
+                  <Segmented<CaptureMode>
+                    options={[
+                      { id: 'screen', label: t('home.fullScreen') },
+                      { id: 'region', label: t('home.area') }
+                    ]}
+                    value={mode}
+                    onChange={setMode}
+                  />
                 </div>
                 {displays.length > 1 && mode === 'screen' && (
                   <div className="field">
@@ -165,61 +223,48 @@ export function Home({ settings, update, state, modelInstalled, platform, goSett
                 )}
                 <div className="field">
                   <label>{t('home.format')}</label>
-                  <div className="segmented">
-                    {FORMATS.map((f) => (
-                      <button key={f.id} className={settings.format === f.id ? 'active' : ''} onClick={() => update({ format: f.id })}>
-                        {f.label}
-                      </button>
-                    ))}
-                  </div>
+                  <Segmented options={FORMATS} value={choices.format} onChange={(format) => choose({ format })} />
                 </div>
                 <div className="field">
                   <label>{t('home.resolution')}</label>
-                  <div className="segmented">
-                    {RESOLUTIONS.map((r) => (
-                      <button key={r} className={settings.resolution === r ? 'active' : ''} onClick={() => update({ resolution: r })}>
-                        {resolutionLabel(r)}
-                      </button>
-                    ))}
-                  </div>
+                  <Segmented options={RESOLUTIONS.map((r) => ({ id: r, label: resolutionLabel(r) }))} value={choices.resolution} onChange={(resolution) => choose({ resolution })} />
                 </div>
-                {settings.format === 'jpg' && (
+                {choices.format === 'jpg' && (
                   <div className="field">
                     <label>{t('home.jpgFps')}</label>
-                    <div className="segmented">
-                      {JPG_FPS.map((f) => (
-                        <button key={f} className={settings.jpgFps === f ? 'active' : ''} onClick={() => update({ jpgFps: f })}>
-                          {f} fps
-                        </button>
-                      ))}
-                    </div>
+                    <Segmented options={JPG_FPS.map((f) => ({ id: f, label: `${f} fps` }))} value={choices.jpgFps} onChange={(jpgFps) => choose({ jpgFps })} />
                   </div>
                 )}
                 <div className="field">
                   <label>{t('home.audio')}</label>
-                  <div className="segmented">
-                    <button className={settings.audio ? 'active' : ''} onClick={() => update({ audio: true })}>
-                      {t('home.mic')}
-                    </button>
-                    <button className={!settings.audio ? 'active' : ''} onClick={() => update({ audio: false })}>
-                      {t('home.none')}
-                    </button>
-                  </div>
+                  <Segmented<'mic' | 'none'>
+                    options={[
+                      { id: 'mic', label: t('home.mic') },
+                      { id: 'none', label: t('home.none') }
+                    ]}
+                    value={choices.audio ? 'mic' : 'none'}
+                    onChange={(v) => choose({ audio: v === 'mic' })}
+                  />
                 </div>
               </div>
               <div className="row wrap small dim mt-2">
-                <span>
+                <button className={`link ${modelMissing ? 'text-warn' : ''}`} onClick={() => goSettings('audio')}>
                   {t('home.transcription', {
-                    value: settings.audio && settings.transcribe ? (modelInstalled ? `Whisper ${settings.whisperModel}` : t('home.modelMissing')) : t('home.off')
+                    value: choices.audio && settings.transcribe ? (modelMissing ? t('home.modelMissing') : `Whisper ${settings.whisperModel}`) : t('home.off')
                   })}
-                </span>
-                <span>· {t('home.clicks', { value: settings.trackClicks ? t('common.yes') : t('common.no') })}</span>
-                <span>
-                  · {t('home.shortcut', { value: '' })}
+                </button>
+                <span>·</span>
+                <button className="link" onClick={() => goSettings('cursor')}>
+                  {t('home.clicks', { value: settings.trackClicks ? t('common.yes') : t('common.no') })}
+                </button>
+                <span>·</span>
+                <button className="link" onClick={() => goSettings('recording')}>
+                  {t('home.countdown', { value: countdown })}
+                </button>
+                <span>·</span>
+                <button className="link" onClick={() => goSettings('shortcuts')}>
+                  {t('home.shortcut', { value: '' })}
                   {shortcut ? <kbd>{shortcut}</kbd> : t('home.off')}
-                </span>
-                <button className="btn ghost sm" onClick={goSettings}>
-                  {t('nav.settings')}
                 </button>
               </div>
             </div>
@@ -239,24 +284,34 @@ export function Home({ settings, update, state, modelInstalled, platform, goSett
             <div className="list">
               {recordings.map((r) => (
                 <div className="list-item" key={r.dir}>
-                  <div className="stack tight">
-                    <strong>{formatDate(r.createdAt)}</strong>
+                  <div className="stack tight grow">
+                    {renaming === r.dir ? (
+                      <NameEditor initial={r.title ?? ''} onSave={(title) => void rename(r.dir, title)} onCancel={() => setRenaming(null)} />
+                    ) : (
+                      <strong>{r.title || formatDate(r.createdAt)}</strong>
+                    )}
                     <span className="small dim">
+                      {r.title ? `${formatDate(r.createdAt)} · ` : ''}
                       {formatDuration(r.durationMs)} · {r.format.toUpperCase()}
                     </span>
                   </div>
                   <div className="row">
                     {r.promptPath && <CopyPromptButton promptPath={r.promptPath} className="btn ghost sm" />}
-                    <button className="btn ghost sm" onClick={() => window.api.recordings.open(r.txtPath)}>
-                      {t('home.openTxt')}
-                    </button>
-                    <button className="btn ghost sm" onClick={() => window.api.recordings.open(r.rawTxtPath)}>
-                      {t('home.openRawTxt')}
-                    </button>
                     <button className="btn sm" onClick={() => window.api.recordings.showInFolder(r.txtPath)}>
                       <Icon name="folder" />
                       {reveal}
                     </button>
+                    <Menu
+                      label={t('home.more')}
+                      items={actions({
+                        dir: r.dir,
+                        name: r.title || formatDate(r.createdAt),
+                        format: r.format,
+                        txtPath: r.txtPath,
+                        rawTxtPath: r.rawTxtPath,
+                        mediaPath: r.mediaPath
+                      })}
+                    />
                   </div>
                 </div>
               ))}
@@ -265,6 +320,37 @@ export function Home({ settings, update, state, modelInstalled, platform, goSett
         )}
       </div>
     </div>
+  )
+}
+
+/** Inline editor for the name of a recording: Enter saves, Escape cancels, an empty name removes it. */
+function NameEditor({ initial, onSave, onCancel, className }: { initial: string; onSave: (title: string) => void; onCancel: () => void; className?: string }) {
+  const [title, setTitle] = useState(initial)
+  const submit = (e: FormEvent) => {
+    e.preventDefault()
+    onSave(title)
+  }
+  return (
+    <form className={`row ${className ?? ''}`} onSubmit={submit}>
+      <input
+        type="text"
+        className="grow"
+        autoFocus
+        maxLength={80}
+        placeholder={t('home.namePlaceholder')}
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') onCancel()
+        }}
+      />
+      <button type="submit" className="btn">
+        {t('common.save')}
+      </button>
+      <button type="button" className="btn ghost" onClick={onCancel}>
+        {t('common.cancel')}
+      </button>
+    </form>
   )
 }
 

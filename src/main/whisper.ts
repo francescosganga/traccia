@@ -59,11 +59,6 @@ export async function deleteModel(id: WhisperModelId): Promise<void> {
   await rm(modelDir(id), { recursive: true, force: true })
 }
 
-export async function deleteAllModels(): Promise<void> {
-  killWorker()
-  await rm(modelsDir(), { recursive: true, force: true })
-}
-
 // ---- worker management ------------------------------------------------------
 
 type Pending = { resolve: (v: unknown) => void; reject: (e: Error) => void; onProgress?: (p: number, file?: string) => void }

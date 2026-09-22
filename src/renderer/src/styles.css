@@ -409,6 +409,22 @@ a:hover {
   background: var(--selected);
   color: var(--text);
 }
+/* settings sections: text only, one line, cut with an ellipsis rather than wrapped */
+.nav.sub {
+  display: block;
+  line-height: var(--ctl-h);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.sidebar .nav-label {
+  padding: var(--sp-3) 10px var(--sp-1);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
 .sidebar .spacer {
   flex: 1;
 }
