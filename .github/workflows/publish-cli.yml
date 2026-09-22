@@ -1,0 +1,42 @@
+name: Publish CLI
+
+# Publishes traccia-cli to npm when a GitHub Release is published (not when the tag is
+# pushed: release.yml only drafts the release, and npm publishes cannot be taken back).
+# The CLI carries the app's version: packages/cli/package.json holds a placeholder that
+# is replaced with the root package.json version, the one `npm version` bumped for the tag.
+#
+# Authentication is npm trusted publishing (OIDC), configured once on npmjs.com in the
+# package's settings (Trusted publisher: this repository, workflow "publish-cli.yml"). The
+# first release of the package must be published by hand from a machine (`npm login`,
+# then `npm publish -w packages/cli --access public`), because the setting only exists for
+# a package that is already on the registry.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write # trusted publishing exchanges the workflow identity for a publish token
+
+jobs:
+  npm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24 # npm 11.5+ is required for trusted publishing
+          registry-url: https://registry.npmjs.org
+
+      # Only the CLI workspace: the app's dependencies (Electron, native modules) are not needed.
+      - run: npm ci -w packages/cli
+
+      - run: npm run typecheck -w packages/cli
+
+      - name: Take the version from the root package.json
+        run: npm version --no-git-tag-version "$(node -p "require('./package.json').version")" -w packages/cli
+
+      - run: npm run build -w packages/cli
+
+      - run: npm publish -w packages/cli --access public --provenance
