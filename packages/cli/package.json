@@ -1,0 +1,38 @@
+{
+  "name": "traccia-cli",
+  "version": "0.0.0",
+  "description": "CLI and MCP server for Traccia: read recordings, start and stop the recorder from a terminal or from an AI agent",
+  "license": "MIT",
+  "author": "Francesco Sganga",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/francescosganga/traccia.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/francescosganga/traccia#cli--mcp",
+  "bin": {
+    "traccia": "./dist/traccia.cjs"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "prepublishOnly": "npm run typecheck && npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "sharp": "^0.35.4",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.1",
+    "esbuild": "^0.25.12",
+    "typescript": "^7.0.2"
+  }
+}

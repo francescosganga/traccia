@@ -7,6 +7,10 @@ files:
   - out/**
   - package.json
   - '!**/*.map'
+  # The CLI / MCP server, run by the app's own binary in Node mode (see src/main/agents.ts).
+  - from: packages/cli/dist
+    to: cli
+    filter: traccia.cjs
 extraResources:
   - from: resources
     to: resources
