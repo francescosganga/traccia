@@ -41,6 +41,8 @@ const api = {
     openKeyboardShortcuts: (): Promise<void> => ipcRenderer.invoke('system:openKeyboardShortcuts'),
     version: (): Promise<string> => ipcRenderer.invoke('app:version'),
     platform: (): Promise<string> => ipcRenderer.invoke('app:platform'),
+    relaunch: (): Promise<void> => ipcRenderer.invoke('app:relaunch'),
+    suspendShortcuts: (suspended: boolean): Promise<void> => ipcRenderer.invoke('shortcuts:suspend', suspended),
     copyText: (text: string): Promise<void> => ipcRenderer.invoke('clipboard:write', text),
     loginItem: (): Promise<LoginItemStatus> => ipcRenderer.invoke('app:loginItem')
   },

@@ -3,7 +3,11 @@ import type { MediaAccessStatus, Permissions } from '../shared/types'
 
 const isMac = process.platform === 'darwin'
 
-export function getPermissions(): Permissions {
+type Current = Omit<Permissions, 'restartNeeded'>
+
+let atLaunch: Current | null = null
+
+function read(): Current {
   if (!isMac) {
     return { screen: 'granted', microphone: 'granted', accessibility: true }
   }
@@ -12,6 +16,18 @@ export function getPermissions(): Permissions {
     microphone: systemPreferences.getMediaAccessStatus('microphone') as MediaAccessStatus,
     accessibility: systemPreferences.isTrustedAccessibilityClient(false)
   }
+}
+
+/** Snapshot taken at startup: Screen Recording and Accessibility granted later only work after a relaunch. */
+export function rememberLaunchPermissions(): void {
+  atLaunch = read()
+}
+
+export function getPermissions(): Permissions {
+  const now = read()
+  const restartNeeded =
+    !!atLaunch && ((now.screen === 'granted' && atLaunch.screen !== 'granted') || (now.accessibility && !atLaunch.accessibility))
+  return { ...now, restartNeeded }
 }
 
 /** Triggers the system prompt (or registers the app in the privacy list) for the given permission. */

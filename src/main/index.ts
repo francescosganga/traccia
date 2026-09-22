@@ -4,6 +4,7 @@ import { applyDockVisibility, onSettingsApplied } from './apply-settings'
 import { setupAutotest } from './autotest'
 import { notifyControlState, startControlServer, stopControlServer } from './control'
 import { registerIpc } from './ipc'
+import { rememberLaunchPermissions } from './permissions'
 import { setupScreenshots, useScreenshotProfile } from './screenshots'
 import { RecordingSession } from './session'
 import { getSettings, updateSettings } from './settings'
@@ -112,7 +113,8 @@ const autotestState = setupAutotest((req) => startRecording(req), () => session.
 
 app.whenReady().then(() => {
   const settings = getSettings()
-  registerIpc({ session, startRecording })
+  rememberLaunchPermissions()
+  registerIpc({ session, startRecording, suspendShortcuts: (off) => (off ? globalShortcut.unregisterAll() : registerShortcuts(getSettings())) })
   startControlServer({ session, startRecording })
   onSettingsApplied((s, patch) => {
     if ('shortcutsEnabled' in patch || 'shortcutScreen' in patch || 'shortcutRegion' in patch) registerShortcuts(s)

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { t } from '../../../shared/i18n'
 import type { Permissions } from '../../../shared/types'
+import { Icon } from './Icon'
 
 type Kind = 'screen' | 'microphone' | 'accessibility'
 const KINDS: Kind[] = ['screen', 'microphone', 'accessibility']
@@ -55,9 +56,17 @@ export function PermissionsPanel() {
           </div>
         )
       })}
-      <p className="small dim mt-3">
-        {t('perm.restartNote')}
-      </p>
+      {perms.restartNeeded ? (
+        <div className="notice ok mt-3">
+          <Icon name="check" />
+          <span>{t('perm.restartNeeded')}</span>
+          <button className="btn sm" onClick={() => void window.api.system.relaunch()}>
+            {t('perm.restart')}
+          </button>
+        </div>
+      ) : (
+        <p className="small dim mt-3">{t('perm.restartNote')}</p>
+      )}
     </div>
   )
 }

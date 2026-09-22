@@ -81,6 +81,8 @@ const en = {
   'perm.notGranted': 'Not granted',
   'perm.notNeeded': 'No extra permissions are needed on this platform.',
   'perm.restartNote': 'After granting "Screen Recording" or "Accessibility", macOS requires restarting the app.',
+  'perm.restartNeeded': 'Granted. Restart Traccia to apply it.',
+  'perm.restart': 'Restart now',
 
   // whisper models
   'model.tiny.desc': 'Very fast, not very accurate. Only for quick tests.',
@@ -406,6 +408,8 @@ const it: Record<TranslationKey, string> = {
   'perm.notGranted': 'Non concesso',
   'perm.notNeeded': 'Su questa piattaforma non servono permessi aggiuntivi.',
   'perm.restartNote': 'Dopo aver concesso "Registrazione schermo" o "Accessibilità" macOS richiede il riavvio dell\'app.',
+  'perm.restartNeeded': 'Concesso. Riavvia Traccia per applicarlo.',
+  'perm.restart': 'Riavvia ora',
 
   'model.tiny.desc': 'Velocissimo, poco accurato. Solo per prove.',
   'model.base.desc': 'Buon compromesso, consigliato per iniziare.',

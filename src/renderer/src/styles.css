@@ -536,6 +536,10 @@ a:hover {
 .notice .icon {
   margin-top: 2px;
 }
+.notice .btn {
+  margin-left: auto;
+  flex-shrink: 0;
+}
 .notice.ok {
   background: var(--ok-soft);
   color: var(--ok);

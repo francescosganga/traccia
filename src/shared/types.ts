@@ -192,6 +192,8 @@ export interface Permissions {
   screen: MediaAccessStatus
   microphone: MediaAccessStatus
   accessibility: boolean
+  /** Screen Recording or Accessibility was granted after the app started: macOS applies it at the next launch */
+  restartNeeded: boolean
 }
 
 /** Clients the settings page can register the MCP server with (see main/agents.ts). */

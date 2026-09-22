@@ -12,6 +12,8 @@ import { broadcast, getMainWindow, resolveRegion, showMainWindow } from './windo
 export interface IpcDeps {
   session: RecordingSession
   startRecording: (req: RecordingRequest) => Promise<void>
+  /** Global shortcuts off while the user records new keys, so the app does not react to them */
+  suspendShortcuts: (suspended: boolean) => void
 }
 
 export function listDisplays(): DisplayInfo[] {
@@ -25,7 +27,7 @@ export function listDisplays(): DisplayInfo[] {
   }))
 }
 
-export function registerIpc({ session, startRecording }: IpcDeps): void {
+export function registerIpc({ session, startRecording, suspendShortcuts }: IpcDeps): void {
   // settings
   ipcMain.handle('settings:get', () => getSettings())
   ipcMain.handle('settings:update', (_e, patch: Partial<Settings>) => applySettings(patch))
@@ -43,6 +45,11 @@ export function registerIpc({ session, startRecording }: IpcDeps): void {
   ipcMain.handle('system:openKeyboardShortcuts', () => openKeyboardShortcuts())
   ipcMain.handle('app:version', () => app.getVersion())
   ipcMain.handle('app:platform', () => process.platform)
+  ipcMain.handle('app:relaunch', () => {
+    app.relaunch()
+    app.exit(0)
+  })
+  ipcMain.handle('shortcuts:suspend', (_e, suspended: boolean) => suspendShortcuts(suspended))
   ipcMain.handle('clipboard:write', (_e, text: string) => clipboard.writeText(text))
   ipcMain.handle('app:loginItem', (): LoginItemStatus => {
     if (!app.isPackaged) return { openAtLogin: false, status: 'unknown', packaged: false }
