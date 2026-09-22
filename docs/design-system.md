@@ -4,7 +4,7 @@ The single source of truth is [`src/renderer/src/styles.css`](../src/renderer/sr
 
 ## 1. Direction
 
-**A dark studio tool with a single warm colour.** The neutrals are cool graphite (the same family as the app icon's tile); the only accent is *Record Red*, the colour of the icon. Red therefore means exactly one thing across the product — *recording* — and it is spent carefully: the Record/Stop button, the REC indicator, the region frame, "on" toggles, progress and the primary action of a view. Everything that is merely *selected* (sidebar item, segmented control, hover) is a neutral white tint, as in macOS dark mode, so the red always reads as the most important thing on screen.
+**A dark studio tool with a single warm colour.** The neutrals are cool graphite (the same family as the app icon's tile); the only accent is *Record Red*, the colour of the icon. A light mapping of the same semantic tokens follows the system appearance (`prefers-color-scheme: light`): the accent does not change, the status hues get darker to keep 4.5:1 on white. Red therefore means exactly one thing across the product — *recording* — and it is spent carefully: the Record/Stop button, the REC indicator, the region frame, "on" toggles, progress and the primary action of a view. Everything that is merely *selected* (sidebar item, segmented control, hover) is a neutral white tint, as in macOS dark mode, so the red always reads as the most important thing on screen.
 
 Consequences that follow from that rule:
 
@@ -82,11 +82,13 @@ Line height 1.5 for text, 1.25 for headings. Weights: 400 body, 500 controls and
 
 | Component | Classes | Rules |
 |---|---|---|
-| Sidebar | `.sidebar .brand .nav(.active) .version` | Logo + name at top, 16 px icons, active row = `--selected`, version in `--text-muted`. The sidebar is the drag region. |
+| Sidebar | `.sidebar .brand .nav(.active) .nav.sub .nav-label .version` | Logo + name at top, 16 px icons, active row = `--selected`, version in `--text-muted`. The sidebar is the drag region. In Settings it becomes the index of the page: a *Back* row, an uppercase label and one text-only `.nav.sub` per section; clicking one scrolls the section into place and the highlight follows the scroll. |
 | Page header | `.page-header > h1` | Every page has one; it is also a drag region. |
 | Card | `.card(.success/.error/.info)` + `.title-row` + `.status-icon(.ok/.bad/.accent)` | Section label is an uppercase `h3`. Status cards get a tinted 32 px icon tile and a border in their hue. |
 | Buttons | `.btn` `.primary` `.ghost` `.danger` `.sm` `.icon-btn` `.big` `.record` `.stop` | `.primary` = the one red action of a view. `.record`/`.stop` add the dot/square glyph. `.big` is the pill hero. Icons inside buttons are 15 px. |
-| Segmented | `.segmented > button(.active)` | Active = lighter, white text, subtle shadow. Used for every enumerated setting, in Home *and* Settings. |
+| Segmented | `<Segmented>` → `.segmented > button(.active)` | Active = lighter, white text, subtle shadow, `aria-pressed`. Used for every enumerated setting, in Home *and* Settings. |
+| Menu | `<Menu>` → `.menu .menu-list(.up) .menu-item(.danger)` | The secondary actions of a row behind a "…" button, so the row keeps one or two visible ones. Opens upwards near the bottom of the window; Escape and an outside click close it. |
+| Shortcut recorder | `<ShortcutRecorder>` → `.shortcut-recorder(.listening)` | Takes a shortcut by pressing it; shows the keys as `<kbd>`. Shift alone is refused. The app's global shortcuts are suspended while it listens. |
 | Toggle | `.toggle > .text + button.switch(.on)` | A `<label>` row with a `<button role="switch">`: keyboard-operable, whole row clickable. |
 | Inputs | `select`, `input[type=text|number]` | 32 px tall, `--bg-elev-2`, neutral focus glow, never stretched to full width inside a field. |
 | Badge | `.badge(.ok/.warn/.bad) > .dot` | Tinted pill; the dot takes `currentColor`. |
@@ -95,7 +97,8 @@ Line height 1.5 for text, 1.25 for headings. Weights: 400 body, 500 controls and
 | Lists | `.list-item`, `.model` | Hairline-separated rows; actions on the right use `.sm` buttons. |
 | Record hero | `.record-panel > .btn.primary.big.record + .hint` | Centred; the hint shows the shortcut of the selected mode as `<kbd>⌘⇧5</kbd>` / `<kbd>⌘⇧4</kbd>` (`formatShortcut`). |
 | Recording panel | `.card.rec-panel > .timer(.rec-dot) + .btn.primary.big.stop` | Shown in the main window while recording. |
-| Floating widget | `.controls > .time(.rec-dot) + .btn.primary.stop` | 320 × 60, overlay background, draggable. |
+| Floating widget | `.controls > .time(.main .rec-dot, .meta) + .btn.primary.stop` | 320 × 60, overlay background, draggable. Under the timer, the format and whether the microphone is on. |
+| Region frame | `frame.html` → `.region-frame` | Its own click-through window around the region being recorded, 2 px `--rec`, excluded from the capture like the widget. |
 | Region overlay | `.region-root .region-rect .region-size .region-toolbar .region-hint` | 2 px `--rec` frame on a 40 % dim; toolbar = Record (red) + Cancel (neutral). |
 | Wizard | `.wizard .steps(span.done) .feature .actions` | Progress bars in red; features use `.status-icon.accent` with the shared `<Icon>` set. |
 | Icons | `<Icon name=…>` in `components/Icon.tsx` | One stroke set (Lucide outlines, 1.75 px, 24 grid): record, settings, monitor, pointer, mic, sparkles, check, x, alert, folder, file. No emoji in the UI (they render differently on Windows). |
@@ -120,16 +123,32 @@ Findings from the audit of the previous UI, with what was done.
 | 12 | Inline `style={{…}}` spacing scattered through components. | **Fixed** — spacing utilities; only dynamic values (progress width, region geometry) remain inline. |
 | 13 | `user-select: none` on the whole body made error messages and paths impossible to copy. | **Fixed** — `code`, `kbd`, notices and error text are selectable. |
 | 14 | Eight red "Download"/"Request" buttons in lists competed with the primary action. | **Fixed** — neutral in lists; one red button per view. |
-| 15 | "Default format" in Settings and "Output format" on Home are the *same* stored value, but the wording suggests a default that Home would override per recording. | **Open** — either drop the duplicate from Settings or make Home's choice session-only. Product decision. |
-| 16 | JPG frame rate: Home offers 1/2/4 as a segmented control, Settings a free number 0.25–30. Acceptable as quick vs. advanced, but the labels should say so. | **Open** — suggest "Frames per second (JPG) — advanced" hint in Settings. |
+| 15 | "Default format" in Settings and "Output format" on Home are the *same* stored value, but the wording suggests a default that Home would override per recording. | **Fixed** — Home's format, resolution, fps and microphone apply to the next recording only (sent as overrides) and go back to the defaults once it ends; Settings holds the defaults. |
+| 16 | JPG frame rate: Home offers 1/2/4 as a segmented control, Settings a free number 0.25–30. Acceptable as quick vs. advanced, but the labels should say so. | **Fixed** by 15 — Home is the per-recording pick, Settings the default. |
 | 17 | Paths are shown absolute (`/Users/name/Movies/Traccia`); `~/Movies/Traccia` is shorter and calmer. | **Open** — needs the home directory from the main process. |
 | 18 | The recent-recordings row has three actions of equal weight. | **Partly** — reveal is the default button, the two "open" actions are ghost; consider a single primary + overflow when the list grows. |
-| 19 | No light theme. All tokens are semantic, so a light mapping is a `:root[data-theme=light]` block away. | **Open** |
-| 20 | The Settings page is long (seven cards); with more options it will need sub-navigation or a search. | **Open** |
+| 19 | No light theme. All tokens are semantic, so a light mapping is a `:root[data-theme=light]` block away. | **Fixed** — `@media (prefers-color-scheme: light)` remaps the semantic tokens; the window background follows `nativeTheme`. |
+| 20 | The Settings page is long (nine cards); with more options it will need sub-navigation or a search. | **Fixed** — the sidebar lists the sections while Settings is open (with *Back* on top); the summary line on Home links straight to the Audio, Cursor and Shortcuts sections. |
+| 21 | Number fields (JPG fps, cursor rate, countdown) clamped on every keystroke: typing `0.5` turned into `2` at the first character, an emptied field snapped back to its default before the next digit. | **Fixed** — `NumberField` commits valid values while typing and clamps on blur. |
+| 22 | The cursor-rate label said "written to the text file (video mode)": the samples go to `recording-raw.txt`, in both output modes. | **Fixed** — label and hint say which file. |
+| 23 | The wizard window could not be dragged: no sidebar and no page header, so nothing was a drag region under the hidden title bar. | **Fixed** — `.titlebar-drag` strip. |
+| 24 | "Transcription: model not installed" on Home is the only warning the user gets before recording; it looked like plain dim text. | **Partly** — amber and linked to the Audio section. A notice with a *Download* action would be clearer. |
+| 25 | The `Request` button stays for a *denied* Screen Recording permission, but macOS never re-prompts once denied: only *Open settings* helps. | **Kept** by choice — the button stays; *Open settings* is next to it. |
+| 26 | After granting Screen Recording or Accessibility the app must be restarted, and the wizard only says so. | **Fixed** — the permissions panel shows *Restart now* once a permission granted after launch is detected (`restartNeeded`). |
+| 27 | "Start hidden in the menu bar" is shown enabled even when *Open at login* is off, although it only applies at login. | **Fixed** — disabled until *Open at login* is on. |
+| 28 | Custom shortcuts are typed as Electron accelerator strings. | **Fixed** — `<ShortcutRecorder>`. |
+| 29 | Processing cannot be cancelled; a large Whisper model can take minutes. | **Fixed** — *Skip transcription* on the processing card while Whisper runs; the recording is saved with a warning instead of a transcript. |
+| 30 | The "Recording complete" card offers five buttons of similar weight; *Open recording-raw.txt* is rarely needed (the prompt itself says when). | **Fixed** — *Copy prompt* + *Show in Finder* stay; the rest, plus *Rename* and *Move to Trash*, sit in a `<Menu>`. Same in the recent list. |
+| 31 | *Delete all models* sits under a list where every model already has *Delete*. | **Fixed** — removed. |
+| 32 | Wizard step 3 says *Continue* where the others say *Next*; step 4 is titled "Where to save recordings" but also holds the shortcuts. | **Fixed** — *Skip for now* until a model is installed, then *Next*; step 4 is "Recordings folder and shortcuts". |
+| 33 | Segmented controls do not expose their state to assistive tech. | **Fixed** — one `<Segmented>` component with `aria-pressed`. |
+| 34 | The countdown length was configurable but nobody found it: the setting lived three sections deep with nothing pointing there from where the countdown is seen. | **Fixed** — *Countdown: 3 s* on the Home summary line links to the Recording section. |
+| 35 | While recording, nothing recalled what was chosen: an 8-minute take in JPG instead of MP4 had to be redone. | **Fixed** — the widget shows the format and the microphone state under the timer, from the countdown on. |
+| 36 | A region recording left no trace of the region on screen once the selector closed. | **Fixed** — the region frame window (setting *Outline the region while recording*, on by default). |
 
 ## 6. Working with it
 
 - Add a colour by adding a *primitive* and mapping a *semantic* token; never use a hex in a component.
 - Need a new spacing? Use the scale. If it does not fit the scale, the layout is probably wrong.
 - Run `TRACCIA_SCREENSHOTS=/tmp/shots npx electron .` after a UI change to regenerate the wizard/home/settings pictures in `docs/screenshots` (throwaway profile, no permissions needed).
-- Not covered yet: a light theme, Windows-specific chrome (title bar, tray), illustration style, sound.
+- Not covered yet: Windows-specific chrome (title bar, tray), illustration style, sound.

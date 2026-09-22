@@ -52,7 +52,7 @@ Il `recording.txt` prodotto dalla demo qui sopra (modalità JPG, 2 fps; l'interf
 ## Funzionalità
 
 - Schermo intero o area selezionata trascinando (stile macOS).
-- Output MP4, MOV, WebM o **JPG + txt** con fps configurabili (1, 2, 4…).
+- Output MP4, MOV, WebM o **JPG + txt** con fps configurabili (1, 2, 4…). Le scelte nella pagina principale (formato, risoluzione, fps, microfono) valgono solo per la registrazione successiva; i valori predefiniti stanno nelle Impostazioni.
 - Risoluzione nativa (Retina), 1080p, 720p, 480p.
 - Registrazione del microfono e trascrizione con **Whisper in locale** (modelli scaricabili ed eliminabili dall'app; nessun dato lascia il computer).
 - I modelli già presenti nella cache di Hugging Face (`~/.cache/huggingface/hub`, `HF_HOME`, `HF_HUB_CACHE`) vengono importati con hard link invece di essere riscaricati.
@@ -60,7 +60,8 @@ Il `recording.txt` prodotto dalla demo qui sopra (modalità JPG, 2 fps; l'interf
 - Puntatore campionato a 120 Hz e click globali (con permesso Accessibilità).
 - In modalità JPG i frame identici al precedente (cursore escluso) vengono saltati.
 - `PROMPT.md` in ogni cartella di registrazione e **Copia prompt per l'AI** con un click (anche nell'elenco delle registrazioni recenti e nella barra dei menu).
-- Widget flottante con timer e Stop (escluso dalla registrazione). Scorciatoie globali opzionali, disattivate di default: i tasti degli screenshot di macOS (⇧⌘5 tutto lo schermo, ⇧⌘4 area), quelli alternativi (⌃⌥⌘5, ⌃⌥⌘4) o i tuoi; entrambe fermano anche la registrazione.
+- Widget flottante con timer, Stop e cosa si sta registrando (formato, microfono), escluso dalla registrazione; una cornice rossa contorna l'area registrata, come il registratore di macOS. Scorciatoie globali opzionali, disattivate di default: i tasti degli screenshot di macOS (⇧⌘5 tutto lo schermo, ⇧⌘4 area), quelli alternativi (⌃⌥⌘5, ⌃⌥⌘4) o i tuoi, registrati premendo i tasti; entrambe fermano anche la registrazione.
+- Le registrazioni si possono rinominare e spostare nel Cestino dall'app; una trascrizione troppo lunga si può saltare.
 - Icona nella barra dei menu con azioni rapide: registra schermo/area, stop, formato, risoluzione, fps, microfono, trascrizione, click, registrazioni recenti.
 - Apertura al login (avvio solo nella barra dei menu), icona nel Dock opzionale.
 - Interfaccia in inglese e italiano, chiara o scura come il sistema.

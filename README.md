@@ -52,7 +52,7 @@ The `recording.txt` produced by the demo above (JPG mode, 2 fps):
 ## Features
 
 - Full screen or a region selected by dragging (macOS style).
-- Output as MP4, MOV, WebM or **JPG + txt** with configurable frame rate (1, 2, 4…).
+- Output as MP4, MOV, WebM or **JPG + txt** with configurable frame rate (1, 2, 4…). The choices on the home page (format, resolution, fps, microphone) apply to the next recording only; the defaults live in Settings.
 - Native (Retina), 1080p, 720p or 480p resolution.
 - Microphone recording and transcription with **Whisper running locally** (models can be downloaded and deleted from the app; nothing leaves your computer).
 - Models already present in the Hugging Face cache (`~/.cache/huggingface/hub`, `HF_HOME`, `HF_HUB_CACHE`) are imported with hard links instead of being downloaded again.
@@ -60,7 +60,8 @@ The `recording.txt` produced by the demo above (JPG mode, 2 fps):
 - Pointer sampled at 120 Hz and global mouse clicks (with the Accessibility permission).
 - In JPG mode, frames identical to the previous one (cursor excluded) are skipped.
 - `PROMPT.md` in every recording folder and a one-click **Copy prompt for AI** (also in the recent recordings list and in the menu bar).
-- Floating widget with timer and Stop (excluded from the capture). Optional global shortcuts, off by default: the macOS screenshot keys (⇧⌘5 full screen, ⇧⌘4 region), alternative ones (⌃⌥⌘5, ⌃⌥⌘4) or your own; either one also stops.
+- Floating widget with timer, Stop and what is being recorded (format, microphone), excluded from the capture; a red frame outlines the region being recorded, like the macOS recorder. Optional global shortcuts, off by default: the macOS screenshot keys (⇧⌘5 full screen, ⇧⌘4 region), alternative ones (⌃⌥⌘5, ⌃⌥⌘4) or your own, recorded by pressing the keys; either one also stops.
+- Recordings can be named and moved to the Trash from the app; a transcription that takes too long can be skipped.
 - Menu bar icon with quick actions: record screen/region, stop, format, resolution, fps, microphone, transcription, clicks, recent recordings.
 - Open at login (menu-bar-only start), optional Dock icon.
 - Interface in English and Italian, light or dark with the system.
