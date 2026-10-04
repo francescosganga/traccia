@@ -1,7 +1,7 @@
 import { join } from 'path'
 import { t } from '../shared/i18n'
 import type { OutputFormat } from '../shared/types'
-import { formatTime } from '../shared/recording-reader'
+import { formatTime } from '../shared/time'
 
 export interface PromptInput {
   /** Absolute path of the recording folder */

@@ -1,5 +1,6 @@
 import { locale, t } from '../shared/i18n'
-import { formatTime, type FrameRef } from '../shared/recording-reader'
+import type { FrameRef } from '../shared/recording-reader'
+import { formatTime } from '../shared/time'
 import type { ClickEvent, CursorSample, OutputFormat, Rect, TranscriptSegment, TranscriptWord } from '../shared/types'
 import type { PlacedLayout } from './compose'
 

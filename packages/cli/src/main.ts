@@ -2,13 +2,13 @@ import { parseArgs } from 'util'
 import {
   APP_NAME,
   controlSocketPath,
-  formatTime,
   listRecordings,
   readRecording,
   readSettingsFile,
   readTimeline,
   settingsPath
 } from '../../../src/shared/recording-reader'
+import { formatTime } from '../../../src/shared/time'
 import type { AppState, OutputFormat, RecordingOverrides, RecordingRequest, Resolution } from '../../../src/shared/types'
 import { ControlClient, NotRunningError } from './client'
 import { runMcpServer } from './mcp'

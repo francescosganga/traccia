@@ -6,7 +6,6 @@ import { join } from 'path'
 import { z } from 'zod'
 import {
   APP_NAME,
-  formatTime,
   listRecordings,
   readRecording,
   readTimeline,
@@ -14,6 +13,7 @@ import {
   transcriptText,
   type RecordingJson
 } from '../../../src/shared/recording-reader'
+import { formatTime } from '../../../src/shared/time'
 import type { AppState, RecordingEntry, RecordingRequest } from '../../../src/shared/types'
 import { ControlClient, NotRunningError } from './client'
 import { MAX_WIDTH, renderFrames } from './frames'

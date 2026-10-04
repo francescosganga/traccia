@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { setLanguage } from '../shared/i18n'
 import type { CursorSample, TranscriptWord } from '../shared/types'
-import { formatTime } from '../shared/recording-reader'
+import { formatTime } from '../shared/time'
 import { buildTimeline, clipToDuration, mapPoint, sampleAt, wordsAround, type Geometry } from './timeline'
 
 beforeAll(() => setLanguage('en'))

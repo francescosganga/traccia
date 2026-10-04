@@ -1,7 +1,8 @@
 import { execFile } from 'child_process'
 import { accessSync, constants, readFileSync } from 'fs'
 import { delimiter, join, sep } from 'path'
-import { formatTime, listFrames, sampleTimes, selectFrames, type RecordingJson } from '../../../src/shared/recording-reader'
+import { listFrames, sampleTimes, selectFrames, type RecordingJson } from '../../../src/shared/recording-reader'
+import { formatTime } from '../../../src/shared/time'
 
 /** Widest image handed to a model: enough to read UI text, cheap in tokens. */
 export const MAX_WIDTH = 1024

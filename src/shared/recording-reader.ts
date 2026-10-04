@@ -9,6 +9,7 @@ import { createHash } from 'crypto'
 import { homedir, tmpdir } from 'os'
 import { basename, isAbsolute, join, resolve } from 'path'
 import { SHORTCUT_PRESETS } from './shortcuts'
+import { formatTime } from './time'
 import type { OutputFormat, RecordingEntry, Rect, Settings, TranscriptSegment, TranscriptWord } from './types'
 import type { WebcamLayoutEvent } from './webcam'
 
@@ -294,15 +295,6 @@ export function sampleTimes(durationMs: number, opts: { from?: number; to?: numb
   const times: number[] = []
   for (let i = 0; i < count; i++) times.push(Math.round(from + (i * (to - from)) / (count - 1)))
   return times
-}
-
-export function formatTime(ms: number): string {
-  const total = Math.max(0, ms) / 1000
-  const h = Math.floor(total / 3600)
-  const m = Math.floor((total % 3600) / 60)
-  const s = total % 60
-  const mmss = `${String(m).padStart(2, '0')}:${s.toFixed(3).padStart(6, '0')}`
-  return h > 0 ? `${h}:${mmss}` : mmss
 }
 
 /** The transcript as timestamped lines, one segment per line. Empty string when there is none. */
