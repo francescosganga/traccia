@@ -27,7 +27,7 @@ import { CursorTracker } from './cursor'
 import { SideTrack } from './side-track'
 import { h264Encoder, h264EncoderArgs, runFfmpeg } from './ffmpeg'
 import { extractFrames } from './frames'
-import { getPermissions, openPrivacySettings } from './permissions'
+import { getPermissions, openPrivacySettings, requestPermission } from './permissions'
 import { buildPrompt } from './prompt'
 import { getSettings } from './settings'
 import { buildTimeline, clipToDuration, mapPoint, wordsAround, type Geometry } from './timeline'
@@ -144,6 +144,9 @@ export class RecordingSession {
     if (process.platform === 'darwin') {
       const status = systemPreferences.getMediaAccessStatus('screen')
       if (status === 'denied' || status === 'restricted') {
+        // macOS also says 'denied' when it has never been asked (or the app was removed from
+        // the list): without a request first, the pane opened below would not list Traccia.
+        await requestPermission('screen')
         openPrivacySettings('screen')
         this.host.showMainWindow()
         this.setState({ status: 'error', message: t('err.screenPermission') })
