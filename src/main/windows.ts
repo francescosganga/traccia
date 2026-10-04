@@ -5,6 +5,13 @@ import { webcamRect, type WebcamLayout } from '../shared/webcam'
 
 const PRELOAD = () => join(__dirname, '../preload/index.js')
 
+/**
+ * Whole pixels for a window's bounds. A region dragged on a trackpad comes in fractional
+ * DIP, and the BrowserWindow constructor ignores a fractional x or y and centres the window
+ * (setBounds rounds them instead).
+ */
+const whole = (r: Rect): Rect => ({ x: Math.round(r.x), y: Math.round(r.y), width: Math.round(r.width), height: Math.round(r.height) })
+
 function load(win: BrowserWindow, page: string, query: Record<string, string> = {}): void {
   const devUrl = process.env['ELECTRON_RENDERER_URL']
   if (devUrl) {
@@ -209,10 +216,12 @@ const FRAME_PAD = 4
 export function showRegionFrame(display: Display, rect: Rect): void {
   hideRegionFrame()
   regionFrame = new BrowserWindow({
-    x: display.bounds.x + rect.x - FRAME_PAD,
-    y: display.bounds.y + rect.y - FRAME_PAD,
-    width: rect.width + FRAME_PAD * 2,
-    height: rect.height + FRAME_PAD * 2,
+    ...whole({
+      x: display.bounds.x + rect.x - FRAME_PAD,
+      y: display.bounds.y + rect.y - FRAME_PAD,
+      width: rect.width + FRAME_PAD * 2,
+      height: rect.height + FRAME_PAD * 2
+    }),
     frame: false,
     transparent: true,
     hasShadow: false,
@@ -248,7 +257,7 @@ let bubbleArea: { display: Display; area: Rect } | null = null
 function bubbleBounds(layout: WebcamLayout): Rect {
   const { display, area } = bubbleArea!
   const rect = webcamRect(layout.shape, layout.corner, area.width, area.height)
-  return { x: display.bounds.x + area.x + rect.x, y: display.bounds.y + area.y + rect.y, width: rect.width, height: rect.height }
+  return whole({ x: display.bounds.x + area.x + rect.x, y: display.bounds.y + area.y + rect.y, width: rect.width, height: rect.height })
 }
 
 /**
