@@ -65,6 +65,7 @@ The `recording.txt` produced by the demo above (JPG mode, 2 fps):
 - `PROMPT.md` in every recording folder and a one-click **Copy prompt for AI** (also in the recent recordings list and in the menu bar).
 - Floating widget with timer, Stop and what is being recorded (format, microphone with its level), excluded from the capture; with the webcam, a button opens its shape, corner and Hide above the widget; a red frame outlines the region being recorded, like the macOS recorder. Optional global shortcuts, off by default: the macOS screenshot keys (⇧⌘5 full screen, ⇧⌘4 region), alternative ones (⌃⌥⌘5, ⌃⌥⌘4) or your own, recorded by pressing the keys; either one also stops.
 - Recordings can be named and moved to the Trash from the app; a transcription that takes too long can be skipped.
+- **Trim** the start and the end of a recording afterwards (**Trim…** among its actions): a timeline with thumbnails, what was said and the clicks, two ends to drag, and the times to the millisecond if you prefer typing them. The video, the frames, the audio, the timeline, the transcript and `PROMPT.md` all follow the cut; the files as they were move to an `original/` folder inside the recording.
 - Menu bar icon with quick actions: record screen/region, stop, format, resolution, fps, microphone, system audio, transcription, clicks, webcam, recent recordings.
 - Open at login (menu-bar-only start), optional Dock icon.
 - Interface in English and Italian, light or dark with the system.
@@ -239,7 +240,7 @@ Translations live in `src/shared/i18n.ts`; adding a language means adding a dict
 - [x] A CLI and an MCP server, so agents can read recordings and start/stop a recording without the app in front (see [CLI & MCP](#cli--mcp)).
 - [x] Microphone picker with a live input level, before and during the recording.
 - [x] Webcam in a corner of the video (circle, square or rectangle, changed from the widget while recording), with a parallel recording without it for the AI, on by default.
-- [ ] A small post-recording editor (trim, cut sections) that keeps the timeline in sync.
+- [ ] A small post-recording editor that keeps the timeline in sync: trimming the start and the end is there, cutting sections out of the middle is next.
 - [x] System audio on macOS.
 - [ ] Windows support.
 - [ ] `whisper.cpp` backend on Apple Silicon.

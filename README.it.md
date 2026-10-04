@@ -65,6 +65,7 @@ Il `recording.txt` prodotto dalla demo qui sopra (modalità JPG, 2 fps; l'interf
 - `PROMPT.md` in ogni cartella di registrazione e **Copia prompt per l'AI** con un click (anche nell'elenco delle registrazioni recenti e nella barra dei menu).
 - Widget flottante con timer, Stop e cosa si sta registrando (formato, microfono con il suo livello), escluso dalla registrazione; con la webcam, un pulsante apre sopra il widget forma, angolo e Nascondi; una cornice rossa contorna l'area registrata, come il registratore di macOS. Scorciatoie globali opzionali, disattivate di default: i tasti degli screenshot di macOS (⇧⌘5 tutto lo schermo, ⇧⌘4 area), quelli alternativi (⌃⌥⌘5, ⌃⌥⌘4) o i tuoi, registrati premendo i tasti; entrambe fermano anche la registrazione.
 - Le registrazioni si possono rinominare e spostare nel Cestino dall'app; una trascrizione troppo lunga si può saltare.
+- **Taglio** dell'inizio e della fine di una registrazione, dopo (**Taglia…** tra le sue azioni): una timeline con le miniature, cosa è stato detto e i click, due bordi da trascinare, e i tempi al millisecondo se preferisci scriverli. Video, frame, audio, timeline, trascrizione e `PROMPT.md` seguono il taglio; i file com'erano vengono spostati in una cartella `original/` dentro la registrazione.
 - Icona nella barra dei menu con azioni rapide: registra schermo/area, stop, formato, risoluzione, fps, microfono, audio di sistema, trascrizione, click, webcam, registrazioni recenti.
 - Apertura al login (avvio solo nella barra dei menu), icona nel Dock opzionale.
 - Interfaccia in inglese e italiano, chiara o scura come il sistema.
@@ -239,7 +240,7 @@ Le traduzioni sono in `src/shared/i18n.ts`; aggiungere una lingua significa aggi
 - [x] Un CLI e un server MCP, così gli agenti possono leggere le registrazioni e avviare/fermare una registrazione senza avere l'app davanti (vedi [CLI e MCP](#cli-e-mcp)).
 - [x] Scelta del microfono con il livello dell'input in tempo reale, prima e durante la registrazione.
 - [x] Webcam in un angolo del video (cerchio, quadrato o rettangolo, da cambiare dal widget durante la registrazione), con una registrazione parallela senza webcam per l'AI, attiva di default.
-- [ ] Un piccolo editor post-registrazione (taglio inizio/fine, rimozione di sezioni) che tiene la timeline allineata.
+- [ ] Un piccolo editor post-registrazione che tiene la timeline allineata: il taglio di inizio e fine c'è già, la rimozione di sezioni nel mezzo è il prossimo passo.
 - [x] Audio di sistema su macOS.
 - [ ] Supporto Windows.
 - [ ] Backend `whisper.cpp` su Apple Silicon.

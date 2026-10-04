@@ -32,6 +32,7 @@ Consequences that follow from that rule:
 | `--red-a12/a24/a40` | `rgba(229,72,77,.12/.24/.40)` | Tints for soft backgrounds and borders |
 | `--green-500`, `--amber-500` | `#3ecf8e`, `#f5a524` | Status only |
 | `--w-a05 … --w-a45` | white at 5–45 % | Hover / selection / focus on dark surfaces |
+| `--black-a50` | black at 50 % | What lies outside a selection |
 
 ### Colour — semantic (what components use)
 
@@ -41,6 +42,7 @@ Consequences that follow from that rule:
 | `--bg-overlay` | `rgba(22,22,26,.94)` | Floating widget, region toolbar |
 | `--border` / `--border-strong` | n-600 / n-500 | Hairlines; hover/focus borders |
 | `--hover` / `--selected` / `--selected-strong` | w-a05 / w-a08 / w-a12 | Row hover, active nav, active segment |
+| `--dim` | black-a50 | The parts cut in the trim timeline |
 | `--text` / `--text-dim` / `--text-muted` | n-50 / n-200 / n-300 | Body, secondary, tertiary |
 | `--text-on-accent` | `#fff` | Text on red fills |
 | `--accent` / `--accent-hover` / `--accent-active` | red-600 / 500 / 700 | Primary button fill and states |
@@ -97,6 +99,9 @@ Line height 1.5 for text, 1.25 for headings. Weights: 400 body, 500 controls and
 | Webcam bubble | `webcam.html` → `video.webcam-bubble` | Its own click-through window, excluded from the capture, at the corner and the size the webcam will have in the video; mirrored, radius from `shared/webcam.ts`. |
 | Level meter | `<MicPicker>` → `.mic-picker > select + .meter`; `.meter > *` | Microphone input level: green (`--ok`), because red means recording; 4 px track like progress, filled with `scaleX()` from the peak on a -60..0 dBFS scale. Under the microphone select in Home and Settings (the microphone is open only while the window has the focus), and 40 px wide in the widget. |
 | Notice | `.notice(.ok/.warn/.error)` | Inline message with icon, selectable text. |
+| Time field | `<TimeField>` → `input.time-field` | A time as the timeline writes it (`mm:ss.mmm`, mono). Commits on blur or Enter, clamped; text that is not a time, or Escape, restores the value. |
+| Trim view | `TrimView` → `.trim-stage` + `<TrimTimeline>` + `<TimeField>`s | Takes the place of Home while it is open. The player (the video, or the frame on screen for a JPG recording) above the timeline; under it the two ends as times with *Start here* / *End here*, then *Save* (the one red button) with the duration kept beside it. |
+| Trim timeline | `<TrimTimeline>` → `.timeline-toolbar` + `.timeline > .timeline-content > .timeline-ruler + .timeline-lanes(.timeline-strip > .timeline-tile, .timeline-lane.speech/.clicks, .timeline-cut, .timeline-keep, .timeline-handle) + .timeline-playhead` | The recording on one axis: thumbnails at their own aspect (zooming in splits them in halves, so the ones already made are reused), the transcript phrases and the clicks. The part kept is framed in `--text` with a grip at each end (`role="slider"`: arrows move by a frame, Shift by a second); the parts cut are under `--dim`; the playhead is `--accent`, like progress. Dragging the strip moves the playhead. Pinch or ⌘ + wheel zooms (down to 2 s across), a horizontal swipe scrolls; only what is in view is drawn. |
 | Lists | `.list-item`, `.model` | Hairline-separated rows; actions on the right use `.sm` buttons. |
 | Record hero | `.record-panel > .btn.primary.big.record + .hint` | Centred; the hint shows the shortcut of the selected mode as `<kbd>⌘⇧5</kbd>` / `<kbd>⌘⇧4</kbd>` (`formatShortcut`). |
 | Recording panel | `.card.rec-panel > .timer(.rec-dot) + .btn.primary.big.stop` | Shown in the main window while recording. |
