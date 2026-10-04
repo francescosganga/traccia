@@ -234,6 +234,8 @@ Le traduzioni sono in `src/shared/i18n.ts`; aggiungere una lingua significa aggi
 ## Roadmap
 
 - [x] Un CLI e un server MCP, così gli agenti possono leggere le registrazioni e avviare/fermare una registrazione senza avere l'app davanti (vedi [CLI e MCP](#cli-e-mcp)).
+- [ ] Scelta del microfono con il livello dell'input in tempo reale, prima e durante la registrazione.
+- [ ] Webcam in un angolo del video (cerchio, quadrato o rettangolo, da cambiare dal widget durante la registrazione), con una registrazione parallela senza webcam per l'AI, attiva di default.
 - [ ] Un piccolo editor post-registrazione (taglio inizio/fine, rimozione di sezioni) che tiene la timeline allineata.
 - [ ] Audio di sistema su macOS.
 - [ ] Supporto Windows.

@@ -234,6 +234,8 @@ Translations live in `src/shared/i18n.ts`; adding a language means adding a dict
 ## Roadmap
 
 - [x] A CLI and an MCP server, so agents can read recordings and start/stop a recording without the app in front (see [CLI & MCP](#cli--mcp)).
+- [ ] Microphone picker with a live input level, before and during the recording.
+- [ ] Webcam in a corner of the video (circle, square or rectangle, changed from the widget while recording), with a parallel recording without it for the AI, on by default.
 - [ ] A small post-recording editor (trim, cut sections) that keeps the timeline in sync.
 - [ ] System audio on macOS.
 - [ ] Windows support.
