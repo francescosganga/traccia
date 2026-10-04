@@ -1,5 +1,6 @@
 import { app, clipboard, dialog, ipcMain, screen, shell } from 'electron'
 import type { AgentTarget, DisplayInfo, EngineStartedInfo, LoginItemStatus, MicList, RecordingRequest, Settings, WhisperModelId } from '../shared/types'
+import type { WebcamLayout } from '../shared/webcam'
 import { agentTargets, installAgent, installAgentInFile, mcpCommands } from './agents'
 import { applySettings } from './apply-settings'
 import { getPermissions, openKeyboardShortcuts, openPrivacySettings, requestPermission } from './permissions'
@@ -8,7 +9,7 @@ import type { RecordingSession } from './session'
 import { getSettings } from './settings'
 import { setMics } from './tray'
 import * as whisper from './whisper'
-import { broadcast, getMainWindow, resolveRegion, sendToControls, showMainWindow } from './windows'
+import { broadcast, getMainWindow, resizeControls, resolveRegion, sendToControls, showMainWindow } from './windows'
 
 export interface IpcDeps {
   session: RecordingSession
@@ -89,6 +90,15 @@ export function registerIpc({ session, startRecording, suspendShortcuts }: IpcDe
   ipcMain.handle('recording:stop', () => session.requestStop())
   ipcMain.handle('recording:reset', () => session.reset())
   ipcMain.handle('recording:skipTranscription', () => session.skipTranscription())
+  ipcMain.on('recording:webcamLayout', (_e, patch: Partial<WebcamLayout>) => {
+    session.setWebcamLayout(patch)
+    // Shape and corner become the defaults of the next recordings; hiding is for this one only
+    if (patch.shape || patch.corner) {
+      const s = getSettings()
+      applySettings({ webcamShape: patch.shape ?? s.webcamShape, webcamCorner: patch.corner ?? s.webcamCorner })
+    }
+  })
+  ipcMain.on('controls:resize', (_e, height: number) => resizeControls(height))
   ipcMain.on('region:confirm', (_e, selection) => resolveRegion(selection))
   ipcMain.on('region:cancel', () => resolveRegion(null))
 

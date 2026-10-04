@@ -55,14 +55,14 @@ The `recording.txt` produced by the demo above (JPG mode, 2 fps):
 - Output as MP4, MOV, WebM or **JPG + txt** with configurable frame rate (1, 2, 4…). The choices on the home page (format, resolution, fps, microphone and webcam on or off) apply to the next recording only; the defaults live in Settings.
 - Native (Retina), 1080p, 720p or 480p resolution.
 - Microphone recording and transcription with **Whisper running locally** (models can be downloaded and deleted from the app; nothing leaves your computer).
-- **Webcam in a corner of the video**: circle, square or rectangle, in any corner, chosen on the home page or in Settings with a live preview. While recording, a bubble shows it where it will be in the video; like the widget, it is excluded from the capture, and the webcam is recorded on its own and laid over the screen when the video is put together. By default the AI gets the copy without it (`recording-screen.mp4`), so the webcam never hides part of the screen; without that copy the timeline says which rectangle it covers. Video formats only.
+- **Webcam in a corner of the video**: circle, square or rectangle, in any corner, chosen on the home page or in Settings with a live preview, and changed (or hidden) from the widget while recording: the video follows from that instant. While recording, a bubble shows it where it will be in the video; like the widget, it is excluded from the capture, and the webcam is recorded on its own and laid over the screen when the video is put together. By default the AI gets the copy without it (`recording-screen.mp4`), so the webcam never hides part of the screen; without that copy the timeline says which rectangle it covers. Video formats only.
 - Choice of the microphone (home page, Settings, menu bar), with the live input level under it and in the widget: a silent microphone shows before the take, not after. The choice is kept; if that microphone is not connected, the system default is recorded and the recording says so.
 - Models already present in the Hugging Face cache (`~/.cache/huggingface/hub`, `HF_HOME`, `HF_HUB_CACHE`) are imported with hard links instead of being downloaded again.
 - **Word-level timestamps**: speech is split into short phrases that interleave with the clicks, and every click line also carries the words being spoken at that moment (`click left 820,352 "now I click Save"`).
 - Pointer sampled at 120 Hz and global mouse clicks (with the Accessibility permission).
 - In JPG mode, frames identical to the previous one (cursor excluded) are skipped.
 - `PROMPT.md` in every recording folder and a one-click **Copy prompt for AI** (also in the recent recordings list and in the menu bar).
-- Floating widget with timer, Stop and what is being recorded (format, microphone with its level), excluded from the capture; a red frame outlines the region being recorded, like the macOS recorder. Optional global shortcuts, off by default: the macOS screenshot keys (⇧⌘5 full screen, ⇧⌘4 region), alternative ones (⌃⌥⌘5, ⌃⌥⌘4) or your own, recorded by pressing the keys; either one also stops.
+- Floating widget with timer, Stop and what is being recorded (format, microphone with its level), excluded from the capture; with the webcam, a button opens its shape, corner and Hide above the widget; a red frame outlines the region being recorded, like the macOS recorder. Optional global shortcuts, off by default: the macOS screenshot keys (⇧⌘5 full screen, ⇧⌘4 region), alternative ones (⌃⌥⌘5, ⌃⌥⌘4) or your own, recorded by pressing the keys; either one also stops.
 - Recordings can be named and moved to the Trash from the app; a transcription that takes too long can be skipped.
 - Menu bar icon with quick actions: record screen/region, stop, format, resolution, fps, microphone, transcription, clicks, webcam, recent recordings.
 - Open at login (menu-bar-only start), optional Dock icon.
@@ -237,7 +237,7 @@ Translations live in `src/shared/i18n.ts`; adding a language means adding a dict
 
 - [x] A CLI and an MCP server, so agents can read recordings and start/stop a recording without the app in front (see [CLI & MCP](#cli--mcp)).
 - [x] Microphone picker with a live input level, before and during the recording.
-- [ ] Webcam in a corner of the video (circle, square or rectangle, changed from the widget while recording), with a parallel recording without it for the AI, on by default.
+- [x] Webcam in a corner of the video (circle, square or rectangle, changed from the widget while recording), with a parallel recording without it for the AI, on by default.
 - [ ] A small post-recording editor (trim, cut sections) that keeps the timeline in sync.
 - [ ] System audio on macOS.
 - [ ] Windows support.

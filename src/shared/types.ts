@@ -1,6 +1,6 @@
 // Types shared between main, preload and renderer.
 import type { UiLanguage } from './i18n'
-import type { WebcamCorner, WebcamShape } from './webcam'
+import type { WebcamCorner, WebcamLayout, WebcamShape } from './webcam'
 
 export type OutputFormat = 'mp4' | 'mov' | 'webm' | 'jpg'
 export type Resolution = 'native' | '1080' | '720' | '480'
@@ -162,7 +162,8 @@ export interface RecordingInfo {
   format: OutputFormat
   jpgFps: number
   audio: boolean
-  webcam: boolean
+  /** The webcam's current layout, changed from the widget; null when the webcam is not recorded */
+  webcam: WebcamLayout | null
 }
 
 export type AppState =

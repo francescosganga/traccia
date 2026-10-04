@@ -19,6 +19,7 @@ import type {
   WhisperModelId,
   WhisperModelInfo
 } from '../shared/types'
+import type { WebcamLayout } from '../shared/webcam'
 
 type Unsubscribe = () => void
 
@@ -71,6 +72,8 @@ const api = {
     onState: (cb: (s: AppState) => void) => on<AppState>('state', cb),
     /** Microphone level while recording, 0..1, for the widget */
     onLevel: (cb: (level: number) => void) => on<number>('recording:level', cb),
+    /** Shape, corner or visibility of the webcam from now on (widget) */
+    setWebcamLayout: (patch: Partial<WebcamLayout>) => ipcRenderer.send('recording:webcamLayout', patch),
     onNavigate: (cb: (page: string) => void) => on<string>('navigate', cb)
   },
   recordings: {
@@ -82,6 +85,14 @@ const api = {
   },
   mics: {
     report: (list: MicList) => ipcRenderer.send('mics:report', list)
+  },
+  /** Used by the widget, which grows upwards while its webcam menu is open */
+  controls: {
+    resize: (height: number) => ipcRenderer.send('controls:resize', height)
+  },
+  /** Used by the webcam bubble */
+  webcam: {
+    onLayout: (cb: (layout: WebcamLayout) => void) => on<WebcamLayout>('webcam:layout', cb)
   },
   region: {
     confirm: (displayId: number, rect: { x: number; y: number; width: number; height: number }) => ipcRenderer.send('region:confirm', { displayId, rect }),

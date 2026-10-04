@@ -254,7 +254,9 @@ const en = {
   'controls.starting': 'Starting…',
   'controls.mic': 'Mic',
   'controls.noMic': 'No mic',
-  'controls.webcam': 'Webcam',
+  'controls.webcam': 'Webcam: shape and corner',
+  'controls.hideWebcam': 'Hide webcam',
+  'controls.showWebcam': 'Show webcam',
   'region.hint': 'Drag to select the area to record · Esc to cancel',
 
   // tray
@@ -631,7 +633,9 @@ const it: Record<TranslationKey, string> = {
   'controls.starting': 'Avvio…',
   'controls.mic': 'Mic',
   'controls.noMic': 'Senza mic',
-  'controls.webcam': 'Webcam',
+  'controls.webcam': 'Webcam: forma e angolo',
+  'controls.hideWebcam': 'Nascondi webcam',
+  'controls.showWebcam': 'Mostra webcam',
   'region.hint': "Trascina per selezionare l'area da registrare · Esc per annullare",
 
   'tray.recordScreen': 'Registra schermo intero',

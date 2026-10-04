@@ -40,6 +40,7 @@ export interface SessionHost {
   hideRegionFrame(): void
   /** `area` is the recorded region, or the whole display, in DIP relative to the display */
   showWebcam(display: Display, area: Rect, layout: WebcamLayout): void
+  updateWebcam(layout: WebcamLayout): void
   hideWebcam(): void
   hideMainWindow(): void
   showMainWindow(): void
@@ -108,8 +109,13 @@ export class RecordingSession {
     const s = this.settings()
     // Once the engine runs, whether the microphone and the webcam actually opened
     const audio = this.info ? this.info.hasAudio : s.audio
-    const webcam = this.info ? this.info.hasWebcam : this.webcamWanted()
+    const webcam = (this.info ? this.info.hasWebcam : this.webcamWanted()) ? this.currentLayout() : null
     return { mode: this.region ? 'region' : 'screen', format: s.format, jpgFps: s.jpgFps, audio, webcam }
+  }
+
+  private currentLayout(): WebcamLayout {
+    const { shape, corner, visible } = this.layout[this.layout.length - 1]
+    return { shape, corner, visible }
   }
 
   private hideOverlays(): void {
@@ -193,10 +199,10 @@ export class RecordingSession {
       this.host.showWebcam(this.display, area, this.layout[0])
     }
 
-    const info = this.recordingInfo()
     this.countdownAbort = false
     for (let s = settings.countdown; s > 0; s--) {
-      this.setState({ status: 'countdown', seconds: s, info })
+      // Recomputed at every tick: the webcam layout can change from the widget meanwhile
+      this.setState({ status: 'countdown', seconds: s, info: this.recordingInfo() })
       await new Promise((r) => setTimeout(r, 1000))
       if (this.countdownAbort) {
         await this.cleanupAborted()
@@ -210,7 +216,7 @@ export class RecordingSession {
       this.tracker.warnings.push(t('warn.clicksNoAccessibility'))
     }
 
-    this.setState({ status: 'countdown', seconds: 0, info })
+    this.setState({ status: 'countdown', seconds: 0, info: this.recordingInfo() })
     engine.send('engine:start', { audio: settings.audio, micDevice: settings.micDevice, webcam, webcamDevice: settings.webcamDevice, frameRate: FRAME_RATE })
     this.startTimer = setTimeout(() => {
       if (this.state.status === 'countdown') this.fail(t('err.engineTimeout'))
@@ -235,6 +241,21 @@ export class RecordingSession {
       return
     }
     if (this.state.status === 'recording') this.host.engine()?.send('engine:stop')
+  }
+
+  /**
+   * A change from the widget: the bubble follows at once, the video from this instant.
+   * During the countdown nothing is recorded yet, so it replaces the starting layout.
+   */
+  setWebcamLayout(patch: Partial<WebcamLayout>): void {
+    const live = this.state.status === 'recording' || this.state.status === 'countdown'
+    if (!live || !this.layout.length || !this.recordingInfo().webcam) return
+    const next = { ...this.currentLayout(), ...patch }
+    const t = this.state.status === 'recording' && this.info ? Math.max(0, Date.now() - this.info.t0) : 0
+    this.layout.push({ ...next, t })
+    this.host.updateWebcam(next)
+    // The widget shows the layout it gets back with the state
+    if (this.state.status === 'recording' || this.state.status === 'countdown') this.setState({ ...this.state, info: this.recordingInfo() })
   }
 
   /** Gives up the transcription in progress; the recording is saved without it. */

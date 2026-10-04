@@ -147,7 +147,7 @@ let controls: BrowserWindow | null = null
 export function showControls(display: Display): void {
   hideControls()
   const width = 320
-  const height = 60
+  const height = CONTROLS_HEIGHT
   const { workArea } = display
   controls = new BrowserWindow({
     x: Math.round(workArea.x + (workArea.width - width) / 2),
@@ -163,6 +163,8 @@ export function showControls(display: Display): void {
     fullscreenable: false,
     skipTaskbar: true,
     show: false,
+    // The widget is never the active window: without this the first click (Stop, the webcam menu) only activates it
+    acceptFirstMouse: true,
     webPreferences: { preload: PRELOAD() }
   })
   // Excludes the widget from screen capture (NSWindowSharingNone on macOS).
@@ -171,6 +173,20 @@ export function showControls(display: Display): void {
   controls.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
   controls.once('ready-to-show', () => controls?.showInactive())
   load(controls, 'controls')
+}
+
+// Bar height, and the most the widget grows to when its webcam menu is open
+const CONTROLS_HEIGHT = 60
+const CONTROLS_MAX_HEIGHT = 400
+
+/** The widget grows upwards to make room for its menu, keeping the bar where it is (even after a drag). */
+export function resizeControls(height: number): void {
+  if (!controls || controls.isDestroyed()) return
+  const b = controls.getBounds()
+  const h = Math.round(Math.min(CONTROLS_MAX_HEIGHT, Math.max(CONTROLS_HEIGHT, height)))
+  controls.setBounds({ x: b.x, y: b.y + b.height - h, width: b.width, height: h })
+  // macOS draws the shadow of a transparent window from its content at the time it was shown
+  if (process.platform === 'darwin') controls.invalidateShadow()
 }
 
 /** Sends an event to the widget only: the microphone level arrives many times a second. */
@@ -226,6 +242,14 @@ export function hideRegionFrame(): void {
 // ---- webcam bubble -----------------------------------------------------------------
 
 let webcamBubble: BrowserWindow | null = null
+// Where the bubble lives, for moving it when the layout changes
+let bubbleArea: { display: Display; area: Rect } | null = null
+
+function bubbleBounds(layout: WebcamLayout): Rect {
+  const { display, area } = bubbleArea!
+  const rect = webcamRect(layout.shape, layout.corner, area.width, area.height)
+  return { x: display.bounds.x + area.x + rect.x, y: display.bounds.y + area.y + rect.y, width: rect.width, height: rect.height }
+}
 
 /**
  * The webcam as the user sees it while recording: at the corner and the size it will have
@@ -235,12 +259,9 @@ let webcamBubble: BrowserWindow | null = null
  */
 export function showWebcamBubble(display: Display, area: Rect, layout: WebcamLayout): void {
   hideWebcamBubble()
-  const rect = webcamRect(layout.shape, layout.corner, area.width, area.height)
+  bubbleArea = { display, area }
   webcamBubble = new BrowserWindow({
-    x: display.bounds.x + area.x + rect.x,
-    y: display.bounds.y + area.y + rect.y,
-    width: rect.width,
-    height: rect.height,
+    ...bubbleBounds(layout),
     frame: false,
     transparent: true,
     hasShadow: false,
@@ -264,7 +285,17 @@ export function showWebcamBubble(display: Display, area: Rect, layout: WebcamLay
   load(webcamBubble, 'webcam', { shape: layout.shape })
 }
 
+/** A change from the widget: the bubble moves, resizes and takes the new shape, or hides. */
+export function updateWebcamBubble(layout: WebcamLayout): void {
+  if (!webcamBubble || webcamBubble.isDestroyed() || !bubbleArea) return
+  webcamBubble.setBounds(bubbleBounds(layout))
+  webcamBubble.webContents.send('webcam:layout', layout)
+  if (!layout.visible) webcamBubble.hide()
+  else if (!webcamBubble.isVisible()) webcamBubble.showInactive()
+}
+
 export function hideWebcamBubble(): void {
   if (webcamBubble && !webcamBubble.isDestroyed()) webcamBubble.close()
   webcamBubble = null
+  bubbleArea = null
 }

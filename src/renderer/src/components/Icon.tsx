@@ -1,7 +1,7 @@
 import type { ReactElement, SVGProps } from 'react'
 
 /** Inline icon set (outlines based on Lucide, ISC). Stroke and size come from the `.icon` class. */
-export type IconName = 'record' | 'settings' | 'monitor' | 'pointer' | 'mic' | 'sparkles' | 'check' | 'x' | 'alert' | 'folder' | 'file' | 'copy' | 'arrow-left' | 'more'
+export type IconName = 'record' | 'settings' | 'monitor' | 'pointer' | 'mic' | 'sparkles' | 'check' | 'x' | 'alert' | 'folder' | 'file' | 'copy' | 'arrow-left' | 'more' | 'webcam' | 'webcam-off'
 
 const PATHS: Record<IconName, ReactElement> = {
   record: (
@@ -57,6 +57,19 @@ const PATHS: Record<IconName, ReactElement> = {
     </>
   ),
   'arrow-left': <path d="m12 19-7-7 7-7M19 12H5" />,
+  webcam: (
+    <>
+      <path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5" />
+      <rect x="2" y="6" width="14" height="12" rx="2" />
+    </>
+  ),
+  'webcam-off': (
+    <>
+      <path d="M10.66 6H14a2 2 0 0 1 2 2v2.5l5.248-3.062A.5.5 0 0 1 22 7.87v8.196" />
+      <path d="M16 16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2" />
+      <path d="m2 2 20 20" />
+    </>
+  ),
   more: (
     <>
       <circle className="fill" cx="5" cy="12" r="1.6" />
