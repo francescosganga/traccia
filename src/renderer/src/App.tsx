@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { setLanguage, t } from '../../shared/i18n'
 import type { AppState, Settings } from '../../shared/types'
-import { installMicReporter } from './audio'
+import { installMicReporter } from './media'
 import { Icon, Logo } from './components/Icon'
 import { installEngine } from './engine'
 import { Home } from './pages/Home'

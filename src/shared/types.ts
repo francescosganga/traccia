@@ -27,7 +27,7 @@ export interface Settings {
   /** Record the microphone */
   audio: boolean
   /** Microphone to record; null follows the system default */
-  micDevice: MicDevice | null
+  micDevice: InputDevice | null
   /** Run Whisper on the recorded audio */
   transcribe: boolean
   whisperModel: WhisperModelId
@@ -59,17 +59,17 @@ export interface Settings {
 }
 
 /**
- * An audio input as the renderer lists it. Device ids are salted per origin (the dev
- * server and the packaged app see different ones), so the label finds it again.
+ * A microphone or a camera as the renderer lists it. Device ids are salted per origin
+ * (the dev server and the packaged app see different ones), so the label finds it again.
  */
-export interface MicDevice {
+export interface InputDevice {
   id: string
   label: string
 }
 
 /** The inputs the main window sees, reported to the main process for the tray menu. */
 export interface MicList {
-  devices: MicDevice[]
+  devices: InputDevice[]
   /** Label of the input the system uses by default, when known */
   defaultLabel: string | null
 }
@@ -279,7 +279,7 @@ export interface RecordingEntry {
 /** Sent from main to the recorder engine living in the main window's renderer */
 export interface EngineStartCommand {
   audio: boolean
-  micDevice: MicDevice | null
+  micDevice: InputDevice | null
   frameRate: number
 }
 

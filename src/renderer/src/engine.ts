@@ -5,7 +5,7 @@
  */
 
 import { t } from '../../shared/i18n'
-import { levelMeter, openMic, type LevelMeter } from './audio'
+import { levelMeter, openMic, type LevelMeter } from './media'
 
 const MIME_CANDIDATES = [
   'video/webm;codecs=h264,opus',

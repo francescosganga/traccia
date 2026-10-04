@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { t } from '../../../shared/i18n'
-import { findMic, systemDefaultLabel } from '../../../shared/mics'
-import type { MediaAccessStatus, MicDevice, MicList } from '../../../shared/types'
-import { levelMeter, listMics, openMic } from '../audio'
+import { findDevice, systemDefaultLabel } from '../../../shared/devices'
+import type { InputDevice, MediaAccessStatus, MicList } from '../../../shared/types'
+import { levelMeter, listMics, openMic } from '../media'
 
 interface Props {
-  value: MicDevice | null
-  onChange: (device: MicDevice | null) => void
+  value: InputDevice | null
+  onChange: (device: InputDevice | null) => void
   disabled?: boolean
 }
 
@@ -49,7 +49,7 @@ export function MicPicker({ value, onChange, disabled }: Props) {
     }
   }, [])
 
-  const connected = value ? findMic(value, mics.devices) : undefined
+  const connected = value ? findDevice(value, mics.devices) : undefined
   const live = !disabled && access === 'granted' && focused
 
   useEffect(() => {

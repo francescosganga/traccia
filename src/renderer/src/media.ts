@@ -1,10 +1,10 @@
 /**
- * Microphone helpers shared by the capture engine and the pickers: listing the inputs,
- * opening the chosen one and measuring its level.
+ * Device helpers shared by the capture engine, the pickers and the webcam bubble:
+ * listing the inputs, opening the chosen one and measuring a microphone's level.
  */
 
-import { findMic } from '../../shared/mics'
-import type { MicDevice, MicList } from '../../shared/types'
+import { findDevice } from '../../shared/devices'
+import type { InputDevice, MicList } from '../../shared/types'
 
 /** The same processing for the recording and for the level shown before it, so the bar shows what gets recorded. */
 const PROCESSING = { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
@@ -23,8 +23,8 @@ export async function listMics(): Promise<MicList> {
 }
 
 /** Opens the chosen microphone, or the system default when it is null or not connected. */
-export async function openMic(wanted: MicDevice | null): Promise<{ stream: MediaStream; fallback: boolean }> {
-  const device = wanted ? findMic(wanted, (await listMics()).devices) : undefined
+export async function openMic(wanted: InputDevice | null): Promise<{ stream: MediaStream; fallback: boolean }> {
+  const device = wanted ? findDevice(wanted, (await listMics()).devices) : undefined
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: device ? { ...PROCESSING, deviceId: { exact: device.id } } : PROCESSING,
     video: false

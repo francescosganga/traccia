@@ -1,7 +1,7 @@
 import { Menu, Tray, app, clipboard, nativeImage, shell, type MenuItemConstructorOptions } from 'electron'
 import { join } from 'path'
 import { locale, t } from '../shared/i18n'
-import { findMic, systemDefaultLabel } from '../shared/mics'
+import { findDevice, systemDefaultLabel } from '../shared/devices'
 import type { AppState, MicList, OutputFormat, Resolution } from '../shared/types'
 import { formatTime, listRecordings } from '../shared/recording-reader'
 import { applySettings } from './apply-settings'
@@ -76,7 +76,7 @@ export async function refreshTray(): Promise<void> {
   ]
 
   const chosen = settings.micDevice
-  const connected = chosen ? findMic(chosen, mics.devices) : undefined
+  const connected = chosen ? findDevice(chosen, mics.devices) : undefined
   const micItems: MenuItemConstructorOptions[] = [
     { label: t('tray.micNone'), type: 'radio', checked: !settings.audio, click: () => applySettings({ audio: false }) },
     { type: 'separator' },

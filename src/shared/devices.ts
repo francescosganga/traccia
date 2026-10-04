@@ -1,9 +1,9 @@
-// Microphone choice as the tray and the pickers show it.
+// Input devices (microphones, cameras) as the tray and the pickers show them.
 import { t } from './i18n'
-import type { MicDevice, MicList } from './types'
+import type { InputDevice, MicList } from './types'
 
 /** Finds the chosen input by id, then by label; undefined when it is not connected. */
-export function findMic(wanted: MicDevice, devices: MicDevice[]): MicDevice | undefined {
+export function findDevice(wanted: InputDevice, devices: InputDevice[]): InputDevice | undefined {
   return devices.find((d) => d.id === wanted.id) ?? devices.find((d) => d.label === wanted.label)
 }
 
