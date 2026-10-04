@@ -28,9 +28,9 @@ import { SideTrack } from './side-track'
 import { h264Encoder, h264EncoderArgs, maxVolume, runFfmpeg } from './ffmpeg'
 import { extractFrames } from './frames'
 import { getPermissions, openPrivacySettings, requestPermission } from './permissions'
-import { buildPrompt } from './prompt'
 import { getSettings } from './settings'
-import { buildTimeline, clipToDuration, mapPoint, wordsAround, type Geometry } from './timeline'
+import { recordingTexts } from './texts'
+import { clipToDuration, mapPoint, wordsAround, type Geometry } from './timeline'
 import { isModelInstalled, killWorker, transcribe } from './whisper'
 
 export interface SessionHost {
@@ -550,35 +550,10 @@ export class RecordingSession {
       skippedFrames: skipped,
       warnings
     }
-    // recording.txt: clicks, speech and frames. recording-raw.txt: the same plus pointer movement.
-    await writeFile(txtPath, buildTimeline({ ...timelineInput, cursorMode: 'clicks' }), 'utf8')
-    await writeFile(rawTxtPath, buildTimeline({ ...timelineInput, cursorMode: 'full' }), 'utf8')
-    // PROMPT.md: what an AI needs to know to read this folder, with absolute paths.
-    await writeFile(
-      promptPath,
-      buildPrompt({
-        dir: this.dir,
-        format,
-        mediaName: timelineInput.mediaName,
-        webcam: timelineInput.webcam,
-        width: g.outWidth,
-        height: g.outHeight,
-        fps: timelineInput.fps,
-        durationMs,
-        audio: timelineInput.audio,
-        systemAudio,
-        transcribed: segments !== null,
-        hasWords: words.length > 0,
-        whisperModel: settings.whisperModel,
-        language: settings.speechLanguage,
-        clicksTracked: tracking.clicksTracked,
-        cursorHz: settings.cursorHz,
-        frames: frames?.length,
-        skippedFrames: skipped,
-        warnings
-      }),
-      'utf8'
-    )
+    const texts = recordingTexts(timelineInput, this.dir, tracking.clicksTracked)
+    await writeFile(txtPath, texts.txt, 'utf8')
+    await writeFile(rawTxtPath, texts.rawTxt, 'utf8')
+    await writeFile(promptPath, texts.prompt, 'utf8')
 
     const json: RecordingJson = {
       version: 1,
@@ -618,6 +593,8 @@ export class RecordingSession {
       frames,
       skippedFrames: skipped,
       webcam: placed ? { video: basename(videoPath), layout: placed } : undefined,
+      cursorHz: settings.cursorHz,
+      clicksTracked: tracking.clicksTracked,
       warnings
     }
     await writeFile(jsonPath, JSON.stringify(json), 'utf8')

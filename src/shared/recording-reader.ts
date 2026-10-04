@@ -155,6 +155,10 @@ export interface RecordingJson {
   words: TranscriptWord[]
   frames?: FrameRef[]
   skippedFrames?: number
+  /** Pointer positions per second in recording-raw.txt; missing in older recordings */
+  cursorHz?: number
+  /** Whether mouse clicks were recorded; missing in older recordings */
+  clicksTracked?: boolean
   /** Present when the webcam was recorded; `media` is then the video without it, if one was saved */
   webcam?: {
     /** Video with the webcam laid over the screen, for people */

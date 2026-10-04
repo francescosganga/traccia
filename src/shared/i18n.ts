@@ -809,6 +809,11 @@ export function setLanguage(lang: UiLanguage): void {
   current = lang in dictionaries ? lang : 'en'
 }
 
+/** A text in every UI language, for recognising strings stored in the language of their moment. */
+export function allTranslations(key: TranslationKey): string[] {
+  return Object.values(dictionaries).map((d) => d[key])
+}
+
 export function getLanguage(): UiLanguage {
   return current
 }
