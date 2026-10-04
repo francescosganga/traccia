@@ -52,10 +52,11 @@ Il `recording.txt` prodotto dalla demo qui sopra (modalità JPG, 2 fps; l'interf
 ## Funzionalità
 
 - Schermo intero o area selezionata trascinando (stile macOS).
-- Output MP4, MOV, WebM o **JPG + txt** con fps configurabili (1, 2, 4…). Le scelte nella pagina principale (formato, risoluzione, fps, microfono e webcam accesi o spenti) valgono solo per la registrazione successiva; i valori predefiniti stanno nelle Impostazioni.
+- Output MP4, MOV, WebM o **JPG + txt** con fps configurabili (1, 2, 4…). Le scelte nella pagina principale (formato, risoluzione, fps, quale audio, webcam accesa o spenta) valgono solo per la registrazione successiva; i valori predefiniti stanno nelle Impostazioni.
 - Risoluzione nativa (Retina), 1080p, 720p, 480p.
 - Registrazione del microfono e trascrizione con **Whisper in locale** (modelli scaricabili ed eliminabili dall'app; nessun dato lascia il computer).
 - **Webcam in un angolo del video**: cerchio, quadrato o rettangolo, in qualsiasi angolo, scelti nella pagina principale o nelle Impostazioni con l'anteprima dal vivo, e da cambiare (o nascondere) dal widget durante la registrazione: il video segue da quell'istante. Durante la registrazione una bolla la mostra dove sarà nel video; come il widget è esclusa dalla registrazione, e la webcam viene registrata a parte e sovrapposta allo schermo quando il video viene composto. Di default l'AI riceve la copia senza webcam (`recording-screen.mp4`), così la webcam non copre mai una parte dello schermo; senza quella copia la timeline dice quale rettangolo copre. Solo con i formati video.
+- **Audio di sistema su macOS** (13 o successivo): quello che il computer riproduce (video, app, chiamate), da solo o con il microfono. Viene registrato a parte e mixato con la voce solo nel video, così Whisper trascrive solo la voce; se macOS non fornisce niente, o solo silenzio, la registrazione lo segnala invece di tenere una traccia muta.
 - Scelta del microfono (pagina principale, Impostazioni, barra dei menu), con il livello dell'input in tempo reale sotto la scelta e nel widget: un microfono muto si vede prima di registrare, non dopo. La scelta resta salvata; se quel microfono non è collegato viene registrato quello predefinito di sistema e la registrazione lo segnala.
 - I modelli già presenti nella cache di Hugging Face (`~/.cache/huggingface/hub`, `HF_HOME`, `HF_HUB_CACHE`) vengono importati con hard link invece di essere riscaricati.
 - **Timestamp a livello di parola**: il parlato è spezzato in frasi brevi che si intercalano ai click, e ogni riga di click riporta anche le parole pronunciate in quel momento (`click left 820,352 "ora clicco su Salva"`).
@@ -64,7 +65,7 @@ Il `recording.txt` prodotto dalla demo qui sopra (modalità JPG, 2 fps; l'interf
 - `PROMPT.md` in ogni cartella di registrazione e **Copia prompt per l'AI** con un click (anche nell'elenco delle registrazioni recenti e nella barra dei menu).
 - Widget flottante con timer, Stop e cosa si sta registrando (formato, microfono con il suo livello), escluso dalla registrazione; con la webcam, un pulsante apre sopra il widget forma, angolo e Nascondi; una cornice rossa contorna l'area registrata, come il registratore di macOS. Scorciatoie globali opzionali, disattivate di default: i tasti degli screenshot di macOS (⇧⌘5 tutto lo schermo, ⇧⌘4 area), quelli alternativi (⌃⌥⌘5, ⌃⌥⌘4) o i tuoi, registrati premendo i tasti; entrambe fermano anche la registrazione.
 - Le registrazioni si possono rinominare e spostare nel Cestino dall'app; una trascrizione troppo lunga si può saltare.
-- Icona nella barra dei menu con azioni rapide: registra schermo/area, stop, formato, risoluzione, fps, microfono, trascrizione, click, webcam, registrazioni recenti.
+- Icona nella barra dei menu con azioni rapide: registra schermo/area, stop, formato, risoluzione, fps, microfono, audio di sistema, trascrizione, click, webcam, registrazioni recenti.
 - Apertura al login (avvio solo nella barra dei menu), icona nel Dock opzionale.
 - Interfaccia in inglese e italiano, chiara o scura come il sistema.
 - Un **CLI e un server MCP** (`traccia-cli`), così un agente AI può leggere le registrazioni e avviarne o fermarne una senza avere l'app davanti.
@@ -239,7 +240,7 @@ Le traduzioni sono in `src/shared/i18n.ts`; aggiungere una lingua significa aggi
 - [x] Scelta del microfono con il livello dell'input in tempo reale, prima e durante la registrazione.
 - [x] Webcam in un angolo del video (cerchio, quadrato o rettangolo, da cambiare dal widget durante la registrazione), con una registrazione parallela senza webcam per l'AI, attiva di default.
 - [ ] Un piccolo editor post-registrazione (taglio inizio/fine, rimozione di sezioni) che tiene la timeline allineata.
-- [ ] Audio di sistema su macOS.
+- [x] Audio di sistema su macOS.
 - [ ] Supporto Windows.
 - [ ] Backend `whisper.cpp` su Apple Silicon.
 - [ ] Altre lingue per l'interfaccia.

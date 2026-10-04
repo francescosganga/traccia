@@ -1,4 +1,4 @@
-// The ffmpeg graph that lays the webcam over the screen. Kept free of electron imports so it can be tested.
+// The ffmpeg graphs that lay the webcam over the screen and mix in the system audio. Kept free of electron imports so they can be tested.
 import type { Rect } from '../shared/types'
 import { compactLayout, webcamRadius, webcamRect, type WebcamLayoutEvent, type WebcamShape } from '../shared/webcam'
 
@@ -79,4 +79,30 @@ export function webcamGraph({ screenFilters, layout, width, height, durationMs }
     below = out
   })
   return parts.join(';')
+}
+
+export interface SystemAudioInput {
+  /** ffmpeg input index of the system audio file */
+  input: number
+  /** Seconds between the screen's start and the system audio recorder's (negative: it started first) */
+  offset: number
+  /** The screen recording (input 0) has the microphone: the two are mixed */
+  withMic: boolean
+  durationMs: number
+}
+
+/**
+ * Audio part of a filter_complex, labelled [aout]: the system audio lined up on the screen's
+ * clock and mixed with the microphone at full level (amix would halve both), through a
+ * limiter so a loud video under the voice does not clip. Both are made stereo first, or amix
+ * would fold the system audio into the microphone's mono. Alone, it is cut at the duration.
+ */
+const STEREO = 'aformat=channel_layouts=stereo'
+
+export function systemAudioFilter({ input, offset, withMic, durationMs }: SystemAudioInput): string {
+  const shift = offset >= 0 ? `adelay=delays=${Math.round(offset * 1000)}:all=1` : `atrim=start=${(-offset).toFixed(3)},asetpts=PTS-STARTPTS`
+  const system = `[${input}:a]asetpts=PTS-STARTPTS,${shift}`
+  return withMic
+    ? `${system},${STEREO}[sys];[0:a]${STEREO}[mic];[mic][sys]amix=inputs=2:duration=first:dropout_transition=0:normalize=0,alimiter=limit=0.95:level=false[aout]`
+    : `${system},atrim=end=${sec(durationMs)}[aout]`
 }

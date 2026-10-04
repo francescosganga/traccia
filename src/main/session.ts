@@ -22,10 +22,10 @@ import type {
 import { t } from '../shared/i18n'
 import type { RecordingJson } from '../shared/recording-reader'
 import type { WebcamLayout, WebcamLayoutEvent } from '../shared/webcam'
-import { placeLayout, webcamGraph, type PlacedLayout } from './compose'
+import { placeLayout, systemAudioFilter, webcamGraph, type PlacedLayout } from './compose'
 import { CursorTracker } from './cursor'
 import { SideTrack } from './side-track'
-import { h264Encoder, h264EncoderArgs, runFfmpeg } from './ffmpeg'
+import { h264Encoder, h264EncoderArgs, maxVolume, runFfmpeg } from './ffmpeg'
 import { extractFrames } from './frames'
 import { getPermissions, openPrivacySettings, requestPermission } from './permissions'
 import { buildPrompt } from './prompt'
@@ -59,6 +59,9 @@ function timestampName(d: Date): string {
 
 const even = (n: number) => Math.max(2, Math.floor(n / 2) * 2)
 
+// Below this peak (dBFS) the system audio counts as silent: nothing played, or macOS handed over nothing
+const SILENCE_DB = -80
+
 const VP9_ARGS = ['-c:v', 'libvpx-vp9', '-deadline', 'realtime', '-cpu-used', '8', '-row-mt', '1', '-crf', '32', '-b:v', '0']
 
 export class RecordingSession {
@@ -77,7 +80,7 @@ export class RecordingSession {
   private overrides: RecordingOverrides = {}
   private transcribing = false
   /** Tracks recorded beside the screen, each to its own file */
-  private sides: Record<SideTrackKind, SideTrack> = { webcam: new SideTrack() }
+  private sides: Record<SideTrackKind, SideTrack> = { webcam: new SideTrack(), systemAudio: new SideTrack() }
   /** Shape, corner and visibility over time, ms from the start of the recording */
   private layout: WebcamLayoutEvent[] = []
 
@@ -109,8 +112,9 @@ export class RecordingSession {
     const s = this.settings()
     // Once the engine runs, whether the microphone and the webcam actually opened
     const audio = this.info ? this.info.hasAudio : s.audio
+    const systemAudio = this.info ? this.info.hasSystemAudio : s.systemAudio
     const webcam = (this.info ? this.info.hasWebcam : this.webcamWanted()) ? this.currentLayout() : null
-    return { mode: this.region ? 'region' : 'screen', format: s.format, jpgFps: s.jpgFps, audio, webcam }
+    return { mode: this.region ? 'region' : 'screen', format: s.format, jpgFps: s.jpgFps, audio, systemAudio, webcam }
   }
 
   private currentLayout(): WebcamLayout {
@@ -167,6 +171,8 @@ export class RecordingSession {
     const webcam = this.webcamWanted()
     if (webcam) this.sides.webcam.open(join(this.dir, 'webcam.webm'))
     else this.sides.webcam.clear()
+    if (settings.systemAudio) this.sides.systemAudio.open(join(this.dir, 'system-audio.webm'))
+    else this.sides.systemAudio.clear()
     if (webcam) {
       this.layout = [{ t: 0, shape: settings.webcamShape, corner: settings.webcamCorner, visible: true }]
     }
@@ -184,7 +190,8 @@ export class RecordingSession {
         const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: 0, height: 0 } })
         const source = sources.find((s) => s.display_id === displayId) ?? sources[0]
         if (!source) throw new Error('no screen source available')
-        callback({ video: source })
+        // 'loopback' keeps the sound playing on the speakers while it is recorded
+        callback(settings.systemAudio ? { video: source, audio: 'loopback' } : { video: source })
       } catch (e) {
         console.error('display media request failed', e)
         // Rejecting the request makes getDisplayMedia() throw NotAllowedError in the renderer.
@@ -218,7 +225,7 @@ export class RecordingSession {
     }
 
     this.setState({ status: 'countdown', seconds: 0, info: this.recordingInfo() })
-    engine.send('engine:start', { audio: settings.audio, micDevice: settings.micDevice, webcam, webcamDevice: settings.webcamDevice, frameRate: FRAME_RATE })
+    engine.send('engine:start', { audio: settings.audio, micDevice: settings.micDevice, systemAudio: settings.systemAudio, webcam, webcamDevice: settings.webcamDevice, frameRate: FRAME_RATE })
     this.startTimer = setTimeout(() => {
       if (this.state.status === 'countdown') this.fail(t('err.engineTimeout'))
     }, ENGINE_START_TIMEOUT)
@@ -350,15 +357,27 @@ export class RecordingSession {
     return { displayBounds: display.bounds, scale, cropPx, outScale: outWidth / cropPx.width, outWidth, outHeight }
   }
 
-  /** The screen alone, cropped and scaled; copied without re-encoding when nothing changes. */
-  private async convert(out: string, filters: string[], format: OutputFormat, g: Geometry, durationMs: number): Promise<void> {
+  /** Extra inputs and the mapping of the audio: the screen's own track (the microphone), or that mixed with the system audio. */
+  private audioPlan(systemAudio: boolean, input: number, durationMs: number): { inputs: string[]; filter: string | null; map: string } {
+    if (!systemAudio) return { inputs: [], filter: null, map: '0:a?' }
+    const filter = systemAudioFilter({ input, offset: this.sides.systemAudio.offset(this.info!.t0), withMic: this.info!.hasAudio, durationMs })
+    return { inputs: ['-i', this.sides.systemAudio.path], filter, map: '[aout]' }
+  }
+
+  /** The screen alone, cropped and scaled; the video is copied without re-encoding when nothing changes. */
+  private async convert(out: string, filters: string[], format: OutputFormat, g: Geometry, durationMs: number, systemAudio: boolean): Promise<void> {
     const step = t('step.convert', { format: format.toUpperCase() })
     this.progress({ step, progress: 0 })
-    const args = ['-i', this.rawPath]
-    if (filters.length) args.push('-vf', filters.join(','))
+    const audio = this.audioPlan(systemAudio, 1, durationMs)
+    const args = ['-i', this.rawPath, ...audio.inputs]
+    if (audio.filter) {
+      // The audio needs a filter graph; the video joins it only when it is cropped or scaled
+      const video = filters.length ? `[0:v]${filters.join(',')}[vout];` : ''
+      args.push('-filter_complex', video + audio.filter, '-map', filters.length ? '[vout]' : '0:v', '-map', audio.map)
+    } else if (filters.length) args.push('-vf', filters.join(','))
     if (format === 'webm') {
-      if (filters.length) args.push(...VP9_ARGS, '-c:a', 'libopus')
-      else args.push('-c', 'copy')
+      args.push(...(filters.length ? VP9_ARGS : ['-c:v', 'copy']))
+      args.push('-c:a', filters.length || audio.filter ? 'libopus' : 'copy')
     } else {
       const canCopy = !filters.length && /h264|avc1/i.test(this.info!.mimeType)
       if (canCopy) args.push('-c:v', 'copy')
@@ -370,12 +389,14 @@ export class RecordingSession {
   }
 
   /** The screen with the webcam laid over it (graph from compose.ts); always re-encoded. */
-  private async composeWebcam(graph: string, out: string, format: OutputFormat, g: Geometry, durationMs: number): Promise<void> {
+  private async composeWebcam(graph: string, out: string, format: OutputFormat, g: Geometry, durationMs: number, systemAudio: boolean): Promise<void> {
     const step = t('step.webcam')
     this.progress({ step, progress: 0 })
     // The webcam recorder starts a few ms after the screen one (or before): shift it onto the screen's clock
     const offset = this.sides.webcam.offset(this.info!.t0).toFixed(3)
-    const args = ['-i', this.rawPath, '-itsoffset', offset, '-i', this.sides.webcam.path, '-filter_complex', graph, '-map', '[vout]', '-map', '0:a?']
+    const audio = this.audioPlan(systemAudio, 2, durationMs)
+    const args = ['-i', this.rawPath, '-itsoffset', offset, '-i', this.sides.webcam.path, ...audio.inputs]
+    args.push('-filter_complex', audio.filter ? `${graph};${audio.filter}` : graph, '-map', '[vout]', '-map', audio.map)
     if (format === 'webm') args.push(...VP9_ARGS, '-c:a', 'libopus')
     else args.push(...h264EncoderArgs(await h264Encoder(), g.outWidth, g.outHeight), '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart')
     args.push(out)
@@ -411,6 +432,18 @@ export class RecordingSession {
       if (graph) placed = placeLayout(this.layout, g.outWidth, g.outHeight)
     }
 
+    // The system audio joins the audio only if macOS handed it over and something played
+    let systemAudio = false
+    if (settings.systemAudio) {
+      if (!info.hasSystemAudio || !(await this.sides.systemAudio.recorded())) warnings.push(t('warn.systemAudioUnavailable'))
+      else {
+        this.progress({ step: t('step.checkSystemAudio'), progress: -1 })
+        const peak = await maxVolume(this.sides.systemAudio.path)
+        if (peak === null || peak <= SILENCE_DB) warnings.push(t('warn.systemAudioSilent'))
+        else systemAudio = true
+      }
+    }
+
     let mediaPath = ''
     let videoPath = ''
     let frames: { file: string; tMs: number }[] | undefined
@@ -433,9 +466,11 @@ export class RecordingSession {
       frames = res.frames
       skipped = res.skipped
       mediaPath = videoPath = join(this.dir, 'frames')
-      if (info.hasAudio) {
+      if (info.hasAudio || systemAudio) {
         this.progress({ step: t('step.saveAudio'), progress: -1 })
-        await runFfmpeg(['-i', this.rawPath, '-vn', '-c:a', 'aac', '-b:a', '128k', join(this.dir, 'audio.m4a')])
+        const audio = this.audioPlan(systemAudio, 1, durationMs)
+        const args = ['-i', this.rawPath, ...audio.inputs, ...(audio.filter ? ['-filter_complex', audio.filter, '-map', audio.map] : ['-vn'])]
+        await runFfmpeg([...args, '-c:a', 'aac', '-b:a', '128k', join(this.dir, 'audio.m4a')])
       }
     } else {
       videoPath = join(this.dir, `recording.${format}`)
@@ -444,11 +479,11 @@ export class RecordingSession {
         // People watch the video with the webcam; the timeline and the AI refer to the copy without it, if wanted
         if (settings.webcamCleanCopy) {
           mediaPath = join(this.dir, `recording-screen.${format}`)
-          await this.convert(mediaPath, filters, format, g, durationMs)
+          await this.convert(mediaPath, filters, format, g, durationMs, systemAudio)
         }
-        await this.composeWebcam(graph, videoPath, format, g, durationMs)
+        await this.composeWebcam(graph, videoPath, format, g, durationMs, systemAudio)
       } else {
-        await this.convert(videoPath, filters, format, g, durationMs)
+        await this.convert(videoPath, filters, format, g, durationMs, systemAudio)
       }
     }
 
@@ -501,6 +536,7 @@ export class RecordingSession {
       fps: format === 'jpg' ? settings.jpgFps : FRAME_RATE,
       durationMs,
       audio: settings.audio && info.hasAudio,
+      systemAudio,
       whisperModel: settings.whisperModel,
       language: settings.speechLanguage,
       t0: info.t0,
@@ -530,6 +566,7 @@ export class RecordingSession {
         fps: timelineInput.fps,
         durationMs,
         audio: timelineInput.audio,
+        systemAudio,
         transcribed: segments !== null,
         hasWords: words.length > 0,
         whisperModel: settings.whisperModel,
@@ -561,6 +598,7 @@ export class RecordingSession {
       region: this.region,
       cropPx: g.cropPx,
       audio: settings.audio && info.hasAudio,
+      systemAudio,
       whisper: segments ? { model: settings.whisperModel, language: settings.speechLanguage } : null,
       /** [ms, x, y] in output pixels, full sample rate */
       cursor: tracking.samples

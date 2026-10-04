@@ -30,6 +30,7 @@ function Meta({ info }: { info: RecordingInfo }) {
           <span ref={bar} />
         </span>
       )}
+      {info.systemAudio && ` · ${t('controls.systemAudio')}`}
     </div>
   )
 }

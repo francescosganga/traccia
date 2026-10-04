@@ -45,6 +45,21 @@ export function runFfmpeg(args: string[], opts: RunOptions = {}): Promise<string
   })
 }
 
+/** Loudest sample of a file's audio in dBFS (about -91 for digital silence), or null when it cannot be read. */
+export function maxVolume(path: string): Promise<number | null> {
+  return new Promise((resolve) => {
+    // volumedetect reports at info level, which runFfmpeg silences
+    const child = spawn(ffmpegPath(), ['-hide_banner', '-nostats', '-i', path, '-vn', '-af', 'volumedetect', '-f', 'null', '-'])
+    let stderr = ''
+    child.stderr.on('data', (d) => (stderr += d.toString()))
+    child.on('error', () => resolve(null))
+    child.on('close', () => {
+      const m = /max_volume:\s*(-?[\d.]+|-inf) dB/.exec(stderr)
+      resolve(m ? (m[1] === '-inf' ? -Infinity : Number(m[1])) : null)
+    })
+  })
+}
+
 let encoderCache: string | null = null
 
 /** Picks a hardware H.264 encoder when available, otherwise libx264. */

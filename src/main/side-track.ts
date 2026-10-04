@@ -2,7 +2,7 @@ import { createWriteStream, type WriteStream } from 'fs'
 import { rm, stat } from 'fs/promises'
 
 /**
- * A track recorded beside the screen by its own MediaRecorder (the webcam), written to its
+ * A track recorded beside the screen by its own MediaRecorder (webcam, system audio), written to its
  * own file. Its recorder starts a few ms apart from the screen's: `t0` lines them up when
  * the video is put together.
  */

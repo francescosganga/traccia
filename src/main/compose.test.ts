@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { placeLayout, webcamGraph } from './compose'
+import { placeLayout, systemAudioFilter, webcamGraph } from './compose'
 import { compactLayout, webcamRect } from '../shared/webcam'
 
 describe('webcamRect', () => {
@@ -66,5 +66,20 @@ describe('webcamGraph', () => {
 
   it('places every change for the timeline and recording.json', () => {
     expect(placeLayout([{ t: 0, shape: 'square', corner: 'top-left', visible: true }], 1920, 1080)[0].rect).toEqual({ x: 32, y: 32, width: 280, height: 280 })
+  })
+})
+
+describe('systemAudioFilter', () => {
+  it('delays a system audio that started after the screen and mixes it with the microphone', () => {
+    expect(systemAudioFilter({ input: 1, offset: 0.042, withMic: true, durationMs: 5000 })).toBe(
+      '[1:a]asetpts=PTS-STARTPTS,adelay=delays=42:all=1,aformat=channel_layouts=stereo[sys];[0:a]aformat=channel_layouts=stereo[mic];' +
+        '[mic][sys]amix=inputs=2:duration=first:dropout_transition=0:normalize=0,alimiter=limit=0.95:level=false[aout]'
+    )
+  })
+
+  it('trims the head of one that started first, and cuts it at the duration when it is the only audio', () => {
+    expect(systemAudioFilter({ input: 2, offset: -0.015, withMic: false, durationMs: 5000 })).toBe(
+      '[2:a]asetpts=PTS-STARTPTS,atrim=start=0.015,asetpts=PTS-STARTPTS,atrim=end=5.000[aout]'
+    )
   })
 })

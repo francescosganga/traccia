@@ -132,6 +132,7 @@ export async function refreshTray(): Promise<void> {
       submenu: resolutions.map((r) => radio(settings.resolution, r.id, r.label, (resolution) => applySettings({ resolution })))
     },
     { label: t('tray.mic'), submenu: micItems },
+    { label: t('tray.systemAudio'), type: 'checkbox', checked: settings.systemAudio, click: () => applySettings({ systemAudio: !settings.systemAudio }) },
     {
       label: t('tray.transcribe'),
       type: 'checkbox',

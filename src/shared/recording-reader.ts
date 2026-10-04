@@ -69,6 +69,7 @@ export const SETTINGS_DEFAULTS: Omit<Settings, 'outputDir'> = {
   skipUnchangedFrames: true,
   audio: true,
   micDevice: null,
+  systemAudio: false,
   webcam: false,
   webcamDevice: null,
   webcamShape: 'square',
@@ -141,7 +142,10 @@ export interface RecordingJson {
   capture: { width: number; height: number; mimeType: string }
   region: Rect | null
   cropPx: Rect
+  /** The microphone */
   audio: boolean
+  /** What the computer played, mixed into the same audio track; missing in older recordings */
+  systemAudio?: boolean
   whisper: { model: string; language: string } | null
   /** [ms, x, y] in output pixels, full sample rate */
   cursor: [number, number, number][]

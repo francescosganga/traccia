@@ -28,6 +28,9 @@ import {
 } from './windows'
 
 app.setName('Traccia')
+// System audio on macOS: Chromium hands the loopback to getDisplayMedia, through ScreenCaptureKit,
+// only behind these features (macOS 13+). The Screen Recording permission covers it.
+if (process.platform === 'darwin') app.commandLine.appendSwitch('enable-features', 'MacLoopbackAudioForScreenShare,MacSckSystemAudioLoopbackOverride')
 // A separate profile (settings, socket, single-instance lock): for running a development
 // build next to the installed app, and for the CLI tests.
 if (process.env.TRACCIA_USER_DATA) app.setPath('userData', process.env.TRACCIA_USER_DATA)

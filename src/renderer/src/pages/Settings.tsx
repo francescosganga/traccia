@@ -201,6 +201,12 @@ export function SettingsPage({ settings, update, jump, onSection }: Props) {
             <span className="hint">{t('settings.micDeviceHint')}</span>
           </div>
           <Toggle
+            label={t('settings.recordSystemAudio')}
+            hint={t('settings.recordSystemAudioHint')}
+            value={settings.systemAudio}
+            onChange={(v) => update({ systemAudio: v })}
+          />
+          <Toggle
             label={t('settings.transcribe')}
             hint={t('settings.transcribeHint')}
             value={settings.transcribe}

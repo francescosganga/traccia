@@ -69,7 +69,10 @@ export interface TimelineInput {
   height: number
   fps: number
   durationMs: number
+  /** The microphone */
   audio: boolean
+  /** What the computer played, mixed into the same audio track (never transcribed) */
+  systemAudio?: boolean
   whisperModel?: string
   language?: string
   t0: number
@@ -176,8 +179,9 @@ export function buildTimeline(input: TimelineInput): string {
         ? t('tl.audioTranscribed', { model: input.whisperModel ?? '', lang: input.language ?? 'auto' })
         : t('tl.audioNoTranscript')
     )
+    if (input.systemAudio) header.push(t('tl.systemAudio'))
   } else {
-    header.push(t('tl.audioNone'))
+    header.push(input.systemAudio ? t('tl.systemAudioOnly') : t('tl.audioNone'))
   }
   const unit = isFrames ? t('tl.unitImage') : t('tl.unitVideo')
   header.push(clicksOnly ? t('tl.cursorClicksOnly', { unit }) : t('tl.cursorFull', { unit, hz: input.cursorHz }))

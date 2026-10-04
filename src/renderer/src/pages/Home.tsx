@@ -5,6 +5,7 @@ import { Icon } from '../components/Icon'
 import { Menu, type MenuItem } from '../components/Menu'
 import { MicPicker } from '../components/MicPicker'
 import { Segmented } from '../components/Segmented'
+import { Toggle } from '../components/Toggle'
 import { WebcamPicker } from '../components/WebcamPicker'
 import { formatDate, formatDuration, formatShortcut } from '../format'
 import { FORMATS, JPG_FPS, RESOLUTIONS, resolutionLabel } from '../options'
@@ -19,8 +20,16 @@ interface Props {
 }
 
 /** The choices on this page apply to the next recording only; the defaults live in Settings. */
-type Choices = Required<Pick<RecordingOverrides, 'format' | 'resolution' | 'jpgFps' | 'audio' | 'webcam'>>
-const defaultsOf = (s: Settings): Choices => ({ format: s.format, resolution: s.resolution, jpgFps: s.jpgFps, audio: s.audio, webcam: s.webcam })
+type Choices = Required<Pick<RecordingOverrides, 'format' | 'resolution' | 'jpgFps' | 'audio' | 'systemAudio' | 'webcam'>>
+const defaultsOf = (s: Settings): Choices => ({
+  format: s.format,
+  resolution: s.resolution,
+  jpgFps: s.jpgFps,
+  audio: s.audio,
+  systemAudio: s.systemAudio,
+  webcam: s.webcam
+})
+
 
 /** What the actions menu of a recording needs, whether it comes from the "done" card or from the recent list. */
 interface RecordingRef {
@@ -54,7 +63,7 @@ export function Home({ settings, state, modelInstalled, platform, goSettings }: 
     refreshRecordings()
   }, [])
   // The page goes back to the defaults when they change, and once a recording has ended
-  useEffect(() => setChoices(defaultsOf(settings)), [settings.format, settings.resolution, settings.jpgFps, settings.audio, settings.webcam])
+  useEffect(() => setChoices(defaultsOf(settings)), [settings.format, settings.resolution, settings.jpgFps, settings.audio, settings.systemAudio, settings.webcam])
   useEffect(() => {
     if (state.status === 'done' || state.status === 'error') {
       setChoices(defaultsOf(settings))
@@ -249,6 +258,7 @@ export function Home({ settings, state, modelInstalled, platform, goSettings }: 
                   />
                   {/* Unlike the choices above, the device is saved: it is the hardware, not this take */}
                   {choices.audio && <MicPicker value={settings.micDevice} onChange={(micDevice) => void window.api.settings.update({ micDevice })} />}
+                  <Toggle label={t('home.systemAudio')} value={choices.systemAudio} onChange={(systemAudio) => choose({ systemAudio })} />
                 </div>
                 <div className="field">
                   <label>{t('home.webcam')}</label>

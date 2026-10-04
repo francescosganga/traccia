@@ -162,6 +162,29 @@ describe('buildTimeline', () => {
     })
   })
 
+  it('says when the audio track also has the system audio, or only that', () => {
+    const base = {
+      createdAt,
+      format: 'mp4' as const,
+      mediaName: 'recording.mp4',
+      width: 1000,
+      height: 600,
+      fps: 30,
+      durationMs: 5000,
+      t0,
+      samples: [],
+      clicks: [],
+      segments: null,
+      cursorHz: 10,
+      geometry: identity,
+      warnings: []
+    }
+    const both = buildTimeline({ ...base, audio: true, systemAudio: true })
+    expect(both).toContain('# Audio: microphone (no transcription)\n# System audio: what the computer played, mixed into the same audio track, not transcribed\n')
+    expect(buildTimeline({ ...base, audio: false, systemAudio: true })).toContain('# Audio: only what the computer played (system audio), not transcribed\n')
+    expect(buildTimeline({ ...base, audio: false })).toContain('# Audio: none\n')
+  })
+
   it('writes a video timeline with clicks and the words said around them', () => {
     const out = buildTimeline({
       createdAt,

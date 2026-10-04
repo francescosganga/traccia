@@ -41,6 +41,8 @@ mac:
   extendInfo:
     NSMicrophoneUsageDescription: Needed to record your voice along with the screen.
     NSCameraUsageDescription: Needed to put your webcam in a corner of the video.
+    # Asked by macOS if Chromium records the system audio through a Core Audio tap
+    NSAudioCaptureUsageDescription: Needed to record the sound your computer plays along with the screen.
     # Lists an iPhone used as a webcam (Continuity Camera) among the cameras
     NSCameraUseContinuityCameraDeviceType: true
     NSScreenCaptureUsageDescription: Needed to record the screen.

@@ -17,6 +17,8 @@ const MIME_CANDIDATES = [
   'video/webm'
 ]
 
+const SYSTEM_AUDIO_MIME_CANDIDATES = ['audio/webm;codecs=opus', 'audio/webm']
+
 // The webcam file is an intermediate, deleted once composited: VP8 is cheap to encode
 const WEBCAM_MIME_CANDIDATES = ['video/webm;codecs=vp8', 'video/webm']
 const WEBCAM_BITRATE = 2_500_000
@@ -83,13 +85,22 @@ export function installEngine(): void {
 
   window.api.engine.onStart(async (cmd) => {
     try {
+      // The main process answers with the system loopback as the audio, when asked for
       const screenStream = await navigator.mediaDevices.getDisplayMedia({
         video: { frameRate: { ideal: cmd.frameRate, max: cmd.frameRate } },
-        audio: false
+        audio: cmd.systemAudio
       })
       streams.push(screenStream)
       const videoTrack = screenStream.getVideoTracks()[0]
       const tracks: MediaStreamTrack[] = [videoTrack]
+
+      // Its own file, not the screen's audio track: Whisper transcribes the microphone alone
+      const systemTrack = screenStream.getAudioTracks()[0]
+      const hasSystemAudio = !!systemTrack && systemTrack.readyState === 'live'
+      if (cmd.systemAudio && !hasSystemAudio) console.warn('system audio requested but not provided', systemTrack?.readyState)
+      if (hasSystemAudio) {
+        sides.push(sideRecorder('systemAudio', new MediaStream([systemTrack]), { mimeType: pickMimeType(SYSTEM_AUDIO_MIME_CANDIDATES) || undefined, audioBitsPerSecond: 128_000 }))
+      }
 
       let hasAudio = false
       let micFallback = false
@@ -134,7 +145,7 @@ export function installEngine(): void {
         queue = queue.then(async () => window.api.engine.chunk(await e.data.arrayBuffer()))
       }
       rec.onstart = () => {
-        window.api.engine.started({ t0: Date.now(), width, height, mimeType: rec.mimeType || mimeType, hasAudio, micFallback, hasWebcam })
+        window.api.engine.started({ t0: Date.now(), width, height, mimeType: rec.mimeType || mimeType, hasAudio, micFallback, hasWebcam, hasSystemAudio })
         // setInterval, not requestAnimationFrame: this window is hidden while recording
         if (meter) levelTimer = setInterval(() => meter && window.api.engine.level(meter.read()), LEVEL_INTERVAL)
       }

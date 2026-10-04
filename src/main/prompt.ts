@@ -13,7 +13,10 @@ export interface PromptInput {
   height: number
   fps: number
   durationMs: number
+  /** The microphone */
   audio: boolean
+  /** What the computer played, mixed into the same audio track (never transcribed) */
+  systemAudio?: boolean
   transcribed: boolean
   /** Word-level timestamps available (clicks carry the words being spoken) */
   hasWords: boolean
@@ -64,9 +67,19 @@ export function buildPrompt(input: PromptInput): string {
     const last = `frame_${String(n).padStart(5, '0')}.jpg`
     const skipped = input.skippedFrames ? t('prompt.fileFramesSkipped', { n: input.skippedFrames }) : ''
     out.push(t('prompt.fileFrames', { path: mediaPath, n, w: input.width, h: input.height, fps: input.fps, last }) + skipped)
-    if (input.audio) out.push(t('prompt.fileAudio', { path: audioPath }))
+    if (input.audio || input.systemAudio) {
+      const key = input.audio && input.systemAudio ? 'prompt.fileAudioBoth' : input.audio ? 'prompt.fileAudio' : 'prompt.fileSystemAudio'
+      out.push(t(key, { path: audioPath }))
+    }
   } else {
-    const audio = input.audio ? t('prompt.fileVideoAudio') : ''
+    const audio =
+      input.audio && input.systemAudio
+        ? t('prompt.fileVideoAudioBoth')
+        : input.audio
+          ? t('prompt.fileVideoAudio')
+          : input.systemAudio
+            ? t('prompt.fileVideoSystemAudio')
+            : ''
     out.push(t('prompt.fileVideo', { path: mediaPath, w: input.width, h: input.height, fps: input.fps, duration, audio }))
     if (input.webcam?.cleanCopy) out.push(t('prompt.fileWebcamVideo', { path: abs(input.webcam.video) }))
   }
@@ -90,11 +103,12 @@ export function buildPrompt(input: PromptInput): string {
   if (input.transcribed) out.push(t('prompt.readSpeech', { model: input.whisperModel ?? '', lang: input.language ?? 'auto' }))
   if (!isFrames) out.push(t('prompt.readVideo', { path: mediaPath }))
   if (input.webcam && !input.webcam.cleanCopy) out.push(t('prompt.readWebcam'))
+  if (input.audio && input.systemAudio) out.push(t('prompt.readSystemAudio'))
   if (input.audio && !input.transcribed) {
     const where = isFrames ? t('prompt.noTranscriptFile', { path: audioPath }) : t('prompt.noTranscriptVideo', { path: mediaPath })
     out.push(t('prompt.noTranscript', { where }))
   }
-  if (!input.audio) out.push(t('prompt.noAudio', { clicks: input.clicksTracked ? t('prompt.noAudioClicks') : '' }))
+  if (!input.audio) out.push(input.systemAudio ? t('prompt.systemAudioOnly') : t('prompt.noAudio', { clicks: input.clicksTracked ? t('prompt.noAudioClicks') : '' }))
   if (!input.clicksTracked) out.push(t('prompt.noClicks'))
   out.push('')
 

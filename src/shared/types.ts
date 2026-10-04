@@ -29,6 +29,8 @@ export interface Settings {
   audio: boolean
   /** Microphone to record; null follows the system default */
   micDevice: InputDevice | null
+  /** Record what the computer plays, mixed with the microphone in the video; not transcribed */
+  systemAudio: boolean
   /** Record the webcam and lay it over a corner of the video (video formats only) */
   webcam: boolean
   /** Camera to record; null takes the first one */
@@ -101,7 +103,7 @@ export interface DisplayInfo {
 
 /** Settings a single recording may override without changing the saved ones (control socket). */
 export type RecordingOverrides = Partial<
-  Pick<Settings, 'format' | 'resolution' | 'jpgFps' | 'skipUnchangedFrames' | 'audio' | 'webcam' | 'transcribe' | 'countdown'>
+  Pick<Settings, 'format' | 'resolution' | 'jpgFps' | 'skipUnchangedFrames' | 'audio' | 'systemAudio' | 'webcam' | 'transcribe' | 'countdown'>
 >
 
 export interface RecordingRequest {
@@ -162,6 +164,7 @@ export interface RecordingInfo {
   format: OutputFormat
   jpgFps: number
   audio: boolean
+  systemAudio: boolean
   /** The webcam's current layout, changed from the widget; null when the webcam is not recorded */
   webcam: WebcamLayout | null
 }
@@ -296,12 +299,13 @@ export interface RecordingEntry {
 }
 
 /** Tracks the engine records beside the screen, each with its own MediaRecorder and file */
-export type SideTrackKind = 'webcam'
+export type SideTrackKind = 'webcam' | 'systemAudio'
 
 /** Sent from main to the recorder engine living in the main window's renderer */
 export interface EngineStartCommand {
   audio: boolean
   micDevice: InputDevice | null
+  systemAudio: boolean
   webcam: boolean
   webcamDevice: InputDevice | null
   frameRate: number
@@ -318,4 +322,6 @@ export interface EngineStartedInfo {
   micFallback: boolean
   /** The webcam is being recorded too; its own start time arrives with engine:sideStarted */
   hasWebcam: boolean
+  /** macOS handed over the system audio, recorded as a side track */
+  hasSystemAudio: boolean
 }
