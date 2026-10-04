@@ -1,6 +1,7 @@
 import { locale, t } from '../shared/i18n'
 import { formatTime, type FrameRef } from '../shared/recording-reader'
 import type { ClickEvent, CursorSample, OutputFormat, Rect, TranscriptSegment, TranscriptWord } from '../shared/types'
+import type { PlacedLayout } from './compose'
 
 /** Everything needed to map a global cursor position (DIP) to output pixels. */
 export interface Geometry {
@@ -83,6 +84,8 @@ export interface TimelineInput {
   warnings: string[]
   /** 'clicks' (default) lists only mouse clicks; 'full' also logs pointer movement */
   cursorMode?: 'full' | 'clicks'
+  /** The webcam laid over the video. With a clean copy the timeline refers to that and the layout is not listed */
+  webcam?: { video: string; cleanCopy: boolean; layout: PlacedLayout[] }
 }
 
 interface Event {
@@ -140,6 +143,13 @@ export function buildTimeline(input: TimelineInput): string {
     events.push({ t: rel, order: 2, line: `${formatTime(rel)} click ${c.button} ${where}${said ? ` "${said}"` : ''}` })
   }
 
+  // Where the webcam hides the screen, when the AI reads the video that has it
+  const webcamLines = input.webcam && !input.webcam.cleanCopy ? input.webcam.layout : []
+  for (const w of webcamLines) {
+    const what = w.visible ? `${w.shape} ${w.rect.x},${w.rect.y} ${w.rect.width}x${w.rect.height}` : 'hidden'
+    events.push({ t: w.t, order: 0, line: `${formatTime(w.t)} webcam ${what}` })
+  }
+
   if (segments) {
     for (const seg of segments) {
       const start = seg.start * 1000
@@ -159,6 +169,7 @@ export function buildTimeline(input: TimelineInput): string {
   } else {
     header.push(t('tl.video', { name: input.mediaName, w: input.width, h: input.height, fps: input.fps, duration }))
   }
+  if (input.webcam) header.push(input.webcam.cleanCopy ? t('tl.webcamClean', { video: input.webcam.video, name: input.mediaName }) : t('tl.webcamOver'))
   if (input.audio) {
     header.push(
       input.segments
@@ -174,6 +185,7 @@ export function buildTimeline(input: TimelineInput): string {
   header.push(t('tl.formatTitle'))
   if (isFrames) header.push(clicksOnly ? t('tl.fmtFrameNoCursor') : t('tl.fmtFrame'))
   if (!clicksOnly) header.push(t('tl.fmtCursor'))
+  if (webcamLines.length) header.push(t('tl.fmtWebcam'))
   header.push(words.length ? t('tl.fmtClickSpeech') : t('tl.fmtClick'))
   if (input.segments) header.push(t('tl.fmtSpeech'))
   if (input.warnings.length) {

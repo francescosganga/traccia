@@ -140,6 +140,14 @@ export async function refreshTray(): Promise<void> {
       click: () => applySettings({ transcribe: !settings.transcribe })
     },
     { label: t('tray.clicks'), type: 'checkbox', checked: settings.trackClicks, click: () => applySettings({ trackClicks: !settings.trackClicks }) },
+    {
+      label: t('tray.webcam'),
+      type: 'checkbox',
+      checked: settings.webcam,
+      // Laid over a video: JPG mode has none
+      enabled: settings.format !== 'jpg',
+      click: () => applySettings({ webcam: !settings.webcam })
+    },
     { type: 'separator' },
     { label: t('tray.recent'), submenu: [...recentItems, { type: 'separator' }, { label: t('tray.openFolder'), click: () => void shell.openPath(settings.outputDir) }] },
     { type: 'separator' },

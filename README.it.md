@@ -11,7 +11,7 @@ Registra lo schermo per spiegare qualcosa **a un'AI**, non solo a una persona.
 
 Ogni registrazione produce, nella stessa cartella:
 
-- il video (`recording.mp4` / `.mov` / `.webm`) **oppure** una sequenza di JPG a pochi fps (`frames/`);
+- il video (`recording.mp4` / `.mov` / `.webm`) **oppure** una sequenza di JPG a pochi fps (`frames/`); con la webcam, `recording.mp4` la ha in un angolo e `recording-screen.mp4` è lo stesso video senza, quello a cui si riferiscono i file qui sotto;
 - `recording.txt`: una timeline leggibile da un modello con i **click del mouse** (e le loro coordinate) e la **trascrizione della voce** (Whisper, in locale);
 - `recording-raw.txt`: la stessa timeline più i **movimenti del puntatore** (posizione campionata a frequenza configurabile) — più pesante, per quando conta il percorso del puntatore;
 - `recording.json`: gli stessi dati in forma completa (cursore a 120 Hz, geometria, ecc.);
@@ -52,9 +52,10 @@ Il `recording.txt` prodotto dalla demo qui sopra (modalità JPG, 2 fps; l'interf
 ## Funzionalità
 
 - Schermo intero o area selezionata trascinando (stile macOS).
-- Output MP4, MOV, WebM o **JPG + txt** con fps configurabili (1, 2, 4…). Le scelte nella pagina principale (formato, risoluzione, fps, microfono acceso o spento) valgono solo per la registrazione successiva; i valori predefiniti stanno nelle Impostazioni.
+- Output MP4, MOV, WebM o **JPG + txt** con fps configurabili (1, 2, 4…). Le scelte nella pagina principale (formato, risoluzione, fps, microfono e webcam accesi o spenti) valgono solo per la registrazione successiva; i valori predefiniti stanno nelle Impostazioni.
 - Risoluzione nativa (Retina), 1080p, 720p, 480p.
 - Registrazione del microfono e trascrizione con **Whisper in locale** (modelli scaricabili ed eliminabili dall'app; nessun dato lascia il computer).
+- **Webcam in un angolo del video**: cerchio, quadrato o rettangolo, in qualsiasi angolo, scelti nella pagina principale o nelle Impostazioni con l'anteprima dal vivo. Durante la registrazione una bolla la mostra dove sarà nel video; come il widget è esclusa dalla registrazione, e la webcam viene registrata a parte e sovrapposta allo schermo quando il video viene composto. Di default l'AI riceve la copia senza webcam (`recording-screen.mp4`), così la webcam non copre mai una parte dello schermo; senza quella copia la timeline dice quale rettangolo copre. Solo con i formati video.
 - Scelta del microfono (pagina principale, Impostazioni, barra dei menu), con il livello dell'input in tempo reale sotto la scelta e nel widget: un microfono muto si vede prima di registrare, non dopo. La scelta resta salvata; se quel microfono non è collegato viene registrato quello predefinito di sistema e la registrazione lo segnala.
 - I modelli già presenti nella cache di Hugging Face (`~/.cache/huggingface/hub`, `HF_HOME`, `HF_HUB_CACHE`) vengono importati con hard link invece di essere riscaricati.
 - **Timestamp a livello di parola**: il parlato è spezzato in frasi brevi che si intercalano ai click, e ogni riga di click riporta anche le parole pronunciate in quel momento (`click left 820,352 "ora clicco su Salva"`).
@@ -63,7 +64,7 @@ Il `recording.txt` prodotto dalla demo qui sopra (modalità JPG, 2 fps; l'interf
 - `PROMPT.md` in ogni cartella di registrazione e **Copia prompt per l'AI** con un click (anche nell'elenco delle registrazioni recenti e nella barra dei menu).
 - Widget flottante con timer, Stop e cosa si sta registrando (formato, microfono con il suo livello), escluso dalla registrazione; una cornice rossa contorna l'area registrata, come il registratore di macOS. Scorciatoie globali opzionali, disattivate di default: i tasti degli screenshot di macOS (⇧⌘5 tutto lo schermo, ⇧⌘4 area), quelli alternativi (⌃⌥⌘5, ⌃⌥⌘4) o i tuoi, registrati premendo i tasti; entrambe fermano anche la registrazione.
 - Le registrazioni si possono rinominare e spostare nel Cestino dall'app; una trascrizione troppo lunga si può saltare.
-- Icona nella barra dei menu con azioni rapide: registra schermo/area, stop, formato, risoluzione, fps, microfono, trascrizione, click, registrazioni recenti.
+- Icona nella barra dei menu con azioni rapide: registra schermo/area, stop, formato, risoluzione, fps, microfono, trascrizione, click, webcam, registrazioni recenti.
 - Apertura al login (avvio solo nella barra dei menu), icona nel Dock opzionale.
 - Interfaccia in inglese e italiano, chiara o scura come il sistema.
 - Un **CLI e un server MCP** (`traccia-cli`), così un agente AI può leggere le registrazioni e avviarne o fermarne una senza avere l'app davanti.
@@ -201,7 +202,7 @@ Token e regole dei componenti sono in [docs/design-system.md](docs/design-system
 
 ### Permessi macOS in sviluppo
 
-In sviluppo l'app gira dentro `node_modules/electron/dist/Electron.app`, quindi macOS chiede i permessi per "Electron": Registrazione schermo (obbligatorio), Microfono, Accessibilità (per i click). Dopo aver concesso Registrazione schermo o Accessibilità bisogna riavviare l'app.
+In sviluppo l'app gira dentro `node_modules/electron/dist/Electron.app`, quindi macOS chiede i permessi per "Electron": Registrazione schermo (obbligatorio), Microfono, Fotocamera (per la webcam), Accessibilità (per i click). Dopo aver concesso Registrazione schermo o Accessibilità bisogna riavviare l'app.
 
 ### Release
 

@@ -23,6 +23,8 @@ export interface PromptInput {
   cursorHz: number
   frames?: number
   skippedFrames?: number
+  /** The webcam laid over the video; with a clean copy, mediaName is the video without it */
+  webcam?: { video: string; cleanCopy: boolean }
   warnings: string[]
 }
 
@@ -66,6 +68,7 @@ export function buildPrompt(input: PromptInput): string {
   } else {
     const audio = input.audio ? t('prompt.fileVideoAudio') : ''
     out.push(t('prompt.fileVideo', { path: mediaPath, w: input.width, h: input.height, fps: input.fps, duration, audio }))
+    if (input.webcam?.cleanCopy) out.push(t('prompt.fileWebcamVideo', { path: abs(input.webcam.video) }))
   }
   out.push(t('prompt.fileRawTxt', { path: abs('recording-raw.txt'), hz: input.cursorHz }))
   out.push(t('prompt.fileJson', { path: abs('recording.json') }), '')
@@ -86,6 +89,7 @@ export function buildPrompt(input: PromptInput): string {
   }
   if (input.transcribed) out.push(t('prompt.readSpeech', { model: input.whisperModel ?? '', lang: input.language ?? 'auto' }))
   if (!isFrames) out.push(t('prompt.readVideo', { path: mediaPath }))
+  if (input.webcam && !input.webcam.cleanCopy) out.push(t('prompt.readWebcam'))
   if (input.audio && !input.transcribed) {
     const where = isFrames ? t('prompt.noTranscriptFile', { path: audioPath }) : t('prompt.noTranscriptVideo', { path: mediaPath })
     out.push(t('prompt.noTranscript', { where }))

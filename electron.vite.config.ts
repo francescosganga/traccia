@@ -25,7 +25,8 @@ export default defineConfig({
           index: resolve(__dirname, 'src/renderer/index.html'),
           region: resolve(__dirname, 'src/renderer/region.html'),
           controls: resolve(__dirname, 'src/renderer/controls.html'),
-          frame: resolve(__dirname, 'src/renderer/frame.html')
+          frame: resolve(__dirname, 'src/renderer/frame.html'),
+          webcam: resolve(__dirname, 'src/renderer/webcam.html')
         }
       }
     }

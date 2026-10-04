@@ -11,6 +11,7 @@ import type {
   LoginItemStatus,
   McpCommands,
   MicList,
+  PermissionKind,
   Permissions,
   RecordingEntry,
   RecordingRequest,
@@ -37,8 +38,8 @@ const api = {
   system: {
     displays: (): Promise<DisplayInfo[]> => ipcRenderer.invoke('displays:list'),
     permissions: (): Promise<Permissions> => ipcRenderer.invoke('permissions:get'),
-    requestPermission: (kind: 'screen' | 'microphone' | 'accessibility'): Promise<Permissions> => ipcRenderer.invoke('permissions:request', kind),
-    openPrivacySettings: (kind: 'screen' | 'microphone' | 'accessibility'): Promise<void> => ipcRenderer.invoke('permissions:open', kind),
+    requestPermission: (kind: PermissionKind): Promise<Permissions> => ipcRenderer.invoke('permissions:request', kind),
+    openPrivacySettings: (kind: PermissionKind): Promise<void> => ipcRenderer.invoke('permissions:open', kind),
     openKeyboardShortcuts: (): Promise<void> => ipcRenderer.invoke('system:openKeyboardShortcuts'),
     version: (): Promise<string> => ipcRenderer.invoke('app:version'),
     platform: (): Promise<string> => ipcRenderer.invoke('app:platform'),
@@ -92,6 +93,8 @@ const api = {
     onStop: (cb: () => void) => on<void>('engine:stop', cb),
     started: (info: EngineStartedInfo) => ipcRenderer.send('engine:started', info),
     chunk: (buf: ArrayBuffer) => ipcRenderer.send('engine:chunk', buf),
+    webcamStarted: (t0: number) => ipcRenderer.send('engine:webcamStarted', t0),
+    webcamChunk: (buf: ArrayBuffer) => ipcRenderer.send('engine:webcamChunk', buf),
     level: (level: number) => ipcRenderer.send('engine:level', level),
     stopped: () => ipcRenderer.send('engine:stopped'),
     error: (message: string) => ipcRenderer.send('engine:error', message)

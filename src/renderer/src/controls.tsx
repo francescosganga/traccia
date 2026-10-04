@@ -22,6 +22,7 @@ function Meta({ info }: { info: RecordingInfo }) {
           <span ref={bar} />
         </span>
       )}
+      {info.webcam && ` · ${t('controls.webcam')}`}
     </div>
   )
 }

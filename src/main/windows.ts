@@ -1,6 +1,7 @@
 import { BrowserWindow, nativeTheme, screen, shell, type Display } from 'electron'
 import { join } from 'path'
 import type { Rect } from '../shared/types'
+import { webcamRect, type WebcamLayout } from '../shared/webcam'
 
 const PRELOAD = () => join(__dirname, '../preload/index.js')
 
@@ -220,4 +221,50 @@ export function showRegionFrame(display: Display, rect: Rect): void {
 export function hideRegionFrame(): void {
   if (regionFrame && !regionFrame.isDestroyed()) regionFrame.close()
   regionFrame = null
+}
+
+// ---- webcam bubble -----------------------------------------------------------------
+
+let webcamBubble: BrowserWindow | null = null
+
+/**
+ * The webcam as the user sees it while recording: at the corner and the size it will have
+ * in the video, click-through and excluded from the capture (the video gets the webcam's
+ * own file, laid over the screen when it is put together). `area` is the recorded region,
+ * or the whole display, in DIP relative to the display.
+ */
+export function showWebcamBubble(display: Display, area: Rect, layout: WebcamLayout): void {
+  hideWebcamBubble()
+  const rect = webcamRect(layout.shape, layout.corner, area.width, area.height)
+  webcamBubble = new BrowserWindow({
+    x: display.bounds.x + area.x + rect.x,
+    y: display.bounds.y + area.y + rect.y,
+    width: rect.width,
+    height: rect.height,
+    frame: false,
+    transparent: true,
+    hasShadow: false,
+    resizable: false,
+    movable: false,
+    minimizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    focusable: false,
+    skipTaskbar: true,
+    show: false,
+    webPreferences: { preload: PRELOAD() }
+  })
+  webcamBubble.setIgnoreMouseEvents(true)
+  webcamBubble.setContentProtection(true)
+  webcamBubble.setAlwaysOnTop(true, 'screen-saver')
+  webcamBubble.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+  webcamBubble.once('ready-to-show', () => {
+    if (layout.visible) webcamBubble?.showInactive()
+  })
+  load(webcamBubble, 'webcam', { shape: layout.shape })
+}
+
+export function hideWebcamBubble(): void {
+  if (webcamBubble && !webcamBubble.isDestroyed()) webcamBubble.close()
+  webcamBubble = null
 }

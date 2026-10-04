@@ -9,17 +9,20 @@ import type { InputDevice, MicList } from '../../shared/types'
 /** The same processing for the recording and for the level shown before it, so the bar shows what gets recorded. */
 const PROCESSING = { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
 
+// Chromium appends the USB vendor:product ids to some names ("FaceTime HD Camera (05ac:8514)")
+const cleanLabel = (label: string) => label.replace(/ \([0-9a-f]{4}:[0-9a-f]{4}\)$/i, '')
+
 // Chromium's aliases for the system choices: "default" follows the system input, "communications" is Windows-only.
 const ALIASES = new Set(['default', 'communications'])
 
 /** The audio inputs, without the aliases. Labels are empty until the microphone permission is granted. */
 export async function listMics(): Promise<MicList> {
   const all = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'audioinput')
-  const devices = all.filter((d) => d.deviceId && d.label && !ALIASES.has(d.deviceId)).map((d) => ({ id: d.deviceId, label: d.label }))
+  const devices = all.filter((d) => d.deviceId && d.label && !ALIASES.has(d.deviceId)).map((d) => ({ id: d.deviceId, label: cleanLabel(d.label) }))
   // The alias shares its groupId with the real device, whose label is the plain name
   const alias = all.find((d) => d.deviceId === 'default')
   const real = alias && all.find((d) => !ALIASES.has(d.deviceId) && d.groupId === alias.groupId)
-  return { devices, defaultLabel: real?.label || null }
+  return { devices, defaultLabel: real?.label ? cleanLabel(real.label) : null }
 }
 
 /** Opens the chosen microphone, or the system default when it is null or not connected. */
@@ -30,6 +33,23 @@ export async function openMic(wanted: InputDevice | null): Promise<{ stream: Med
     video: false
   })
   return { stream, fallback: !!wanted && !device }
+}
+
+/** The cameras, by name. Labels are empty until the camera permission is granted. */
+export async function listCameras(): Promise<InputDevice[]> {
+  return (await navigator.mediaDevices.enumerateDevices())
+    .filter((d) => d.kind === 'videoinput' && d.deviceId && d.label)
+    .map((d) => ({ id: d.deviceId, label: cleanLabel(d.label) }))
+}
+
+// 720p is plenty for an overlay a quarter of the frame tall. The capture engine and the bubble
+// ask for the same format, so Chromium serves both from one capture of the camera.
+const CAMERA = { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } }
+
+/** Opens the chosen camera, or the first one when it is null or not connected. */
+export async function openCamera(wanted: InputDevice | null): Promise<MediaStream> {
+  const device = wanted ? findDevice(wanted, await listCameras()) : undefined
+  return navigator.mediaDevices.getUserMedia({ video: device ? { ...CAMERA, deviceId: { exact: device.id } } : CAMERA, audio: false })
 }
 
 const FLOOR_DB = -60

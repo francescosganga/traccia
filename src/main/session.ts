@@ -1,7 +1,7 @@
 import { desktopCapturer, screen, session as electronSession, systemPreferences, type Display, type WebContents } from 'electron'
 import { createWriteStream, type WriteStream } from 'fs'
-import { mkdir, rm, writeFile } from 'fs/promises'
-import { join } from 'path'
+import { mkdir, rm, stat, writeFile } from 'fs/promises'
+import { basename, join } from 'path'
 import type {
   AppState,
   ClickEvent,
@@ -20,6 +20,8 @@ import type {
 } from '../shared/types'
 import { t } from '../shared/i18n'
 import type { RecordingJson } from '../shared/recording-reader'
+import type { WebcamLayout, WebcamLayoutEvent } from '../shared/webcam'
+import { placeLayout, webcamGraph, type PlacedLayout } from './compose'
 import { CursorTracker } from './cursor'
 import { h264Encoder, h264EncoderArgs, runFfmpeg } from './ffmpeg'
 import { extractFrames } from './frames'
@@ -36,6 +38,9 @@ export interface SessionHost {
   hideControls(): void
   showRegionFrame(display: Display, rect: Rect): void
   hideRegionFrame(): void
+  /** `area` is the recorded region, or the whole display, in DIP relative to the display */
+  showWebcam(display: Display, area: Rect, layout: WebcamLayout): void
+  hideWebcam(): void
   hideMainWindow(): void
   showMainWindow(): void
   onState(state: AppState): void
@@ -50,6 +55,8 @@ function timestampName(d: Date): string {
 }
 
 const even = (n: number) => Math.max(2, Math.floor(n / 2) * 2)
+
+const VP9_ARGS = ['-c:v', 'libvpx-vp9', '-deadline', 'realtime', '-cpu-used', '8', '-row-mt', '1', '-crf', '32', '-b:v', '0']
 
 export class RecordingSession {
   state: AppState = { status: 'idle' }
@@ -66,6 +73,12 @@ export class RecordingSession {
   private countdownAbort = false
   private overrides: RecordingOverrides = {}
   private transcribing = false
+  private webcamPath = ''
+  private webcamFile: WriteStream | null = null
+  /** Epoch ms of the webcam recorder's start, to line it up with the screen */
+  private webcamT0: number | null = null
+  /** Shape, corner and visibility over time, ms from the start of the recording */
+  private layout: WebcamLayoutEvent[] = []
 
   constructor(private host: SessionHost) {}
 
@@ -84,17 +97,30 @@ export class RecordingSession {
     return { ...getSettings(), ...this.overrides }
   }
 
+  /** The webcam is laid over a video: there is no video to lay it over in JPG mode. */
+  private webcamWanted(): boolean {
+    const s = this.settings()
+    return s.webcam && s.format !== 'jpg'
+  }
+
   /** What the widget shows while recording: the choices most often regretted afterwards. */
   private recordingInfo(): RecordingInfo {
     const s = this.settings()
-    // Once the engine runs, whether the microphone actually opened
+    // Once the engine runs, whether the microphone and the webcam actually opened
     const audio = this.info ? this.info.hasAudio : s.audio
-    return { mode: this.region ? 'region' : 'screen', format: s.format, jpgFps: s.jpgFps, audio }
+    const webcam = this.info ? this.info.hasWebcam : this.webcamWanted()
+    return { mode: this.region ? 'region' : 'screen', format: s.format, jpgFps: s.jpgFps, audio, webcam }
   }
 
   private hideOverlays(): void {
     this.host.hideControls()
     this.host.hideRegionFrame()
+    this.host.hideWebcam()
+  }
+
+  private closeWebcamFile(): void {
+    this.webcamFile?.close()
+    this.webcamFile = null
   }
 
   get isBusy(): boolean {
@@ -130,6 +156,13 @@ export class RecordingSession {
     await mkdir(this.dir, { recursive: true })
     this.rawPath = join(this.dir, 'raw.webm')
     this.file = createWriteStream(this.rawPath)
+    this.webcamT0 = null
+    const webcam = this.webcamWanted()
+    this.webcamPath = webcam ? join(this.dir, 'webcam.webm') : ''
+    if (webcam) {
+      this.webcamFile = createWriteStream(this.webcamPath)
+      this.layout = [{ t: 0, shape: settings.webcamShape, corner: settings.webcamCorner, visible: true }]
+    }
 
     const engine = this.host.engine()
     if (!engine) {
@@ -155,6 +188,10 @@ export class RecordingSession {
     this.host.hideMainWindow()
     if (settings.showControls) this.host.showControls(this.display)
     if (this.region && settings.showRegionFrame) this.host.showRegionFrame(this.display, this.region)
+    if (webcam) {
+      const area = this.region ?? { x: 0, y: 0, width: this.display.bounds.width, height: this.display.bounds.height }
+      this.host.showWebcam(this.display, area, this.layout[0])
+    }
 
     const info = this.recordingInfo()
     this.countdownAbort = false
@@ -174,7 +211,7 @@ export class RecordingSession {
     }
 
     this.setState({ status: 'countdown', seconds: 0, info })
-    engine.send('engine:start', { audio: settings.audio, micDevice: settings.micDevice, frameRate: FRAME_RATE })
+    engine.send('engine:start', { audio: settings.audio, micDevice: settings.micDevice, webcam, webcamDevice: settings.webcamDevice, frameRate: FRAME_RATE })
     this.startTimer = setTimeout(() => {
       if (this.state.status === 'countdown') this.fail(t('err.engineTimeout'))
     }, ENGINE_START_TIMEOUT)
@@ -184,6 +221,7 @@ export class RecordingSession {
     this.hideOverlays()
     this.file?.close()
     this.file = null
+    this.closeWebcamFile()
     await rm(this.dir, { recursive: true, force: true }).catch(() => {})
     this.setState({ status: 'idle' })
     this.host.showMainWindow()
@@ -217,12 +255,22 @@ export class RecordingSession {
     this.file?.write(Buffer.from(chunk as ArrayBuffer))
   }
 
+  onWebcamStarted(t0: number): void {
+    this.webcamT0 = t0
+  }
+
+  onWebcamChunk(chunk: ArrayBuffer | Buffer): void {
+    this.webcamFile?.write(Buffer.from(chunk as ArrayBuffer))
+  }
+
   async onEngineStopped(): Promise<void> {
     this.stoppedAt = Date.now()
     const tracking = this.tracker.stop()
     this.hideOverlays()
     await new Promise<void>((resolve) => (this.file ? this.file.end(resolve) : resolve()))
     this.file = null
+    await new Promise<void>((resolve) => (this.webcamFile ? this.webcamFile.end(resolve) : resolve()))
+    this.webcamFile = null
     this.host.showMainWindow()
     if (!this.info) {
       // stopped during countdown / before the first frame
@@ -249,6 +297,7 @@ export class RecordingSession {
     this.hideOverlays()
     this.file?.close()
     this.file = null
+    this.closeWebcamFile()
     this.host.showMainWindow()
     this.setState({ status: 'error', message })
   }
@@ -280,6 +329,38 @@ export class RecordingSession {
     return { displayBounds: display.bounds, scale, cropPx, outScale: outWidth / cropPx.width, outWidth, outHeight }
   }
 
+  /** The screen alone, cropped and scaled; copied without re-encoding when nothing changes. */
+  private async convert(out: string, filters: string[], format: OutputFormat, g: Geometry, durationMs: number): Promise<void> {
+    const step = t('step.convert', { format: format.toUpperCase() })
+    this.progress({ step, progress: 0 })
+    const args = ['-i', this.rawPath]
+    if (filters.length) args.push('-vf', filters.join(','))
+    if (format === 'webm') {
+      if (filters.length) args.push(...VP9_ARGS, '-c:a', 'libopus')
+      else args.push('-c', 'copy')
+    } else {
+      const canCopy = !filters.length && /h264|avc1/i.test(this.info!.mimeType)
+      if (canCopy) args.push('-c:v', 'copy')
+      else args.push(...h264EncoderArgs(await h264Encoder(), g.outWidth, g.outHeight))
+      args.push('-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart')
+    }
+    args.push(out)
+    await runFfmpeg(args, { durationMs, onProgress: (p) => this.progress({ step, progress: p }) })
+  }
+
+  /** The screen with the webcam laid over it (graph from compose.ts); always re-encoded. */
+  private async composeWebcam(graph: string, out: string, format: OutputFormat, g: Geometry, durationMs: number): Promise<void> {
+    const step = t('step.webcam')
+    this.progress({ step, progress: 0 })
+    // The webcam recorder starts a few ms after the screen one (or before): shift it onto the screen's clock
+    const offset = ((this.webcamT0! - this.info!.t0) / 1000).toFixed(3)
+    const args = ['-i', this.rawPath, '-itsoffset', offset, '-i', this.webcamPath, '-filter_complex', graph, '-map', '[vout]', '-map', '0:a?']
+    if (format === 'webm') args.push(...VP9_ARGS, '-c:a', 'libopus')
+    else args.push(...h264EncoderArgs(await h264Encoder(), g.outWidth, g.outHeight), '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart')
+    args.push(out)
+    await runFfmpeg(args, { durationMs, onProgress: (p) => this.progress({ step, progress: p }) })
+  }
+
   private async process(tracking: {
     samples: CursorSample[]
     clicks: ClickEvent[]
@@ -299,7 +380,18 @@ export class RecordingSession {
     if (this.region) filters.push(`crop=${g.cropPx.width}:${g.cropPx.height}:${g.cropPx.x}:${g.cropPx.y}`)
     if (g.outWidth !== g.cropPx.width) filters.push(`scale=${g.outWidth}:${g.outHeight}`)
 
+    // The webcam goes over the video only if it recorded something, and is shown at some point
+    let graph: string | null = null
+    let placed: PlacedLayout[] | null = null
+    if (this.webcamWanted()) {
+      const recorded = info.hasWebcam && this.webcamT0 !== null && (await stat(this.webcamPath).then((s) => s.size > 0, () => false))
+      if (!recorded) warnings.push(t('warn.webcamUnavailable'))
+      else graph = webcamGraph({ screenFilters: filters, layout: this.layout, width: g.outWidth, height: g.outHeight, durationMs })
+      if (graph) placed = placeLayout(this.layout, g.outWidth, g.outHeight)
+    }
+
     let mediaPath = ''
+    let videoPath = ''
     let frames: { file: string; tMs: number }[] | undefined
     let skipped = 0
 
@@ -319,28 +411,24 @@ export class RecordingSession {
       })
       frames = res.frames
       skipped = res.skipped
-      mediaPath = join(this.dir, 'frames')
+      mediaPath = videoPath = join(this.dir, 'frames')
       if (info.hasAudio) {
         this.progress({ step: t('step.saveAudio'), progress: -1 })
         await runFfmpeg(['-i', this.rawPath, '-vn', '-c:a', 'aac', '-b:a', '128k', join(this.dir, 'audio.m4a')])
       }
     } else {
-      mediaPath = join(this.dir, `recording.${format}`)
-      const convertStep = t('step.convert', { format: format.toUpperCase() })
-      this.progress({ step: convertStep, progress: 0 })
-      const args = ['-i', this.rawPath]
-      if (filters.length) args.push('-vf', filters.join(','))
-      if (format === 'webm') {
-        if (filters.length) args.push('-c:v', 'libvpx-vp9', '-deadline', 'realtime', '-cpu-used', '8', '-row-mt', '1', '-crf', '32', '-b:v', '0', '-c:a', 'libopus')
-        else args.push('-c', 'copy')
+      videoPath = join(this.dir, `recording.${format}`)
+      mediaPath = videoPath
+      if (graph) {
+        // People watch the video with the webcam; the timeline and the AI refer to the copy without it, if wanted
+        if (settings.webcamCleanCopy) {
+          mediaPath = join(this.dir, `recording-screen.${format}`)
+          await this.convert(mediaPath, filters, format, g, durationMs)
+        }
+        await this.composeWebcam(graph, videoPath, format, g, durationMs)
       } else {
-        const canCopy = !filters.length && /h264|avc1/i.test(info.mimeType)
-        if (canCopy) args.push('-c:v', 'copy')
-        else args.push(...h264EncoderArgs(await h264Encoder(), g.outWidth, g.outHeight))
-        args.push('-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart')
+        await this.convert(videoPath, filters, format, g, durationMs)
       }
-      args.push(mediaPath)
-      await runFfmpeg(args, { durationMs, onProgress: (p) => this.progress({ step: convertStep, progress: p }) })
     }
 
     let segments: TranscriptSegment[] | null = null
@@ -385,7 +473,8 @@ export class RecordingSession {
     const timelineInput = {
       createdAt: this.startedAtDate,
       format,
-      mediaName: format === 'jpg' ? 'frames/' : `recording.${format}`,
+      mediaName: format === 'jpg' ? 'frames/' : basename(mediaPath),
+      webcam: placed ? { video: basename(videoPath), cleanCopy: mediaPath !== videoPath, layout: placed } : undefined,
       width: g.outWidth,
       height: g.outHeight,
       fps: format === 'jpg' ? settings.jpgFps : FRAME_RATE,
@@ -414,6 +503,7 @@ export class RecordingSession {
         dir: this.dir,
         format,
         mediaName: timelineInput.mediaName,
+        webcam: timelineInput.webcam,
         width: g.outWidth,
         height: g.outHeight,
         fps: timelineInput.fps,
@@ -437,7 +527,7 @@ export class RecordingSession {
       app: 'traccia',
       createdAt: this.startedAtDate.toISOString(),
       format,
-      media: format === 'jpg' ? 'frames/' : `recording.${format}`,
+      media: timelineInput.mediaName,
       timeline: 'recording.txt',
       rawTimeline: 'recording-raw.txt',
       prompt: 'PROMPT.md',
@@ -468,14 +558,17 @@ export class RecordingSession {
       words,
       frames,
       skippedFrames: skipped,
+      webcam: placed ? { video: basename(videoPath), layout: placed } : undefined,
       warnings
     }
     await writeFile(jsonPath, JSON.stringify(json), 'utf8')
     await rm(this.rawPath, { force: true })
+    if (this.webcamPath) await rm(this.webcamPath, { force: true })
 
     return {
       dir: this.dir,
       mediaPath,
+      videoPath,
       txtPath,
       rawTxtPath,
       jsonPath,

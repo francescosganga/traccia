@@ -1,5 +1,6 @@
 // Types shared between main, preload and renderer.
 import type { UiLanguage } from './i18n'
+import type { WebcamCorner, WebcamShape } from './webcam'
 
 export type OutputFormat = 'mp4' | 'mov' | 'webm' | 'jpg'
 export type Resolution = 'native' | '1080' | '720' | '480'
@@ -28,6 +29,14 @@ export interface Settings {
   audio: boolean
   /** Microphone to record; null follows the system default */
   micDevice: InputDevice | null
+  /** Record the webcam and lay it over a corner of the video (video formats only) */
+  webcam: boolean
+  /** Camera to record; null takes the first one */
+  webcamDevice: InputDevice | null
+  webcamShape: WebcamShape
+  webcamCorner: WebcamCorner
+  /** With the webcam, also save the video without it (recording-screen.<ext>): the timeline, PROMPT.md and agents refer to that one */
+  webcamCleanCopy: boolean
   /** Run Whisper on the recorded audio */
   transcribe: boolean
   whisperModel: WhisperModelId
@@ -92,7 +101,7 @@ export interface DisplayInfo {
 
 /** Settings a single recording may override without changing the saved ones (control socket). */
 export type RecordingOverrides = Partial<
-  Pick<Settings, 'format' | 'resolution' | 'jpgFps' | 'skipUnchangedFrames' | 'audio' | 'transcribe' | 'countdown'>
+  Pick<Settings, 'format' | 'resolution' | 'jpgFps' | 'skipUnchangedFrames' | 'audio' | 'webcam' | 'transcribe' | 'countdown'>
 >
 
 export interface RecordingRequest {
@@ -153,6 +162,7 @@ export interface RecordingInfo {
   format: OutputFormat
   jpgFps: number
   audio: boolean
+  webcam: boolean
 }
 
 export type AppState =
@@ -166,7 +176,10 @@ export type AppState =
 
 export interface RecordingResult {
   dir: string
+  /** What the AI reads: the frames folder, the video, or the video without the webcam */
   mediaPath: string
+  /** The video to watch: with the webcam when there is one; equals mediaPath otherwise */
+  videoPath: string
   txtPath: string
   /** Same timeline plus pointer movement */
   rawTxtPath: string
@@ -206,9 +219,12 @@ export interface DownloadProgress {
 
 export type MediaAccessStatus = 'granted' | 'denied' | 'not-determined' | 'restricted' | 'unknown'
 
+export type PermissionKind = 'screen' | 'microphone' | 'camera' | 'accessibility'
+
 export interface Permissions {
   screen: MediaAccessStatus
   microphone: MediaAccessStatus
+  camera: MediaAccessStatus
   accessibility: boolean
   /** Screen Recording or Accessibility was granted after the app started: macOS applies it at the next launch */
   restartNeeded: boolean
@@ -268,6 +284,8 @@ export interface RecordingEntry {
   /** Number of transcript segments, undefined when there is no transcript */
   transcriptSegments?: number
   mediaPath: string
+  /** The video to watch: with the webcam when there is one; equals mediaPath otherwise */
+  videoPath: string
   txtPath: string
   rawTxtPath: string
   /** Missing for recordings made before PROMPT.md existed */
@@ -280,6 +298,8 @@ export interface RecordingEntry {
 export interface EngineStartCommand {
   audio: boolean
   micDevice: InputDevice | null
+  webcam: boolean
+  webcamDevice: InputDevice | null
   frameRate: number
 }
 
@@ -292,4 +312,6 @@ export interface EngineStartedInfo {
   hasAudio: boolean
   /** The chosen microphone was not connected and the system default was recorded */
   micFallback: boolean
+  /** The webcam is being recorded too; its own start time arrives with engine:webcamStarted */
+  hasWebcam: boolean
 }

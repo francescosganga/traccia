@@ -592,7 +592,8 @@ a:hover {
 }
 .grid-2 {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* minmax: a long device name in a select truncates instead of widening its column */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: var(--sp-3) var(--sp-5);
 }
 
@@ -1036,6 +1037,62 @@ input[type='text'] {
   max-width: 100%;
 }
 
+/* webcam: camera, shape, then the preview next to the corner picker */
+.webcam-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  align-self: flex-start;
+  max-width: 100%;
+}
+.webcam-picker select {
+  max-width: 100%;
+}
+.webcam-layout {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+}
+.webcam-preview {
+  flex-shrink: 0;
+  overflow: hidden;
+  background: var(--bg-elev-2);
+}
+.webcam-preview video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+/* a small screen split in four quarters; the mark is the webcam at the chosen corner */
+.corner-picker {
+  position: relative;
+  flex-shrink: 0;
+  display: grid;
+  grid-template: 1fr 1fr / 1fr 1fr;
+  overflow: hidden;
+  background: var(--bg-elev-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+}
+.corner-picker button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease);
+}
+.corner-picker button:hover {
+  background: var(--hover);
+}
+.corner-mark {
+  position: absolute;
+  pointer-events: none;
+  background: var(--text-muted);
+  transition: left var(--dur) var(--ease), top var(--dur) var(--ease);
+}
+
 .spinner {
   width: 16px;
   height: 16px;
@@ -1243,6 +1300,17 @@ input[type='text'] {
   font-size: var(--fs-md);
   pointer-events: none;
   box-shadow: var(--shadow-md);
+}
+
+/* webcam bubble (its own click-through window); the radius comes from shared/webcam.ts */
+.webcam-bubble {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  object-fit: cover;
+  /* mirrored, as people expect to see themselves; the video keeps the camera's view */
+  transform: scaleX(-1);
+  background: var(--n-950);
 }
 
 /* frame around the region being recorded (its own click-through window) */

@@ -10,6 +10,7 @@ import { homedir, tmpdir } from 'os'
 import { basename, isAbsolute, join, resolve } from 'path'
 import { SHORTCUT_PRESETS } from './shortcuts'
 import type { OutputFormat, RecordingEntry, Rect, Settings, TranscriptSegment, TranscriptWord } from './types'
+import type { WebcamLayoutEvent } from './webcam'
 
 export const APP_NAME = 'Traccia'
 // Electron names the userData folder after package.json's "name", not the product name.
@@ -68,6 +69,11 @@ export const SETTINGS_DEFAULTS: Omit<Settings, 'outputDir'> = {
   skipUnchangedFrames: true,
   audio: true,
   micDevice: null,
+  webcam: false,
+  webcamDevice: null,
+  webcamShape: 'square',
+  webcamCorner: 'bottom-right',
+  webcamCleanCopy: true,
   transcribe: true,
   whisperModel: 'base',
   speechLanguage: 'auto',
@@ -144,6 +150,13 @@ export interface RecordingJson {
   words: TranscriptWord[]
   frames?: FrameRef[]
   skippedFrames?: number
+  /** Present when the webcam was recorded; `media` is then the video without it, if one was saved */
+  webcam?: {
+    /** Video with the webcam laid over the screen, for people */
+    video: string
+    /** Each change, ms from the start; the rectangle is in output pixels */
+    layout: (WebcamLayoutEvent & { rect: Rect })[]
+  }
   warnings: string[]
 }
 
@@ -170,6 +183,7 @@ function toEntry(dir: string, id: string, meta: RecordingJson, fallbackCreatedAt
     frames: meta.frames?.length,
     transcriptSegments: meta.transcript?.length,
     mediaPath: join(dir, meta.media ?? ''),
+    videoPath: join(dir, meta.webcam?.video ?? meta.media ?? ''),
     txtPath: join(dir, timelineFileName('clicks')),
     rawTxtPath: join(dir, timelineFileName('raw')),
     jsonPath: join(dir, 'recording.json'),

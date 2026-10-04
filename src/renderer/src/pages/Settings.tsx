@@ -10,15 +10,17 @@ import { ShortcutSettings } from '../components/ShortcutSettings'
 import { PermissionsPanel } from '../components/PermissionsPanel'
 import { Segmented } from '../components/Segmented'
 import { Toggle } from '../components/Toggle'
+import { WebcamPicker } from '../components/WebcamPicker'
 import { FORMATS, RESOLUTIONS, resolutionLabel } from '../options'
 
-export type SettingsSection = 'general' | 'output' | 'audio' | 'cursor' | 'recording' | 'shortcuts' | 'agents' | 'startup' | 'permissions'
+export type SettingsSection = 'general' | 'output' | 'audio' | 'webcam' | 'cursor' | 'recording' | 'shortcuts' | 'agents' | 'startup' | 'permissions'
 
 /** The cards of the page in order; the sidebar lists them and scrolls to the one clicked. */
 export const SETTINGS_SECTIONS: { id: SettingsSection; label: TranslationKey }[] = [
   { id: 'general', label: 'settings.general' },
   { id: 'output', label: 'settings.output' },
   { id: 'audio', label: 'settings.audioSection' },
+  { id: 'webcam', label: 'settings.webcamSection' },
   { id: 'cursor', label: 'settings.cursorSection' },
   { id: 'recording', label: 'settings.recordingSection' },
   { id: 'shortcuts', label: 'settings.shortcutsSection' },
@@ -221,6 +223,31 @@ export function SettingsPage({ settings, update, jump, onSection }: Props) {
             <label>{t('settings.models')}</label>
             <ModelManager selected={settings.whisperModel} onSelect={(id) => void update({ whisperModel: id })} />
           </div>
+        </div>
+
+        <div className="card" id="settings-webcam">
+          <h3>{t('settings.webcamSection')}</h3>
+          <Toggle label={t('settings.recordWebcam')} hint={t('settings.recordWebcamHint')} value={settings.webcam} onChange={(v) => update({ webcam: v })} />
+          <div className="field mt-4">
+            <label>{t('settings.webcamDevice')}</label>
+            <WebcamPicker
+              device={settings.webcamDevice}
+              shape={settings.webcamShape}
+              corner={settings.webcamCorner}
+              disabled={!settings.webcam}
+              onDevice={(webcamDevice) => void update({ webcamDevice })}
+              onShape={(webcamShape) => void update({ webcamShape })}
+              onCorner={(webcamCorner) => void update({ webcamCorner })}
+            />
+            <span className="hint">{t('settings.webcamDeviceHint')}</span>
+          </div>
+          <Toggle
+            label={t('settings.webcamCleanCopy')}
+            hint={t('settings.webcamCleanCopyHint')}
+            value={settings.webcamCleanCopy}
+            disabled={!settings.webcam}
+            onChange={(v) => update({ webcamCleanCopy: v })}
+          />
         </div>
 
         <div className="card" id="settings-cursor">

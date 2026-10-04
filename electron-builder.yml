@@ -40,6 +40,9 @@ mac:
   notarize: true
   extendInfo:
     NSMicrophoneUsageDescription: Needed to record your voice along with the screen.
+    NSCameraUsageDescription: Needed to put your webcam in a corner of the video.
+    # Lists an iPhone used as a webcam (Continuity Camera) among the cameras
+    NSCameraUseContinuityCameraDeviceType: true
     NSScreenCaptureUsageDescription: Needed to record the screen.
     LSUIElement: false
 dmg:

@@ -1,5 +1,5 @@
 import { desktopCapturer, shell, systemPreferences } from 'electron'
-import type { MediaAccessStatus, Permissions } from '../shared/types'
+import type { MediaAccessStatus, PermissionKind, Permissions } from '../shared/types'
 
 const isMac = process.platform === 'darwin'
 
@@ -9,11 +9,12 @@ let atLaunch: Current | null = null
 
 function read(): Current {
   if (!isMac) {
-    return { screen: 'granted', microphone: 'granted', accessibility: true }
+    return { screen: 'granted', microphone: 'granted', camera: 'granted', accessibility: true }
   }
   return {
     screen: systemPreferences.getMediaAccessStatus('screen') as MediaAccessStatus,
     microphone: systemPreferences.getMediaAccessStatus('microphone') as MediaAccessStatus,
+    camera: systemPreferences.getMediaAccessStatus('camera') as MediaAccessStatus,
     accessibility: systemPreferences.isTrustedAccessibilityClient(false)
   }
 }
@@ -31,10 +32,10 @@ export function getPermissions(): Permissions {
 }
 
 /** Triggers the system prompt (or registers the app in the privacy list) for the given permission. */
-export async function requestPermission(kind: 'screen' | 'microphone' | 'accessibility'): Promise<Permissions> {
+export async function requestPermission(kind: PermissionKind): Promise<Permissions> {
   if (isMac) {
     try {
-      if (kind === 'microphone') await systemPreferences.askForMediaAccess('microphone')
+      if (kind === 'microphone' || kind === 'camera') await systemPreferences.askForMediaAccess(kind)
       if (kind === 'accessibility') systemPreferences.isTrustedAccessibilityClient(true)
       // There is no explicit API for screen recording: enumerating sources makes macOS
       // show the prompt and add the app to the Screen Recording list.
@@ -46,9 +47,9 @@ export async function requestPermission(kind: 'screen' | 'microphone' | 'accessi
   return getPermissions()
 }
 
-export function openPrivacySettings(kind: 'screen' | 'microphone' | 'accessibility'): void {
+export function openPrivacySettings(kind: PermissionKind): void {
   if (!isMac) return
-  const pane = { screen: 'Privacy_ScreenCapture', microphone: 'Privacy_Microphone', accessibility: 'Privacy_Accessibility' }[kind]
+  const pane = { screen: 'Privacy_ScreenCapture', microphone: 'Privacy_Microphone', camera: 'Privacy_Camera', accessibility: 'Privacy_Accessibility' }[kind]
   void shell.openExternal(`x-apple.systempreferences:com.apple.preference.security?${pane}`)
 }
 

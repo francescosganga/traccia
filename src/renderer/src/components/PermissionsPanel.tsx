@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { t } from '../../../shared/i18n'
-import type { Permissions } from '../../../shared/types'
+import type { PermissionKind, Permissions } from '../../../shared/types'
 import { Icon } from './Icon'
 
-type Kind = 'screen' | 'microphone' | 'accessibility'
-const KINDS: Kind[] = ['screen', 'microphone', 'accessibility']
+type Kind = PermissionKind
+const KINDS: Kind[] = ['screen', 'microphone', 'camera', 'accessibility']
 
 export function PermissionsPanel() {
   const [perms, setPerms] = useState<Permissions | null>(null)

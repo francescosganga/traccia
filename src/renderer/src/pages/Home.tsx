@@ -5,6 +5,7 @@ import { Icon } from '../components/Icon'
 import { Menu, type MenuItem } from '../components/Menu'
 import { MicPicker } from '../components/MicPicker'
 import { Segmented } from '../components/Segmented'
+import { WebcamPicker } from '../components/WebcamPicker'
 import { formatDate, formatDuration, formatShortcut } from '../format'
 import { FORMATS, JPG_FPS, RESOLUTIONS, resolutionLabel } from '../options'
 import type { SettingsSection } from './Settings'
@@ -18,8 +19,8 @@ interface Props {
 }
 
 /** The choices on this page apply to the next recording only; the defaults live in Settings. */
-type Choices = Required<Pick<RecordingOverrides, 'format' | 'resolution' | 'jpgFps' | 'audio'>>
-const defaultsOf = (s: Settings): Choices => ({ format: s.format, resolution: s.resolution, jpgFps: s.jpgFps, audio: s.audio })
+type Choices = Required<Pick<RecordingOverrides, 'format' | 'resolution' | 'jpgFps' | 'audio' | 'webcam'>>
+const defaultsOf = (s: Settings): Choices => ({ format: s.format, resolution: s.resolution, jpgFps: s.jpgFps, audio: s.audio, webcam: s.webcam })
 
 /** What the actions menu of a recording needs, whether it comes from the "done" card or from the recent list. */
 interface RecordingRef {
@@ -28,7 +29,7 @@ interface RecordingRef {
   format: OutputFormat
   txtPath: string
   rawTxtPath: string
-  mediaPath: string
+  videoPath: string
 }
 
 const folderName = (dir: string): string => dir.split(/[\\/]/).pop() ?? dir
@@ -53,7 +54,7 @@ export function Home({ settings, state, modelInstalled, platform, goSettings }: 
     refreshRecordings()
   }, [])
   // The page goes back to the defaults when they change, and once a recording has ended
-  useEffect(() => setChoices(defaultsOf(settings)), [settings.format, settings.resolution, settings.jpgFps, settings.audio])
+  useEffect(() => setChoices(defaultsOf(settings)), [settings.format, settings.resolution, settings.jpgFps, settings.audio, settings.webcam])
   useEffect(() => {
     if (state.status === 'done' || state.status === 'error') {
       setChoices(defaultsOf(settings))
@@ -86,7 +87,7 @@ export function Home({ settings, state, modelInstalled, platform, goSettings }: 
   const actions = (r: RecordingRef): MenuItem[] => [
     { label: t('home.openTxt'), onSelect: () => void window.api.recordings.open(r.txtPath) },
     { label: t('home.openRawTxt'), onSelect: () => void window.api.recordings.open(r.rawTxtPath) },
-    ...(r.format !== 'jpg' ? [{ label: t('home.openVideo'), onSelect: () => void window.api.recordings.open(r.mediaPath) }] : []),
+    ...(r.format !== 'jpg' ? [{ label: t('home.openVideo'), onSelect: () => void window.api.recordings.open(r.videoPath) }] : []),
     { label: t('home.rename'), onSelect: () => setRenaming(r.dir) },
     { label: t('home.trash'), onSelect: () => void trash(r), danger: true }
   ]
@@ -161,7 +162,7 @@ export function Home({ settings, state, modelInstalled, platform, goSettings }: 
                   format: done.format,
                   txtPath: done.txtPath,
                   rawTxtPath: done.rawTxtPath,
-                  mediaPath: done.mediaPath
+                  videoPath: done.videoPath
                 })}
               />
             </div>
@@ -249,6 +250,34 @@ export function Home({ settings, state, modelInstalled, platform, goSettings }: 
                   {/* Unlike the choices above, the device is saved: it is the hardware, not this take */}
                   {choices.audio && <MicPicker value={settings.micDevice} onChange={(micDevice) => void window.api.settings.update({ micDevice })} />}
                 </div>
+                <div className="field">
+                  <label>{t('home.webcam')}</label>
+                  {choices.format === 'jpg' ? (
+                    <span className="hint">{t('home.webcamVideoOnly')}</span>
+                  ) : (
+                    <>
+                      <Segmented<'corner' | 'none'>
+                        options={[
+                          { id: 'corner', label: t('home.webcamCorner') },
+                          { id: 'none', label: t('home.webcamNone') }
+                        ]}
+                        value={choices.webcam ? 'corner' : 'none'}
+                        onChange={(v) => choose({ webcam: v === 'corner' })}
+                      />
+                      {/* Like the microphone, camera and layout are saved; only on/off is for this take */}
+                      {choices.webcam && (
+                        <WebcamPicker
+                          device={settings.webcamDevice}
+                          shape={settings.webcamShape}
+                          corner={settings.webcamCorner}
+                          onDevice={(webcamDevice) => void window.api.settings.update({ webcamDevice })}
+                          onShape={(webcamShape) => void window.api.settings.update({ webcamShape })}
+                          onCorner={(webcamCorner) => void window.api.settings.update({ webcamCorner })}
+                        />
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
               <div className="row wrap small dim mt-2">
                 <button className={`link ${modelMissing ? 'text-warn' : ''}`} onClick={() => goSettings('audio')}>
@@ -312,7 +341,7 @@ export function Home({ settings, state, modelInstalled, platform, goSettings }: 
                         format: r.format,
                         txtPath: r.txtPath,
                         rawTxtPath: r.rawTxtPath,
-                        mediaPath: r.mediaPath
+                        videoPath: r.videoPath
                       })}
                     />
                   </div>

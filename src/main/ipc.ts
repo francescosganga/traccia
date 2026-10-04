@@ -95,6 +95,8 @@ export function registerIpc({ session, startRecording, suspendShortcuts }: IpcDe
   // engine (renderer → main)
   ipcMain.on('engine:started', (_e, info: EngineStartedInfo) => session.onEngineStarted(info))
   ipcMain.on('engine:chunk', (_e, chunk: ArrayBuffer) => session.onEngineChunk(chunk))
+  ipcMain.on('engine:webcamStarted', (_e, t0: number) => session.onWebcamStarted(t0))
+  ipcMain.on('engine:webcamChunk', (_e, chunk: ArrayBuffer) => session.onWebcamChunk(chunk))
   ipcMain.on('engine:level', (_e, level: number) => sendToControls('recording:level', level))
   ipcMain.on('engine:stopped', () => void session.onEngineStopped())
   ipcMain.on('engine:error', (_e, message: string) => session.onEngineError(message))

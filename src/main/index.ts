@@ -17,11 +17,13 @@ import {
   hideControls,
   hideMainWindow,
   hideRegionFrame,
+  hideWebcamBubble,
   selectRegion,
   setQuitting,
   showControls,
   showMainWindow,
-  showRegionFrame
+  showRegionFrame,
+  showWebcamBubble
 } from './windows'
 
 app.setName('Traccia')
@@ -40,6 +42,8 @@ const session = new RecordingSession({
   hideControls,
   showRegionFrame,
   hideRegionFrame,
+  showWebcam: showWebcamBubble,
+  hideWebcam: hideWebcamBubble,
   hideMainWindow,
   showMainWindow,
   onState: (state: AppState) => {

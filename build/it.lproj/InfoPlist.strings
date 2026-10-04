@@ -1,3 +1,4 @@
 /* Italian macOS permission prompts; the English defaults are in electron-builder.yml (mac.extendInfo). */
 NSMicrophoneUsageDescription = "Serve per registrare la tua voce insieme allo schermo.";
+NSCameraUsageDescription = "Serve per mettere la tua webcam in un angolo del video.";
 NSScreenCaptureUsageDescription = "Serve per registrare lo schermo.";

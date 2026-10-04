@@ -125,6 +125,43 @@ describe('buildTimeline', () => {
   const createdAt = new Date(2026, 8, 18, 10, 30, 0)
   const title = `# Traccia — recorded on ${createdAt.toLocaleString('en-US')}`
 
+  describe('with the webcam', () => {
+    const input = {
+      createdAt,
+      format: 'mp4' as const,
+      width: 1000,
+      height: 600,
+      fps: 30,
+      durationMs: 5000,
+      audio: false,
+      t0,
+      samples: [],
+      clicks: [],
+      segments: null,
+      cursorHz: 10,
+      geometry: identity,
+      warnings: []
+    }
+    const layout = [
+      { t: 0, shape: 'circle' as const, corner: 'bottom-right' as const, visible: true, rect: { x: 826, y: 426, width: 156, height: 156 } },
+      { t: 2500, shape: 'circle' as const, corner: 'bottom-right' as const, visible: false, rect: { x: 826, y: 426, width: 156, height: 156 } }
+    ]
+
+    it('points to the clean copy and leaves the layout out', () => {
+      const out = buildTimeline({ ...input, mediaName: 'recording-screen.mp4', webcam: { video: 'recording.mp4', cleanCopy: true, layout } })
+      expect(out).toContain('# Video: recording-screen.mp4')
+      expect(out).toContain('# Webcam: recording.mp4 is the same video with the webcam over a corner, for people; this timeline refers to recording-screen.mp4, without it')
+      expect(out).not.toMatch(/^\d\d:\d\d\.\d{3} webcam /m)
+    })
+
+    it('lists where the webcam covers the screen when the AI reads the video that has it', () => {
+      const out = buildTimeline({ ...input, mediaName: 'recording.mp4', webcam: { video: 'recording.mp4', cleanCopy: false, layout } })
+      expect(out).toContain('# Webcam: laid over a corner of the video')
+      expect(out).toContain('#   mm:ss.mmm webcam <shape> X,Y WxH')
+      expect(out).toContain('00:00.000 webcam circle 826,426 156x156\n00:02.500 webcam hidden\n')
+    })
+  })
+
   it('writes a video timeline with clicks and the words said around them', () => {
     const out = buildTimeline({
       createdAt,
