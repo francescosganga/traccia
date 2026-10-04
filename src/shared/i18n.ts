@@ -297,6 +297,7 @@ const en = {
   'err.captureFailed': 'Could not start capture: {error}.',
   'err.capturePermissionHint': 'Grant the "Screen Recording" permission in System Settings → Privacy & Security and restart the app.',
   'err.recorder': 'MediaRecorder error: {error}',
+  'err.trim': 'Trimming failed: {error}. The recording was left as it was.',
   'warn.clicksNoAccessibility': 'Clicks not recorded: Accessibility permission not granted',
   'warn.clicksHookFailed': 'Clicks not recorded: could not start the mouse hook ({error})',
   'warn.modelMissing': 'Transcription skipped: the Whisper model "{model}" is not installed (Settings → Audio & transcription)',
@@ -317,6 +318,9 @@ const en = {
   'step.extractAudio': 'Extracting audio',
   'step.transcribe': 'Transcribing (Whisper {model})',
   'step.timeline': 'Writing timeline',
+  'step.trimStart': 'Reading the recording',
+  'step.trim': 'Trimming {name}',
+  'step.trimFrames': 'Keeping the frames',
 
   // timeline (.txt) header
   'tl.title': '# Traccia — recorded on {date}',
@@ -690,6 +694,7 @@ const it: Record<TranslationKey, string> = {
   'err.captureFailed': 'Impossibile avviare la cattura: {error}.',
   'err.capturePermissionHint': 'Concedi il permesso "Registrazione schermo" in Impostazioni di Sistema → Privacy e sicurezza e riavvia l\'app.',
   'err.recorder': 'Errore MediaRecorder: {error}',
+  'err.trim': "Taglio non riuscito: {error}. La registrazione è rimasta com'era.",
   'warn.clicksNoAccessibility': 'Click non registrati: permesso Accessibilità non concesso',
   'warn.clicksHookFailed': 'Click non registrati: impossibile avviare il monitor del mouse ({error})',
   'warn.modelMissing': 'Trascrizione saltata: il modello Whisper "{model}" non è installato (Impostazioni → Audio e trascrizione)',
@@ -709,6 +714,9 @@ const it: Record<TranslationKey, string> = {
   'step.extractAudio': 'Estrazione audio',
   'step.transcribe': 'Trascrizione (Whisper {model})',
   'step.timeline': 'Scrittura timeline',
+  'step.trimStart': 'Lettura della registrazione',
+  'step.trim': 'Taglio di {name}',
+  'step.trimFrames': 'Selezione dei frame',
 
   'tl.title': '# Traccia — registrazione del {date}',
   'tl.frames': '# Frame: cartella frames/ ({w}x{h}, {fps} fps, {n} frame{skipped}), durata {duration}',

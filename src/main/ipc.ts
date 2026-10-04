@@ -6,6 +6,7 @@ import { applySettings } from './apply-settings'
 import { getPermissions, openKeyboardShortcuts, openPrivacySettings, requestPermission } from './permissions'
 import { listRecordings, setRecordingTitle } from '../shared/recording-reader'
 import type { RecordingSession } from './session'
+import { recordingMedia } from './trim-recording'
 import { getSettings } from './settings'
 import { setMics } from './tray'
 import * as whisper from './whisper'
@@ -116,6 +117,8 @@ export function registerIpc({ session, startRecording, suspendShortcuts }: IpcDe
   ipcMain.handle('recordings:showInFolder', (_e, p: string) => shell.showItemInFolder(p))
   ipcMain.handle('recordings:open', (_e, p: string) => shell.openPath(p))
   ipcMain.handle('recordings:rename', (_e, dir: string, title: string) => setRecordingTitle(dir, title))
+  ipcMain.handle('recordings:media', (_e, dir: string) => recordingMedia(dir))
+  ipcMain.handle('recordings:trim', (_e, dir: string, fromMs: number, toMs: number) => session.trim(dir, fromMs, toMs))
   ipcMain.handle('recordings:trash', async (_e, dir: string) => {
     await shell.trashItem(dir)
     if (session.state.status === 'done' && session.state.result.dir === dir) session.reset()

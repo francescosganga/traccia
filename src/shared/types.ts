@@ -198,6 +198,25 @@ export interface RecordingResult {
   skippedFrames?: number
   transcriptSegments?: number
   warnings: string[]
+  /** The result of trimming a past recording, not of a new one */
+  trimmed?: boolean
+}
+
+/** What the trim view plays, with absolute paths. */
+export interface RecordingMedia {
+  format: OutputFormat
+  durationMs: number
+  width: number
+  height: number
+  fps: number
+  /** The video people watch (with the webcam, if there is one); null in JPG mode */
+  video: string | null
+  /** audio.m4a of a JPG recording, when there is one */
+  audio: string | null
+  /** JPG frames, oldest first; empty for a video */
+  frames: { path: string; tMs: number }[]
+  /** Trimmed before: original/ already holds the very first version */
+  trimmed: boolean
 }
 
 export interface WhisperModelInfo {

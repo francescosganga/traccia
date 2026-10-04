@@ -159,6 +159,8 @@ export interface RecordingJson {
   cursorHz?: number
   /** Whether mouse clicks were recorded; missing in older recordings */
   clicksTracked?: boolean
+  /** Present once trimmed: the part kept, in ms of the original recording, whose files are in original/ */
+  trimmed?: { fromMs: number; toMs: number }
   /** Present when the webcam was recorded; `media` is then the video without it, if one was saved */
   webcam?: {
     /** Video with the webcam laid over the screen, for people */

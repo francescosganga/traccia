@@ -14,6 +14,7 @@ import type {
   PermissionKind,
   Permissions,
   RecordingEntry,
+  RecordingMedia,
   RecordingRequest,
   Settings,
   SideTrackKind,
@@ -82,6 +83,10 @@ const api = {
     showInFolder: (p: string): Promise<void> => ipcRenderer.invoke('recordings:showInFolder', p),
     open: (p: string): Promise<string> => ipcRenderer.invoke('recordings:open', p),
     rename: (dir: string, title: string): Promise<void> => ipcRenderer.invoke('recordings:rename', dir, title),
+    /** What the trim view plays */
+    media: (dir: string): Promise<RecordingMedia> => ipcRenderer.invoke('recordings:media', dir),
+    /** Keeps the part between the two instants; false when refused because a recording is in progress. Progress and result come as state */
+    trim: (dir: string, fromMs: number, toMs: number): Promise<boolean> => ipcRenderer.invoke('recordings:trim', dir, fromMs, toMs),
     trash: (dir: string): Promise<void> => ipcRenderer.invoke('recordings:trash', dir)
   },
   mics: {
