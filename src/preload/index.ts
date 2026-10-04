@@ -10,6 +10,7 @@ import type {
   EngineStartedInfo,
   LoginItemStatus,
   McpCommands,
+  MicList,
   Permissions,
   RecordingEntry,
   RecordingRequest,
@@ -67,6 +68,8 @@ const api = {
     reset: (): Promise<void> => ipcRenderer.invoke('recording:reset'),
     skipTranscription: (): Promise<void> => ipcRenderer.invoke('recording:skipTranscription'),
     onState: (cb: (s: AppState) => void) => on<AppState>('state', cb),
+    /** Microphone level while recording, 0..1, for the widget */
+    onLevel: (cb: (level: number) => void) => on<number>('recording:level', cb),
     onNavigate: (cb: (page: string) => void) => on<string>('navigate', cb)
   },
   recordings: {
@@ -75,6 +78,9 @@ const api = {
     open: (p: string): Promise<string> => ipcRenderer.invoke('recordings:open', p),
     rename: (dir: string, title: string): Promise<void> => ipcRenderer.invoke('recordings:rename', dir, title),
     trash: (dir: string): Promise<void> => ipcRenderer.invoke('recordings:trash', dir)
+  },
+  mics: {
+    report: (list: MicList) => ipcRenderer.send('mics:report', list)
   },
   region: {
     confirm: (displayId: number, rect: { x: number; y: number; width: number; height: number }) => ipcRenderer.send('region:confirm', { displayId, rect }),
@@ -86,6 +92,7 @@ const api = {
     onStop: (cb: () => void) => on<void>('engine:stop', cb),
     started: (info: EngineStartedInfo) => ipcRenderer.send('engine:started', info),
     chunk: (buf: ArrayBuffer) => ipcRenderer.send('engine:chunk', buf),
+    level: (level: number) => ipcRenderer.send('engine:level', level),
     stopped: () => ipcRenderer.send('engine:stopped'),
     error: (message: string) => ipcRenderer.send('engine:error', message)
   }

@@ -1011,6 +1011,31 @@ input[type='text'] {
   }
 }
 
+/* microphone level: green, because red means recording */
+.meter {
+  height: 4px;
+  background: var(--bg-elev-2);
+  border-radius: var(--r-pill);
+  overflow: hidden;
+}
+.meter > * {
+  display: block;
+  height: 100%;
+  background: var(--ok);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+.mic-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  align-self: flex-start;
+  max-width: 100%;
+}
+.mic-picker select {
+  max-width: 100%;
+}
+
 .spinner {
   width: 16px;
   height: 16px;
@@ -1278,4 +1303,14 @@ input[type='text'] {
   color: var(--text-dim);
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.controls .meta .meter {
+  display: inline-block;
+  width: 40px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+/* the level arrives every 66 ms: the transition fills the gaps */
+.controls .meta .meter > * {
+  transition: transform 66ms linear;
 }

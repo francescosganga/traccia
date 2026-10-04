@@ -1,13 +1,29 @@
-import { StrictMode, useEffect, useState } from 'react'
+import { StrictMode, useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { setLanguage, t } from '../../shared/i18n'
 import type { AppState, RecordingInfo } from '../../shared/types'
 import { formatDuration } from './format'
 
-/** The two choices most often regretted after a long recording: the format and whether the voice is in. */
-function describe(info: RecordingInfo): string {
+/** The two choices most often regretted after a long recording: the format and whether the voice is in, with its level. */
+function Meta({ info }: { info: RecordingInfo }) {
+  const bar = useRef<HTMLSpanElement>(null)
+  useEffect(() => {
+    if (!info.audio) return
+    return window.api.recording.onLevel((level) => {
+      if (bar.current) bar.current.style.transform = `scaleX(${level})`
+    })
+  }, [info.audio])
   const format = info.format === 'jpg' ? `JPG ${info.jpgFps} fps` : info.format.toUpperCase()
-  return `${format} · ${info.audio ? t('controls.mic') : t('controls.noMic')}`
+  return (
+    <div className="meta">
+      {format} · {info.audio ? t('controls.mic') : t('controls.noMic')}
+      {info.audio && (
+        <span className="meter" title={t('mic.level')} aria-hidden="true">
+          <span ref={bar} />
+        </span>
+      )}
+    </div>
+  )
 }
 
 function Controls() {
@@ -46,7 +62,7 @@ function Controls() {
           )}
           {state.status !== 'recording' && state.status !== 'countdown' && <span className="dim">—</span>}
         </div>
-        {info && <div className="meta">{describe(info)}</div>}
+        {info && <Meta info={info} />}
       </div>
       <button className="btn primary stop" onClick={() => window.api.recording.stop()}>
         {t('common.stop')}

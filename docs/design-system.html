@@ -306,7 +306,10 @@
           <div class="icon-block">
             <div class="widget-box">
               <div class="controls">
-                <div class="time"><span class="rec-dot"></span> 00:12</div>
+                <div class="time">
+                  <div class="main"><span class="rec-dot"></span> 00:12</div>
+                  <div class="meta">MP4 · Mic<span class="meter"><span style="transform: scaleX(0.6)"></span></span></div>
+                </div>
                 <button class="btn primary stop">Stop</button>
               </div>
             </div>
@@ -380,11 +383,12 @@
             <div class="row mt-3"><span class="status-icon accent"><svg class="icon"><use href="#i-monitor" /></svg></span><span class="status-icon ok"><svg class="icon"><use href="#i-check" /></svg></span><span class="status-icon bad"><svg class="icon"><use href="#i-alert" /></svg></span><span class="status-icon"><svg class="icon"><use href="#i-file" /></svg></span></div>
           </div>
           <div class="card">
-            <h3>Badges, progress, notices</h3>
+            <h3>Badges, progress, level, notices</h3>
             <div class="stack">
               <div class="row"><span class="badge ok"><span class="dot"></span> In use</span><span class="badge"><span class="dot"></span> Installed</span><span class="badge warn"><span class="dot"></span> Not requested yet</span><span class="badge bad"><span class="dot"></span> Denied</span></div>
               <div class="progress"><div style="width: 63%"></div></div>
               <div class="progress indeterminate"><div></div></div>
+              <div class="meter"><span style="transform: scaleX(0.55)"></span></div>
               <div class="row"><span class="spinner"></span><span class="dim small">Transcribing (Whisper base)</span></div>
               <div class="notice warn"><svg class="icon"><use href="#i-alert" /></svg>Clicks not recorded: Accessibility permission not granted</div>
               <div class="notice error"><svg class="icon"><use href="#i-alert" /></svg>Download failed: network unreachable</div>

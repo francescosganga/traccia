@@ -3,6 +3,7 @@ import { t } from '../../../shared/i18n'
 import type { AppState, CaptureMode, DisplayInfo, OutputFormat, RecordingEntry, RecordingOverrides, Settings } from '../../../shared/types'
 import { Icon } from '../components/Icon'
 import { Menu, type MenuItem } from '../components/Menu'
+import { MicPicker } from '../components/MicPicker'
 import { Segmented } from '../components/Segmented'
 import { formatDate, formatDuration, formatShortcut } from '../format'
 import { FORMATS, JPG_FPS, RESOLUTIONS, resolutionLabel } from '../options'
@@ -245,6 +246,8 @@ export function Home({ settings, state, modelInstalled, platform, goSettings }: 
                     value={choices.audio ? 'mic' : 'none'}
                     onChange={(v) => choose({ audio: v === 'mic' })}
                   />
+                  {/* Unlike the choices above, the device is saved: it is the hardware, not this take */}
+                  {choices.audio && <MicPicker value={settings.micDevice} onChange={(micDevice) => void window.api.settings.update({ micDevice })} />}
                 </div>
               </div>
               <div className="row wrap small dim mt-2">

@@ -93,11 +93,12 @@ Line height 1.5 for text, 1.25 for headings. Weights: 400 body, 500 controls and
 | Inputs | `select`, `input[type=text|number]` | 32 px tall, `--bg-elev-2`, neutral focus glow, never stretched to full width inside a field. |
 | Badge | `.badge(.ok/.warn/.bad) > .dot` | Tinted pill; the dot takes `currentColor`. |
 | Progress / spinner | `.progress(.indeterminate)`, `.spinner` | Red fill; 4 px track. |
+| Level meter | `<MicPicker>` → `.mic-picker > select + .meter`; `.meter > *` | Microphone input level: green (`--ok`), because red means recording; 4 px track like progress, filled with `scaleX()` from the peak on a -60..0 dBFS scale. Under the microphone select in Home and Settings (the microphone is open only while the window has the focus), and 40 px wide in the widget. |
 | Notice | `.notice(.ok/.warn/.error)` | Inline message with icon, selectable text. |
 | Lists | `.list-item`, `.model` | Hairline-separated rows; actions on the right use `.sm` buttons. |
 | Record hero | `.record-panel > .btn.primary.big.record + .hint` | Centred; the hint shows the shortcut of the selected mode as `<kbd>⌘⇧5</kbd>` / `<kbd>⌘⇧4</kbd>` (`formatShortcut`). |
 | Recording panel | `.card.rec-panel > .timer(.rec-dot) + .btn.primary.big.stop` | Shown in the main window while recording. |
-| Floating widget | `.controls > .time(.main .rec-dot, .meta) + .btn.primary.stop` | 320 × 60, overlay background, draggable. Under the timer, the format and whether the microphone is on. |
+| Floating widget | `.controls > .time(.main .rec-dot, .meta) + .btn.primary.stop` | 320 × 60, overlay background, draggable. Under the timer, the format and whether the microphone is on, with its level. |
 | Region frame | `frame.html` → `.region-frame` | Its own click-through window around the region being recorded, 2 px `--rec`, excluded from the capture like the widget. |
 | Region overlay | `.region-root .region-rect .region-size .region-toolbar .region-hint` | 2 px `--rec` frame on a 40 % dim; toolbar = Record (red) + Cancel (neutral). |
 | Wizard | `.wizard .steps(span.done) .feature .actions` | Progress bars in red; features use `.status-icon.accent` with the shared `<Icon>` set. |

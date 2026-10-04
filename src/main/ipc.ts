@@ -1,13 +1,14 @@
 import { app, clipboard, dialog, ipcMain, screen, shell } from 'electron'
-import type { AgentTarget, DisplayInfo, EngineStartedInfo, LoginItemStatus, RecordingRequest, Settings, WhisperModelId } from '../shared/types'
+import type { AgentTarget, DisplayInfo, EngineStartedInfo, LoginItemStatus, MicList, RecordingRequest, Settings, WhisperModelId } from '../shared/types'
 import { agentTargets, installAgent, installAgentInFile, mcpCommands } from './agents'
 import { applySettings } from './apply-settings'
 import { getPermissions, openKeyboardShortcuts, openPrivacySettings, requestPermission } from './permissions'
 import { listRecordings, setRecordingTitle } from '../shared/recording-reader'
 import type { RecordingSession } from './session'
 import { getSettings } from './settings'
+import { setMics } from './tray'
 import * as whisper from './whisper'
-import { broadcast, getMainWindow, resolveRegion, showMainWindow } from './windows'
+import { broadcast, getMainWindow, resolveRegion, sendToControls, showMainWindow } from './windows'
 
 export interface IpcDeps {
   session: RecordingSession
@@ -51,6 +52,7 @@ export function registerIpc({ session, startRecording, suspendShortcuts }: IpcDe
   })
   ipcMain.handle('shortcuts:suspend', (_e, suspended: boolean) => suspendShortcuts(suspended))
   ipcMain.handle('clipboard:write', (_e, text: string) => clipboard.writeText(text))
+  ipcMain.on('mics:report', (_e, list: MicList) => setMics(list))
   ipcMain.handle('app:loginItem', (): LoginItemStatus => {
     if (!app.isPackaged) return { openAtLogin: false, status: 'unknown', packaged: false }
     const s = app.getLoginItemSettings()
@@ -93,6 +95,7 @@ export function registerIpc({ session, startRecording, suspendShortcuts }: IpcDe
   // engine (renderer → main)
   ipcMain.on('engine:started', (_e, info: EngineStartedInfo) => session.onEngineStarted(info))
   ipcMain.on('engine:chunk', (_e, chunk: ArrayBuffer) => session.onEngineChunk(chunk))
+  ipcMain.on('engine:level', (_e, level: number) => sendToControls('recording:level', level))
   ipcMain.on('engine:stopped', () => void session.onEngineStopped())
   ipcMain.on('engine:error', (_e, message: string) => session.onEngineError(message))
 

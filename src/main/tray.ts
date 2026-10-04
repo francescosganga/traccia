@@ -1,7 +1,8 @@
 import { Menu, Tray, app, clipboard, nativeImage, shell, type MenuItemConstructorOptions } from 'electron'
 import { join } from 'path'
 import { locale, t } from '../shared/i18n'
-import type { AppState, OutputFormat, Resolution } from '../shared/types'
+import { findMic, systemDefaultLabel } from '../shared/mics'
+import type { AppState, MicList, OutputFormat, Resolution } from '../shared/types'
 import { formatTime, listRecordings } from '../shared/recording-reader'
 import { applySettings } from './apply-settings'
 import { getSettings } from './settings'
@@ -18,6 +19,7 @@ let tray: Tray | null = null
 let timer: NodeJS.Timeout | null = null
 let actions: TrayActions | null = null
 let lastState: AppState = { status: 'idle' }
+let mics: MicList = { devices: [], defaultLabel: null }
 
 function iconPath(): string {
   const base = app.isPackaged ? join(process.resourcesPath, 'resources') : join(__dirname, '../../resources')
@@ -37,6 +39,14 @@ export function createTray(trayActions: TrayActions): void {
 export async function updateTray(state: AppState): Promise<void> {
   lastState = state
   await refreshTray()
+}
+
+/** The inputs reported by the main window, listed under Microphone. */
+export function setMics(list: MicList): void {
+  // Reported at every focus of the window: rebuild only when something changed
+  if (JSON.stringify(list) === JSON.stringify(mics)) return
+  mics = list
+  void refreshTray()
 }
 
 export async function refreshTray(): Promise<void> {
@@ -63,6 +73,26 @@ export async function refreshTray(): Promise<void> {
     { id: '1080', label: '1080p' },
     { id: '720', label: '720p' },
     { id: '480', label: '480p' }
+  ]
+
+  const chosen = settings.micDevice
+  const connected = chosen ? findMic(chosen, mics.devices) : undefined
+  const micItems: MenuItemConstructorOptions[] = [
+    { label: t('tray.micNone'), type: 'radio', checked: !settings.audio, click: () => applySettings({ audio: false }) },
+    { type: 'separator' },
+    { label: systemDefaultLabel(mics), type: 'radio', checked: settings.audio && !chosen, click: () => applySettings({ audio: true, micDevice: null }) },
+    ...mics.devices.map(
+      (d): MenuItemConstructorOptions => ({
+        label: d.label,
+        type: 'radio',
+        checked: settings.audio && connected?.id === d.id,
+        click: () => applySettings({ audio: true, micDevice: d })
+      })
+    ),
+    // The choice is kept while the device is unplugged, and shown as such
+    ...(chosen && !connected
+      ? [{ label: t('mic.notConnected', { name: chosen.label }), type: 'radio' as const, checked: settings.audio, enabled: false }]
+      : [])
   ]
 
   const recordings = await listRecordings(settings.outputDir, 5).catch(() => [])
@@ -101,7 +131,7 @@ export async function refreshTray(): Promise<void> {
       label: t('tray.resolution'),
       submenu: resolutions.map((r) => radio(settings.resolution, r.id, r.label, (resolution) => applySettings({ resolution })))
     },
-    { label: t('tray.mic'), type: 'checkbox', checked: settings.audio, click: () => applySettings({ audio: !settings.audio }) },
+    { label: t('tray.mic'), submenu: micItems },
     {
       label: t('tray.transcribe'),
       type: 'checkbox',

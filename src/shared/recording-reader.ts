@@ -67,6 +67,7 @@ export const SETTINGS_DEFAULTS: Omit<Settings, 'outputDir'> = {
   jpgFps: 2,
   skipUnchangedFrames: true,
   audio: true,
+  micDevice: null,
   transcribe: true,
   whisperModel: 'base',
   speechLanguage: 'auto',

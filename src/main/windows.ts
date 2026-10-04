@@ -172,6 +172,11 @@ export function showControls(display: Display): void {
   load(controls, 'controls')
 }
 
+/** Sends an event to the widget only: the microphone level arrives many times a second. */
+export function sendToControls(channel: string, payload?: unknown): void {
+  if (controls && !controls.isDestroyed()) controls.webContents.send(channel, payload)
+}
+
 export function hideControls(): void {
   if (controls && !controls.isDestroyed()) controls.close()
   controls = null

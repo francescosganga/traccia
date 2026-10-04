@@ -172,7 +172,7 @@ export class RecordingSession {
     }
 
     this.setState({ status: 'countdown', seconds: 0, info })
-    engine.send('engine:start', { audio: settings.audio, frameRate: FRAME_RATE })
+    engine.send('engine:start', { audio: settings.audio, micDevice: settings.micDevice, frameRate: FRAME_RATE })
     this.startTimer = setTimeout(() => {
       if (this.state.status === 'countdown') this.fail(t('err.engineTimeout'))
     }, ENGINE_START_TIMEOUT)
@@ -288,6 +288,7 @@ export class RecordingSession {
     const info = this.info!
     const durationMs = this.stoppedAt - info.t0
     const warnings = [...tracking.warnings]
+    if (info.micFallback && settings.micDevice) warnings.push(t('warn.micFallback', { name: settings.micDevice.label }))
     const g = this.geometry()
     const format: OutputFormat = settings.format
 

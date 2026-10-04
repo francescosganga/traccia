@@ -26,6 +26,8 @@ export interface Settings {
   skipUnchangedFrames: boolean
   /** Record the microphone */
   audio: boolean
+  /** Microphone to record; null follows the system default */
+  micDevice: MicDevice | null
   /** Run Whisper on the recorded audio */
   transcribe: boolean
   whisperModel: WhisperModelId
@@ -54,6 +56,22 @@ export interface Settings {
   startHiddenAtLogin: boolean
   /** Show the app icon in the Dock (macOS). Off = menu-bar-only app */
   showInDock: boolean
+}
+
+/**
+ * An audio input as the renderer lists it. Device ids are salted per origin (the dev
+ * server and the packaged app see different ones), so the label finds it again.
+ */
+export interface MicDevice {
+  id: string
+  label: string
+}
+
+/** The inputs the main window sees, reported to the main process for the tray menu. */
+export interface MicList {
+  devices: MicDevice[]
+  /** Label of the input the system uses by default, when known */
+  defaultLabel: string | null
 }
 
 export interface LoginItemStatus {
@@ -261,6 +279,7 @@ export interface RecordingEntry {
 /** Sent from main to the recorder engine living in the main window's renderer */
 export interface EngineStartCommand {
   audio: boolean
+  micDevice: MicDevice | null
   frameRate: number
 }
 
@@ -271,4 +290,6 @@ export interface EngineStartedInfo {
   height: number
   mimeType: string
   hasAudio: boolean
+  /** The chosen microphone was not connected and the system default was recorded */
+  micFallback: boolean
 }

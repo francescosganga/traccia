@@ -3,6 +3,7 @@ import { t, type TranslationKey } from '../../../shared/i18n'
 import type { LoginItemStatus, Settings, SpeechLanguage } from '../../../shared/types'
 import { AgentsPanel } from '../components/AgentsPanel'
 import { LanguagePicker } from '../components/LanguagePicker'
+import { MicPicker } from '../components/MicPicker'
 import { ModelManager } from '../components/ModelManager'
 import { NumberField } from '../components/NumberField'
 import { ShortcutSettings } from '../components/ShortcutSettings'
@@ -192,6 +193,11 @@ export function SettingsPage({ settings, update, jump, onSection }: Props) {
         <div className="card" id="settings-audio">
           <h3>{t('settings.audioSection')}</h3>
           <Toggle label={t('settings.recordMic')} value={settings.audio} onChange={(v) => update({ audio: v })} />
+          <div className="field mt-4">
+            <label>{t('settings.micDevice')}</label>
+            <MicPicker value={settings.micDevice} disabled={!settings.audio} onChange={(micDevice) => void update({ micDevice })} />
+            <span className="hint">{t('settings.micDeviceHint')}</span>
+          </div>
           <Toggle
             label={t('settings.transcribe')}
             hint={t('settings.transcribeHint')}

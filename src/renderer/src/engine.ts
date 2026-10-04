@@ -5,6 +5,7 @@
  */
 
 import { t } from '../../shared/i18n'
+import { levelMeter, openMic, type LevelMeter } from './audio'
 
 const MIME_CANDIDATES = [
   'video/webm;codecs=h264,opus',
@@ -19,6 +20,9 @@ function pickMimeType(): string {
   return ''
 }
 
+// How often the widget receives the microphone level while recording
+const LEVEL_INTERVAL = 66
+
 function bitrateFor(width: number, height: number): number {
   return Math.max(2_000_000, Math.min(40_000_000, Math.round(width * height * 30 * 0.1)))
 }
@@ -27,8 +31,14 @@ export function installEngine(): void {
   let recorder: MediaRecorder | null = null
   let streams: MediaStream[] = []
   let queue: Promise<void> = Promise.resolve()
+  let meter: LevelMeter | null = null
+  let levelTimer: ReturnType<typeof setInterval> | null = null
 
   const cleanup = () => {
+    if (levelTimer) clearInterval(levelTimer)
+    levelTimer = null
+    meter?.close()
+    meter = null
     for (const s of streams) for (const t of s.getTracks()) t.stop()
     streams = []
     recorder = null
@@ -45,15 +55,16 @@ export function installEngine(): void {
       const tracks: MediaStreamTrack[] = [videoTrack]
 
       let hasAudio = false
+      let micFallback = false
       if (cmd.audio) {
         try {
-          const mic = await navigator.mediaDevices.getUserMedia({
-            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-            video: false
-          })
-          streams.push(mic)
-          tracks.push(...mic.getAudioTracks())
+          const mic = await openMic(cmd.micDevice)
+          streams.push(mic.stream)
+          tracks.push(...mic.stream.getAudioTracks())
           hasAudio = true
+          micFallback = mic.fallback
+          // Measured on the recorded track itself: a microphone denied silently shows as a flat bar
+          meter = levelMeter(mic.stream)
         } catch (e) {
           console.warn('microphone unavailable, recording without audio', e)
         }
@@ -73,7 +84,11 @@ export function installEngine(): void {
         // Keep chunk order deterministic even though arrayBuffer() is async.
         queue = queue.then(async () => window.api.engine.chunk(await e.data.arrayBuffer()))
       }
-      rec.onstart = () => window.api.engine.started({ t0: Date.now(), width, height, mimeType: rec.mimeType || mimeType, hasAudio })
+      rec.onstart = () => {
+        window.api.engine.started({ t0: Date.now(), width, height, mimeType: rec.mimeType || mimeType, hasAudio, micFallback })
+        // setInterval, not requestAnimationFrame: this window is hidden while recording
+        if (meter) levelTimer = setInterval(() => meter && window.api.engine.level(meter.read()), LEVEL_INTERVAL)
+      }
       rec.onerror = (e) => {
         cleanup()
         window.api.engine.error(t('err.recorder', { error: (e as unknown as { error?: Error }).error?.message ?? 'unknown' }))
