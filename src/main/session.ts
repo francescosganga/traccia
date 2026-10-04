@@ -1,6 +1,6 @@
 import { desktopCapturer, screen, session as electronSession, systemPreferences, type Display, type WebContents } from 'electron'
 import { createWriteStream, type WriteStream } from 'fs'
-import { mkdir, rm, writeFile } from 'fs/promises'
+import { mkdir, rename, rm, writeFile } from 'fs/promises'
 import { basename, join } from 'path'
 import type {
   AppState,
@@ -417,6 +417,25 @@ export class RecordingSession {
     await runFfmpeg(args, { durationMs, onProgress: (p) => this.progress({ step, progress: p }) })
   }
 
+  /**
+   * webcam.webm as MediaRecorder wrote it has no index, so a player cannot seek in it: written
+   * again with one (a copy of the stream, no encoding). Undefined, and the file left to be
+   * deleted, when that fails: the editor will only be able to hide the webcam.
+   */
+  private async keepWebcamTrack(): Promise<{ file: string; offsetMs: number } | undefined> {
+    const src = this.sides.webcam.path
+    const indexed = join(this.dir, 'webcam-indexed.webm')
+    try {
+      await runFfmpeg(['-i', src, '-map', '0:v', '-c', 'copy', indexed])
+      await rename(indexed, src)
+      return { file: basename(src), offsetMs: Math.round(this.sides.webcam.offset(this.info!.t0) * 1000) }
+    } catch (e) {
+      console.error('cannot keep the webcam track', src, e)
+      await rm(indexed, { force: true })
+      return undefined
+    }
+  }
+
   private async process(tracking: {
     samples: CursorSample[]
     clicks: ClickEvent[]
@@ -535,6 +554,9 @@ export class RecordingSession {
       }
     }
 
+    // Beside a video without it, the webcam's own track lets the editor lay it again
+    const webcamTrack = placed && mediaPath !== videoPath ? await this.keepWebcamTrack() : undefined
+
     this.progress({ step: t('step.timeline'), progress: -1 })
     const txtPath = join(this.dir, 'recording.txt')
     const rawTxtPath = join(this.dir, 'recording-raw.txt')
@@ -606,14 +628,15 @@ export class RecordingSession {
       words,
       frames,
       skippedFrames: skipped,
-      webcam: placed ? { video: basename(videoPath), layout: placed } : undefined,
+      webcam: placed ? { video: basename(videoPath), layout: placed, track: webcamTrack } : undefined,
       cursorHz: settings.cursorHz,
       clicksTracked: tracking.clicksTracked,
       warnings
     }
     await writeFile(jsonPath, JSON.stringify(json), 'utf8')
     await rm(this.rawPath, { force: true })
-    for (const side of Object.values(this.sides)) await side.remove()
+    await this.sides.systemAudio.remove()
+    if (!json.webcam?.track) await this.sides.webcam.remove()
 
     return {
       dir: this.dir,

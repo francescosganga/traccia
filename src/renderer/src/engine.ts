@@ -19,7 +19,7 @@ const MIME_CANDIDATES = [
 
 const SYSTEM_AUDIO_MIME_CANDIDATES = ['audio/webm;codecs=opus', 'audio/webm']
 
-// The webcam file is an intermediate, deleted once composited: VP8 is cheap to encode
+// The webcam file is laid over the screen afterwards (and kept for the editor): VP8 is cheap to encode
 const WEBCAM_MIME_CANDIDATES = ['video/webm;codecs=vp8', 'video/webm']
 const WEBCAM_BITRATE = 2_500_000
 
