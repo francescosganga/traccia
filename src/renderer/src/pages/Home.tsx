@@ -10,6 +10,7 @@ import { WebcamPicker } from '../components/WebcamPicker'
 import { formatDate, formatDuration, formatShortcut } from '../format'
 import { FORMATS, JPG_FPS, RESOLUTIONS, resolutionLabel } from '../options'
 import type { SettingsSection } from './Settings'
+import { TrimView } from './Trim'
 
 interface Props {
   settings: Settings
@@ -51,6 +52,8 @@ export function Home({ settings, state, modelInstalled, platform, goSettings }: 
   const [choices, setChoices] = useState<Choices>(() => defaultsOf(settings))
   // Folder of the recording whose name is being edited
   const [renaming, setRenaming] = useState<string | null>(null)
+  // The recording being trimmed: the trim view takes the place of the page
+  const [trimming, setTrimming] = useState<{ dir: string; name: string } | null>(null)
 
   const refreshRecordings = () => void window.api.recordings.list().then(setRecordings)
   const choose = (patch: Partial<Choices>) => setChoices((c) => ({ ...c, ...patch }))
@@ -74,6 +77,10 @@ export function Home({ settings, state, modelInstalled, platform, goSettings }: 
   const start = () => void window.api.recording.start({ mode, displayId, overrides: choices })
   const reveal = platform === 'darwin' ? t('home.revealMac') : t('home.revealOther')
   const busy = state.status === 'processing' || state.status === 'recording' || state.status === 'countdown' || state.status === 'selecting'
+  // A recording started from the tray or a shortcut closes the trim view: its result shows here
+  useEffect(() => {
+    if (busy) setTrimming(null)
+  }, [busy])
   const shortcut = settings.shortcutsEnabled ? formatShortcut(mode === 'region' ? settings.shortcutRegion : settings.shortcutScreen, platform) : null
   const modelMissing = choices.audio && settings.transcribe && !modelInstalled
   const countdown = settings.countdown > 0 ? t('home.seconds', { n: settings.countdown }) : t('home.off')
@@ -97,6 +104,8 @@ export function Home({ settings, state, modelInstalled, platform, goSettings }: 
     { label: t('home.openTxt'), onSelect: () => void window.api.recordings.open(r.txtPath) },
     { label: t('home.openRawTxt'), onSelect: () => void window.api.recordings.open(r.rawTxtPath) },
     ...(r.format !== 'jpg' ? [{ label: t('home.openVideo'), onSelect: () => void window.api.recordings.open(r.videoPath) }] : []),
+    // Not while recording or processing: the main process would refuse it
+    ...(!busy ? [{ label: t('home.trim'), onSelect: () => setTrimming({ dir: r.dir, name: r.name }) }] : []),
     { label: t('home.rename'), onSelect: () => setRenaming(r.dir) },
     { label: t('home.trash'), onSelect: () => void trash(r), danger: true }
   ]
@@ -104,6 +113,17 @@ export function Home({ settings, state, modelInstalled, platform, goSettings }: 
   const done = state.status === 'done' ? state.result : null
   // The list, refreshed when the recording ends, carries the name given to it
   const doneEntry = done ? recordings.find((r) => r.dir === done.dir) : undefined
+  const doneLabel = done?.trimmed ? t('home.trimmed') : t('home.done')
+
+  if (trimming) {
+    return (
+      <div className="content">
+        <div className="content-inner">
+          <TrimView dir={trimming.dir} name={trimming.name} onClose={() => setTrimming(null)} />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="content">
@@ -139,14 +159,14 @@ export function Home({ settings, state, modelInstalled, platform, goSettings }: 
               <span className="status-icon ok">
                 <Icon name="check" />
               </span>
-              <h2>{doneEntry?.title || t('home.done')}</h2>
+              <h2>{doneEntry?.title || doneLabel}</h2>
               {dismiss}
             </div>
             {renaming === done.dir && (
               <NameEditor className="mt-3" initial={doneEntry?.title ?? ''} onSave={(title) => void rename(done.dir, title)} onCancel={() => setRenaming(null)} />
             )}
             <p className="dim mt-2">
-              {doneEntry?.title ? `${t('home.done')} · ` : ''}
+              {doneEntry?.title ? `${doneLabel} · ` : ''}
               {formatDuration(done.durationMs)} · {done.width}×{done.height} · {done.format.toUpperCase()}
               {done.frames !== undefined && ` · ${t('home.frames', { n: done.frames })}${done.skippedFrames ? ' ' + t('home.skipped', { n: done.skippedFrames }) : ''}`}
               {done.transcriptSegments !== undefined && ` · ${t('home.segments', { n: done.transcriptSegments })}`}

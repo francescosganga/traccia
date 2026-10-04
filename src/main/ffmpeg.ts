@@ -46,6 +46,22 @@ export function runFfmpeg(args: string[], opts: RunOptions = {}): Promise<string
   })
 }
 
+/** Runs ffmpeg and resolves with what it wrote to `pipe:1`. */
+export function ffmpegOutput(args: string[]): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(ffmpegPath(), ['-hide_banner', '-nostats', '-loglevel', 'error', ...args])
+    const chunks: Buffer[] = []
+    let stderr = ''
+    child.stdout.on('data', (d: Buffer) => chunks.push(d))
+    child.stderr.on('data', (d) => (stderr += d.toString()))
+    child.on('error', reject)
+    child.on('close', (code) => {
+      if (code === 0) resolve(Buffer.concat(chunks))
+      else reject(new Error(`ffmpeg exited with code ${code}: ${stderr.trim().slice(-800)}`))
+    })
+  })
+}
+
 /** Loudest sample of a file's audio in dBFS (about -91 for digital silence), or null when it cannot be read. */
 export function maxVolume(path: string): Promise<number | null> {
   return new Promise((resolve) => {

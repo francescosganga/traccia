@@ -127,6 +127,15 @@ export function trimVideoArgs(input: string, output: string, from: number, to: n
   ]
 }
 
+/** ffmpeg arguments for a JPEG of the frame on screen at `t`, `height` pixels high, on stdout; the seek is the one of trimVideoArgs. */
+export function thumbnailArgs(input: string, t: number, fps: number, height: number): string[] {
+  return [
+    '-noaccurate_seek', '-ss', sec(t), '-i', input, '-an',
+    '-vf', `fps=${fps},trim=start=0,scale=-2:${height}`,
+    '-frames:v', '1', '-q:v', '5', '-f', 'image2pipe', '-c:v', 'mjpeg', 'pipe:1'
+  ]
+}
+
 /** ffmpeg arguments that cut [from, to) out of audio.m4a; audio has no gaps, so the default accurate seek is right. */
 export function trimAudioArgs(input: string, output: string, from: number, to: number): string[] {
   return ['-ss', sec(from), '-i', input, '-t', sec(to - from), '-vn', '-c:a', 'aac', '-b:a', '128k', output]

@@ -215,6 +215,10 @@ export interface RecordingMedia {
   audio: string | null
   /** JPG frames, oldest first; empty for a video */
   frames: { path: string; tMs: number }[]
+  /** Transcript phrases (seconds, as in recording.json); empty without a transcript */
+  transcript: TranscriptSegment[]
+  /** Mouse clicks, ms from the start */
+  clicks: { t: number; button: 'left' | 'right' | 'middle' }[]
   /** Trimmed before: original/ already holds the very first version */
   trimmed: boolean
 }

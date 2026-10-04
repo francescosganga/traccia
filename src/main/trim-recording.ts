@@ -4,9 +4,9 @@ import { join } from 'path'
 import { t } from '../shared/i18n'
 import { listFrames, readRecordingJson, type RecordingJson } from '../shared/recording-reader'
 import type { ProcessingProgress, RecordingMedia, RecordingResult } from '../shared/types'
-import { runFfmpeg, videoCodecArgs } from './ffmpeg'
+import { ffmpegOutput, runFfmpeg, videoCodecArgs } from './ffmpeg'
 import { recordingTexts, textsInputFromJson } from './texts'
-import { keptFrames, trimAudioArgs, trimRange, trimRecordingJson, trimVideoArgs } from './trim'
+import { keptFrames, thumbnailArgs, trimAudioArgs, trimRange, trimRecordingJson, trimVideoArgs } from './trim'
 
 /** Folder inside a trimmed recording with its files as they were before the first trim. */
 export const ORIGINAL_DIR = 'original'
@@ -158,6 +158,40 @@ export async function recordingMedia(dir: string): Promise<RecordingMedia> {
     video: video ? join(dir, video) : null,
     audio: meta.format === 'jpg' && existsSync(audio) ? audio : null,
     frames: listFrames(dir, meta).map(({ path, tMs }) => ({ path, tMs })),
+    transcript: meta.transcript ?? [],
+    clicks: meta.clicks.map(({ t, button }) => ({ t, button })),
     trimmed: meta.trimmed !== undefined
+  }
+}
+
+// Twice the height of the strip on a Retina screen
+const THUMBNAIL_HEIGHT = 96
+// The trim view asks for a whole strip at once: a few ffmpeg at a time
+const THUMBNAIL_JOBS = 3
+let thumbnailJobs = 0
+const thumbnailQueue: (() => void)[] = []
+
+async function oneOfFew<T>(job: () => Promise<T>): Promise<T> {
+  if (thumbnailJobs >= THUMBNAIL_JOBS) await new Promise<void>((resolve) => thumbnailQueue.push(resolve))
+  thumbnailJobs++
+  try {
+    return await job()
+  } finally {
+    thumbnailJobs--
+    thumbnailQueue.shift()?.()
+  }
+}
+
+/** The frame of the video on screen at `tMs`, small, as a data URL for the trim timeline; null when there is none. */
+export async function recordingThumbnail(dir: string, tMs: number): Promise<string | null> {
+  const meta = await readRecordingJson(dir)
+  const video = videoFiles(dir, meta).pop()
+  if (!video) return null
+  try {
+    const jpeg = await oneOfFew(() => ffmpegOutput(thumbnailArgs(join(dir, video), tMs, meta.fps, THUMBNAIL_HEIGHT)))
+    return jpeg.length ? `data:image/jpeg;base64,${jpeg.toString('base64')}` : null
+  } catch (e) {
+    console.error('thumbnail failed', dir, tMs, e)
+    return null
   }
 }

@@ -43,6 +43,9 @@
   --amber-500: #f5a524;
   --amber-a12: rgba(245, 165, 36, 0.12);
 
+  /* ---- primitives: black alpha (what lies outside a selection) ---- */
+  --black-a50: rgba(0, 0, 0, 0.5);
+
   /* ---- primitives: white alpha (hover / selection on dark surfaces) ---- */
   --w-a05: rgba(255, 255, 255, 0.05);
   --w-a08: rgba(255, 255, 255, 0.08);
@@ -61,6 +64,7 @@
   --hover: var(--w-a05);
   --selected: var(--w-a08);
   --selected-strong: var(--w-a12);
+  --dim: var(--black-a50);
 
   /* ---- semantic: text ---- */
   --text: var(--n-50);
@@ -1091,6 +1095,190 @@ input[type='text'] {
   pointer-events: none;
   background: var(--text-muted);
   transition: left var(--dur) var(--ease), top var(--dur) var(--ease);
+}
+
+/* trim view: the player, then the position slider with the part kept lit between --from and --to */
+.trim-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: min(30vh, 280px);
+  overflow: hidden;
+  background: var(--bg-elev-2);
+  border-radius: var(--r-md);
+}
+.trim-stage video,
+.trim-stage img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+}
+.trim-time {
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* trim timeline: ruler, thumbnail strip and lanes on one axis; the content is as wide as the zoom */
+.timeline-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-top: var(--sp-3);
+}
+.timeline-zoom {
+  display: flex;
+  gap: var(--sp-1);
+  margin-left: auto;
+}
+.timeline {
+  margin-top: var(--sp-2);
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: var(--bg-elev-2);
+  border-radius: var(--r-md);
+  user-select: none;
+}
+.timeline-content {
+  position: relative;
+  min-width: 100%;
+  /* labels and blocks near the end must not make it scrollable at zoom 1 */
+  overflow: hidden;
+  touch-action: none;
+}
+.timeline-ruler {
+  position: relative;
+  height: 20px;
+}
+.timeline-ruler span {
+  position: absolute;
+  top: 4px;
+  padding-left: 4px;
+  border-left: 1px solid var(--border-strong);
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  line-height: 14px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.timeline-lanes {
+  position: relative;
+  padding-bottom: var(--sp-1);
+}
+.timeline-strip {
+  position: relative;
+  height: 48px;
+  overflow: hidden;
+  background: var(--bg-elev);
+}
+.timeline-tile {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  overflow: hidden;
+  border-right: 1px solid var(--bg-elev-2);
+}
+.timeline-tile img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.timeline-lane {
+  position: relative;
+  height: 20px;
+  margin-top: var(--sp-1);
+}
+.timeline-lane.clicks {
+  height: 12px;
+}
+.timeline-lane.speech span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  padding: 0 3px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--selected-strong);
+  color: var(--text-dim);
+  font-size: var(--fs-xs);
+  line-height: 20px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.timeline-lane.clicks span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--text-dim);
+}
+/* the parts cut are dimmed; the part kept is framed, with a grip at each end */
+.timeline-cut {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--dim);
+  pointer-events: none;
+}
+.timeline-keep {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border: 2px solid var(--text);
+  border-radius: var(--r-sm);
+  pointer-events: none;
+}
+.timeline-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 12px;
+  background: var(--text);
+  cursor: ew-resize;
+}
+.timeline-handle.start {
+  border-radius: var(--r-sm) 0 0 var(--r-sm);
+}
+.timeline-handle.end {
+  transform: translateX(-100%);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+}
+.timeline-handle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 5px;
+  width: 2px;
+  height: 16px;
+  margin-top: -8px;
+  border-radius: 1px;
+  background: var(--bg-elev-2);
+}
+.timeline-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--accent);
+  pointer-events: none;
+}
+.timeline-playhead::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: -4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.time-field {
+  width: 120px;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
 }
 
 .spinner {
