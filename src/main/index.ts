@@ -4,6 +4,7 @@ import { applyDockVisibility, onSettingsApplied } from './apply-settings'
 import { setupAutotest } from './autotest'
 import { notifyControlState, startControlServer, stopControlServer } from './control'
 import { registerIpc } from './ipc'
+import { handleMediaProtocol, registerMediaScheme } from './media-protocol'
 import { rememberLaunchPermissions } from './permissions'
 import { setupScreenshots, useScreenshotProfile } from './screenshots'
 import { RecordingSession } from './session'
@@ -36,6 +37,7 @@ if (process.platform === 'darwin') app.commandLine.appendSwitch('enable-features
 if (process.env.TRACCIA_USER_DATA) app.setPath('userData', process.env.TRACCIA_USER_DATA)
 // Before the lock: it is tied to userData, so a screenshot run on its own profile can coexist with the running app
 useScreenshotProfile()
+registerMediaScheme()
 if (!app.requestSingleInstanceLock()) {
   app.quit()
 }
@@ -123,6 +125,7 @@ const autotestState = setupAutotest((req) => startRecording(req), () => session.
 app.whenReady().then(() => {
   const settings = getSettings()
   rememberLaunchPermissions()
+  handleMediaProtocol()
   registerIpc({ session, startRecording, suspendShortcuts: (off) => (off ? globalShortcut.unregisterAll() : registerShortcuts(getSettings())) })
   startControlServer({ session, startRecording })
   onSettingsApplied((s, patch) => {
