@@ -50,8 +50,8 @@ export function webcamRadius(shape: WebcamShape, height: number): number {
 }
 
 /** Drops events that change nothing, so the compositing graph stays as small as the changes. */
-export function compactLayout(events: WebcamLayoutEvent[]): WebcamLayoutEvent[] {
-  const out: WebcamLayoutEvent[] = []
+export function compactLayout<T extends WebcamLayoutEvent>(events: T[]): T[] {
+  const out: T[] = []
   for (const e of [...events].sort((a, b) => a.t - b.t)) {
     const last = out[out.length - 1]
     if (last && last.t === e.t) out[out.length - 1] = e

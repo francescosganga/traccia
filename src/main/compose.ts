@@ -35,8 +35,11 @@ function piecewise(segments: Segment[], value: (s: Segment) => number): string {
 }
 
 export interface WebcamGraphInput {
-  /** Crop and scale of the screen (input 0), as for the video without the webcam */
+  /** Crop and scale of the screen, as for the video without the webcam */
   screenFilters: string[]
+  /** Labels of the screen and of the webcam in the graph: inputs 0 and 1 unless given */
+  screen?: string
+  webcam?: string
   layout: WebcamLayoutEvent[]
   width: number
   height: number
@@ -46,11 +49,11 @@ export interface WebcamGraphInput {
 
 /**
  * filter_complex with the screen as input 0 and the webcam as input 1 (already shifted to
- * the screen's clock with -itsoffset); the result is labelled [vout]. Each shape used gets
- * one branch: cropped to its aspect, scaled, masked, then overlaid only while it is shown,
- * at the corner of the moment. Null when the webcam is never visible.
+ * the screen's clock with -itsoffset), or the two labels given; the result is labelled [vout].
+ * Each shape used gets one branch: cropped to its aspect, scaled, masked, then overlaid only
+ * while it is shown, at the corner of the moment. Null when the webcam is never visible.
  */
-export function webcamGraph({ screenFilters, layout, width, height, durationMs }: WebcamGraphInput): string | null {
+export function webcamGraph({ screenFilters, screen = '[0:v]', webcam = '[1:v]', layout, width, height, durationMs }: WebcamGraphInput): string | null {
   const placed = placeLayout(layout, width, height)
   const byShape = new Map<WebcamShape, Segment[]>()
   placed.forEach((e, i) => {
@@ -61,10 +64,10 @@ export function webcamGraph({ screenFilters, layout, width, height, durationMs }
   })
   if (byShape.size === 0) return null
 
-  const parts = [`[0:v]${screenFilters.length ? screenFilters.join(',') : 'null'}[base]`]
+  const parts = [`${screen}${screenFilters.length ? screenFilters.join(',') : 'null'}[base]`]
   const shapes = [...byShape.keys()]
   const branches = shapes.map((_, i) => `[c${i}]`)
-  parts.push(`[1:v]trim=end=${sec(durationMs)}${shapes.length > 1 ? `,split=${shapes.length}` : ''}${branches.join('')}`)
+  parts.push(`${webcam}trim=end=${sec(durationMs)}${shapes.length > 1 ? `,split=${shapes.length}` : ''}${branches.join('')}`)
   let below = '[base]'
   shapes.forEach((shape, i) => {
     const segments = byShape.get(shape)!
