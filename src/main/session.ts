@@ -25,7 +25,7 @@ import type { WebcamLayout, WebcamLayoutEvent } from '../shared/webcam'
 import { placeLayout, systemAudioFilter, webcamGraph, type PlacedLayout } from './compose'
 import { CursorTracker } from './cursor'
 import { SideTrack } from './side-track'
-import { h264Encoder, h264EncoderArgs, maxVolume, runFfmpeg } from './ffmpeg'
+import { h264Encoder, h264EncoderArgs, maxVolume, runFfmpeg, videoCodecArgs, VP9_ARGS } from './ffmpeg'
 import { extractFrames } from './frames'
 import { getPermissions, openPrivacySettings, requestPermission } from './permissions'
 import { getSettings } from './settings'
@@ -61,8 +61,6 @@ const even = (n: number) => Math.max(2, Math.floor(n / 2) * 2)
 
 // Below this peak (dBFS) the system audio counts as silent: nothing played, or macOS handed over nothing
 const SILENCE_DB = -80
-
-const VP9_ARGS = ['-c:v', 'libvpx-vp9', '-deadline', 'realtime', '-cpu-used', '8', '-row-mt', '1', '-crf', '32', '-b:v', '0']
 
 export class RecordingSession {
   state: AppState = { status: 'idle' }
@@ -397,9 +395,7 @@ export class RecordingSession {
     const audio = this.audioPlan(systemAudio, 2, durationMs)
     const args = ['-i', this.rawPath, '-itsoffset', offset, '-i', this.sides.webcam.path, ...audio.inputs]
     args.push('-filter_complex', audio.filter ? `${graph};${audio.filter}` : graph, '-map', '[vout]', '-map', audio.map)
-    if (format === 'webm') args.push(...VP9_ARGS, '-c:a', 'libopus')
-    else args.push(...h264EncoderArgs(await h264Encoder(), g.outWidth, g.outHeight), '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart')
-    args.push(out)
+    args.push(...(await videoCodecArgs(format, g.outWidth, g.outHeight)), out)
     await runFfmpeg(args, { durationMs, onProgress: (p) => this.progress({ step, progress: p }) })
   }
 

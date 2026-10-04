@@ -1,5 +1,6 @@
 import { spawn } from 'child_process'
 import { app } from 'electron'
+import type { OutputFormat } from '../shared/types'
 
 /** Path of the bundled ffmpeg binary (unpacked from asar in production). TRACCIA_FFMPEG overrides it. */
 export function ffmpegPath(): string {
@@ -87,4 +88,12 @@ export function h264EncoderArgs(encoder: string, width: number, height: number):
     return ['-c:v', 'h264_videotoolbox', '-b:v', String(bitrate), '-profile:v', 'high', '-pix_fmt', 'yuv420p']
   }
   return ['-c:v', 'libx264', '-preset', 'veryfast', '-crf', '21', '-pix_fmt', 'yuv420p']
+}
+
+export const VP9_ARGS = ['-c:v', 'libvpx-vp9', '-deadline', 'realtime', '-cpu-used', '8', '-row-mt', '1', '-crf', '32', '-b:v', '0']
+
+/** Video and audio codecs of a recording.<format> that is encoded again: VP9 and Opus for WebM, H.264 and AAC otherwise. */
+export async function videoCodecArgs(format: OutputFormat, width: number, height: number): Promise<string[]> {
+  if (format === 'webm') return [...VP9_ARGS, '-c:a', 'libopus']
+  return [...h264EncoderArgs(await h264Encoder(), width, height), '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart']
 }
