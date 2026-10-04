@@ -1,9 +1,10 @@
 import { desktopCapturer, screen, session as electronSession, systemPreferences, type Display, type WebContents } from 'electron'
 import { createWriteStream, type WriteStream } from 'fs'
-import { mkdir, rm, stat, writeFile } from 'fs/promises'
+import { mkdir, rm, writeFile } from 'fs/promises'
 import { basename, join } from 'path'
 import type {
   AppState,
+  SideTrackKind,
   ClickEvent,
   CursorSample,
   EngineStartedInfo,
@@ -23,6 +24,7 @@ import type { RecordingJson } from '../shared/recording-reader'
 import type { WebcamLayout, WebcamLayoutEvent } from '../shared/webcam'
 import { placeLayout, webcamGraph, type PlacedLayout } from './compose'
 import { CursorTracker } from './cursor'
+import { SideTrack } from './side-track'
 import { h264Encoder, h264EncoderArgs, runFfmpeg } from './ffmpeg'
 import { extractFrames } from './frames'
 import { getPermissions, openPrivacySettings } from './permissions'
@@ -74,10 +76,8 @@ export class RecordingSession {
   private countdownAbort = false
   private overrides: RecordingOverrides = {}
   private transcribing = false
-  private webcamPath = ''
-  private webcamFile: WriteStream | null = null
-  /** Epoch ms of the webcam recorder's start, to line it up with the screen */
-  private webcamT0: number | null = null
+  /** Tracks recorded beside the screen, each to its own file */
+  private sides: Record<SideTrackKind, SideTrack> = { webcam: new SideTrack() }
   /** Shape, corner and visibility over time, ms from the start of the recording */
   private layout: WebcamLayoutEvent[] = []
 
@@ -124,9 +124,8 @@ export class RecordingSession {
     this.host.hideWebcam()
   }
 
-  private closeWebcamFile(): void {
-    this.webcamFile?.close()
-    this.webcamFile = null
+  private closeSideFiles(): void {
+    for (const side of Object.values(this.sides)) side.close()
   }
 
   get isBusy(): boolean {
@@ -162,11 +161,10 @@ export class RecordingSession {
     await mkdir(this.dir, { recursive: true })
     this.rawPath = join(this.dir, 'raw.webm')
     this.file = createWriteStream(this.rawPath)
-    this.webcamT0 = null
     const webcam = this.webcamWanted()
-    this.webcamPath = webcam ? join(this.dir, 'webcam.webm') : ''
+    if (webcam) this.sides.webcam.open(join(this.dir, 'webcam.webm'))
+    else this.sides.webcam.clear()
     if (webcam) {
-      this.webcamFile = createWriteStream(this.webcamPath)
       this.layout = [{ t: 0, shape: settings.webcamShape, corner: settings.webcamCorner, visible: true }]
     }
 
@@ -227,7 +225,7 @@ export class RecordingSession {
     this.hideOverlays()
     this.file?.close()
     this.file = null
-    this.closeWebcamFile()
+    this.closeSideFiles()
     await rm(this.dir, { recursive: true, force: true }).catch(() => {})
     this.setState({ status: 'idle' })
     this.host.showMainWindow()
@@ -276,12 +274,12 @@ export class RecordingSession {
     this.file?.write(Buffer.from(chunk as ArrayBuffer))
   }
 
-  onWebcamStarted(t0: number): void {
-    this.webcamT0 = t0
+  onSideStarted(kind: SideTrackKind, t0: number): void {
+    this.sides[kind].t0 = t0
   }
 
-  onWebcamChunk(chunk: ArrayBuffer | Buffer): void {
-    this.webcamFile?.write(Buffer.from(chunk as ArrayBuffer))
+  onSideChunk(kind: SideTrackKind, chunk: ArrayBuffer | Buffer): void {
+    this.sides[kind].write(chunk)
   }
 
   async onEngineStopped(): Promise<void> {
@@ -290,8 +288,7 @@ export class RecordingSession {
     this.hideOverlays()
     await new Promise<void>((resolve) => (this.file ? this.file.end(resolve) : resolve()))
     this.file = null
-    await new Promise<void>((resolve) => (this.webcamFile ? this.webcamFile.end(resolve) : resolve()))
-    this.webcamFile = null
+    await Promise.all(Object.values(this.sides).map((side) => side.end()))
     this.host.showMainWindow()
     if (!this.info) {
       // stopped during countdown / before the first frame
@@ -318,7 +315,7 @@ export class RecordingSession {
     this.hideOverlays()
     this.file?.close()
     this.file = null
-    this.closeWebcamFile()
+    this.closeSideFiles()
     this.host.showMainWindow()
     this.setState({ status: 'error', message })
   }
@@ -374,8 +371,8 @@ export class RecordingSession {
     const step = t('step.webcam')
     this.progress({ step, progress: 0 })
     // The webcam recorder starts a few ms after the screen one (or before): shift it onto the screen's clock
-    const offset = ((this.webcamT0! - this.info!.t0) / 1000).toFixed(3)
-    const args = ['-i', this.rawPath, '-itsoffset', offset, '-i', this.webcamPath, '-filter_complex', graph, '-map', '[vout]', '-map', '0:a?']
+    const offset = this.sides.webcam.offset(this.info!.t0).toFixed(3)
+    const args = ['-i', this.rawPath, '-itsoffset', offset, '-i', this.sides.webcam.path, '-filter_complex', graph, '-map', '[vout]', '-map', '0:a?']
     if (format === 'webm') args.push(...VP9_ARGS, '-c:a', 'libopus')
     else args.push(...h264EncoderArgs(await h264Encoder(), g.outWidth, g.outHeight), '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart')
     args.push(out)
@@ -405,7 +402,7 @@ export class RecordingSession {
     let graph: string | null = null
     let placed: PlacedLayout[] | null = null
     if (this.webcamWanted()) {
-      const recorded = info.hasWebcam && this.webcamT0 !== null && (await stat(this.webcamPath).then((s) => s.size > 0, () => false))
+      const recorded = info.hasWebcam && (await this.sides.webcam.recorded())
       if (!recorded) warnings.push(t('warn.webcamUnavailable'))
       else graph = webcamGraph({ screenFilters: filters, layout: this.layout, width: g.outWidth, height: g.outHeight, durationMs })
       if (graph) placed = placeLayout(this.layout, g.outWidth, g.outHeight)
@@ -584,7 +581,7 @@ export class RecordingSession {
     }
     await writeFile(jsonPath, JSON.stringify(json), 'utf8')
     await rm(this.rawPath, { force: true })
-    if (this.webcamPath) await rm(this.webcamPath, { force: true })
+    for (const side of Object.values(this.sides)) await side.remove()
 
     return {
       dir: this.dir,

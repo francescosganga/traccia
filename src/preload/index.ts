@@ -16,6 +16,7 @@ import type {
   RecordingEntry,
   RecordingRequest,
   Settings,
+  SideTrackKind,
   WhisperModelId,
   WhisperModelInfo
 } from '../shared/types'
@@ -104,8 +105,8 @@ const api = {
     onStop: (cb: () => void) => on<void>('engine:stop', cb),
     started: (info: EngineStartedInfo) => ipcRenderer.send('engine:started', info),
     chunk: (buf: ArrayBuffer) => ipcRenderer.send('engine:chunk', buf),
-    webcamStarted: (t0: number) => ipcRenderer.send('engine:webcamStarted', t0),
-    webcamChunk: (buf: ArrayBuffer) => ipcRenderer.send('engine:webcamChunk', buf),
+    sideStarted: (kind: SideTrackKind, t0: number) => ipcRenderer.send('engine:sideStarted', kind, t0),
+    sideChunk: (kind: SideTrackKind, buf: ArrayBuffer) => ipcRenderer.send('engine:sideChunk', kind, buf),
     level: (level: number) => ipcRenderer.send('engine:level', level),
     stopped: () => ipcRenderer.send('engine:stopped'),
     error: (message: string) => ipcRenderer.send('engine:error', message)

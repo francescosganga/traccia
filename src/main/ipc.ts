@@ -1,5 +1,5 @@
 import { app, clipboard, dialog, ipcMain, screen, shell } from 'electron'
-import type { AgentTarget, DisplayInfo, EngineStartedInfo, LoginItemStatus, MicList, RecordingRequest, Settings, WhisperModelId } from '../shared/types'
+import type { AgentTarget, DisplayInfo, EngineStartedInfo, LoginItemStatus, MicList, RecordingRequest, Settings, SideTrackKind, WhisperModelId } from '../shared/types'
 import type { WebcamLayout } from '../shared/webcam'
 import { agentTargets, installAgent, installAgentInFile, mcpCommands } from './agents'
 import { applySettings } from './apply-settings'
@@ -105,8 +105,8 @@ export function registerIpc({ session, startRecording, suspendShortcuts }: IpcDe
   // engine (renderer → main)
   ipcMain.on('engine:started', (_e, info: EngineStartedInfo) => session.onEngineStarted(info))
   ipcMain.on('engine:chunk', (_e, chunk: ArrayBuffer) => session.onEngineChunk(chunk))
-  ipcMain.on('engine:webcamStarted', (_e, t0: number) => session.onWebcamStarted(t0))
-  ipcMain.on('engine:webcamChunk', (_e, chunk: ArrayBuffer) => session.onWebcamChunk(chunk))
+  ipcMain.on('engine:sideStarted', (_e, kind: SideTrackKind, t0: number) => session.onSideStarted(kind, t0))
+  ipcMain.on('engine:sideChunk', (_e, kind: SideTrackKind, chunk: ArrayBuffer) => session.onSideChunk(kind, chunk))
   ipcMain.on('engine:level', (_e, level: number) => sendToControls('recording:level', level))
   ipcMain.on('engine:stopped', () => void session.onEngineStopped())
   ipcMain.on('engine:error', (_e, message: string) => session.onEngineError(message))

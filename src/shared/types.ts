@@ -295,6 +295,9 @@ export interface RecordingEntry {
   warnings: string[]
 }
 
+/** Tracks the engine records beside the screen, each with its own MediaRecorder and file */
+export type SideTrackKind = 'webcam'
+
 /** Sent from main to the recorder engine living in the main window's renderer */
 export interface EngineStartCommand {
   audio: boolean
@@ -313,6 +316,6 @@ export interface EngineStartedInfo {
   hasAudio: boolean
   /** The chosen microphone was not connected and the system default was recorded */
   micFallback: boolean
-  /** The webcam is being recorded too; its own start time arrives with engine:webcamStarted */
+  /** The webcam is being recorded too; its own start time arrives with engine:sideStarted */
   hasWebcam: boolean
 }

@@ -6,6 +6,7 @@
  */
 
 import { t } from '../../shared/i18n'
+import type { SideTrackKind } from '../../shared/types'
 import { levelMeter, openCamera, openMic, type LevelMeter } from './media'
 
 const MIME_CANDIDATES = [
@@ -32,12 +33,40 @@ function bitrateFor(width: number, height: number): number {
   return Math.max(2_000_000, Math.min(40_000_000, Math.round(width * height * 30 * 0.1)))
 }
 
+interface SideRecorder {
+  recorder: MediaRecorder
+  /** Stops it; resolves once its last chunk has been sent */
+  stop(): Promise<void>
+}
+
+/** A track recorded beside the screen to its own file; the main process lines it up from its start time. */
+function sideRecorder(kind: SideTrackKind, stream: MediaStream, options: MediaRecorderOptions): SideRecorder {
+  const recorder = new MediaRecorder(stream, options)
+  let queue: Promise<void> = Promise.resolve()
+  recorder.ondataavailable = (e) => {
+    if (e.data.size === 0) return
+    queue = queue.then(async () => window.api.engine.sideChunk(kind, await e.data.arrayBuffer()))
+  }
+  recorder.onstart = () => window.api.engine.sideStarted(kind, Date.now())
+  // A side track lost midway leaves the screen recording alone: the video gets what was recorded
+  recorder.onerror = (e) => console.error(`${kind} recorder error`, e)
+  return {
+    recorder,
+    stop: () =>
+      new Promise((resolve) => {
+        const flushed = () => void queue.then(() => resolve())
+        if (recorder.state === 'inactive') return flushed()
+        recorder.addEventListener('stop', flushed, { once: true })
+        recorder.stop()
+      })
+  }
+}
+
 export function installEngine(): void {
   let recorder: MediaRecorder | null = null
   let streams: MediaStream[] = []
   let queue: Promise<void> = Promise.resolve()
-  let webcam: MediaRecorder | null = null
-  let webcamQueue: Promise<void> = Promise.resolve()
+  let sides: SideRecorder[] = []
   let meter: LevelMeter | null = null
   let levelTimer: ReturnType<typeof setInterval> | null = null
 
@@ -49,16 +78,8 @@ export function installEngine(): void {
     for (const s of streams) for (const t of s.getTracks()) t.stop()
     streams = []
     recorder = null
-    webcam = null
+    sides = []
   }
-
-  /** Stops the webcam recorder; resolves once its last chunk is queued. */
-  const stopWebcam = (): Promise<void> =>
-    new Promise((resolve) => {
-      if (!webcam || webcam.state === 'inactive') return resolve()
-      webcam.addEventListener('stop', () => resolve(), { once: true })
-      webcam.stop()
-    })
 
   window.api.engine.onStart(async (cmd) => {
     try {
@@ -86,20 +107,13 @@ export function installEngine(): void {
         }
       }
 
+      let hasWebcam = false
       if (cmd.webcam) {
         try {
           const camera = await openCamera(cmd.webcamDevice)
           streams.push(camera)
-          const cam = new MediaRecorder(camera, { mimeType: pickMimeType(WEBCAM_MIME_CANDIDATES) || undefined, videoBitsPerSecond: WEBCAM_BITRATE })
-          cam.ondataavailable = (e) => {
-            if (e.data.size === 0) return
-            webcamQueue = webcamQueue.then(async () => window.api.engine.webcamChunk(await e.data.arrayBuffer()))
-          }
-          // The two recorders start a few ms apart: the main process lines them up from these times
-          cam.onstart = () => window.api.engine.webcamStarted(Date.now())
-          // A webcam lost midway leaves the screen recording alone: the video gets what was recorded
-          cam.onerror = (e) => console.error('webcam recorder error', e)
-          webcam = cam
+          sides.push(sideRecorder('webcam', camera, { mimeType: pickMimeType(WEBCAM_MIME_CANDIDATES) || undefined, videoBitsPerSecond: WEBCAM_BITRATE }))
+          hasWebcam = true
         } catch (e) {
           console.warn('webcam unavailable, recording without it', e)
         }
@@ -120,7 +134,7 @@ export function installEngine(): void {
         queue = queue.then(async () => window.api.engine.chunk(await e.data.arrayBuffer()))
       }
       rec.onstart = () => {
-        window.api.engine.started({ t0: Date.now(), width, height, mimeType: rec.mimeType || mimeType, hasAudio, micFallback, hasWebcam: !!webcam })
+        window.api.engine.started({ t0: Date.now(), width, height, mimeType: rec.mimeType || mimeType, hasAudio, micFallback, hasWebcam })
         // setInterval, not requestAnimationFrame: this window is hidden while recording
         if (meter) levelTimer = setInterval(() => meter && window.api.engine.level(meter.read()), LEVEL_INTERVAL)
       }
@@ -129,20 +143,18 @@ export function installEngine(): void {
         window.api.engine.error(t('err.recorder', { error: (e as unknown as { error?: Error }).error?.message ?? 'unknown' }))
       }
       rec.onstop = () => {
-        void stopWebcam()
-          .then(() => {
-            const flushed = Promise.all([queue, webcamQueue])
-            cleanup()
-            return flushed
-          })
-          .then(() => window.api.engine.stopped())
+        const flushed = Promise.all([queue, ...sides.map((side) => side.stop())])
+        void flushed.then(() => {
+          cleanup()
+          window.api.engine.stopped()
+        })
       }
       // The OS can end the capture (e.g. permission revoked): treat it as a stop.
       videoTrack.onended = () => {
         if (rec.state !== 'inactive') rec.stop()
       }
       rec.start(1000)
-      webcam?.start(1000)
+      for (const side of sides) side.recorder.start(1000)
     } catch (e) {
       cleanup()
       const err = e as Error
