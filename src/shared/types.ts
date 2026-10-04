@@ -1,6 +1,6 @@
 // Types shared between main, preload and renderer.
 import type { UiLanguage } from './i18n'
-import type { WebcamCorner, WebcamLayout, WebcamShape } from './webcam'
+import type { WebcamCorner, WebcamLayout, WebcamLayoutEvent, WebcamShape } from './webcam'
 
 export type OutputFormat = 'mp4' | 'mov' | 'webm' | 'jpg'
 export type Resolution = 'native' | '1080' | '720' | '480'
@@ -198,29 +198,52 @@ export interface RecordingResult {
   skippedFrames?: number
   transcriptSegments?: number
   warnings: string[]
-  /** The result of trimming a past recording, not of a new one */
-  trimmed?: boolean
+  /** The result of editing a past recording, not of a new one */
+  edited?: boolean
 }
 
-/** What the trim view plays, with absolute paths. */
+/**
+ * What the editor can do with the webcam of a recording: lay it again from its own track, only
+ * hide it (taking the picture from the video without it), or nothing (no video without it).
+ */
+export type WebcamEditing = 'full' | 'hide' | 'none'
+
+/** What the editor shows, with absolute paths. */
 export interface RecordingMedia {
   format: OutputFormat
   durationMs: number
   width: number
   height: number
   fps: number
-  /** The video people watch (with the webcam, if there is one); null in JPG mode */
+  /** The screen: the video without the webcam when there is one, the video otherwise; null in JPG mode */
   video: string | null
   /** audio.m4a of a JPG recording, when there is one */
   audio: string | null
+  /** The recording has sound */
+  hasAudio: boolean
   /** JPG frames, oldest first; empty for a video */
   frames: { path: string; tMs: number }[]
   /** Transcript phrases (seconds, as in recording.json); empty without a transcript */
   transcript: TranscriptSegment[]
   /** Mouse clicks, ms from the start */
   clicks: { t: number; button: 'left' | 'right' | 'middle' }[]
-  /** Trimmed before: original/ already holds the very first version */
-  trimmed: boolean
+  /** Silenced by an earlier edit, ms from the start */
+  muted: { fromMs: number; toMs: number }[]
+  /** Present when the webcam was recorded */
+  webcam: {
+    editing: WebcamEditing
+    /** Each change, ms from the start, with its rectangle in the video's pixels */
+    layout: (WebcamLayoutEvent & { rect: Rect })[]
+    /** The video with the webcam over the screen */
+    composite: string
+    /**
+     * The webcam alone, as recorded ('full' only): an instant t of it is t + offsetMs of the
+     * original recording, whose parts kept, in order, make the recording as it is now
+     */
+    track: { path: string; offsetMs: number; kept: { fromMs: number; toMs: number }[] } | null
+  } | null
+  /** Edited before: original/ already holds the very first version */
+  edited: boolean
 }
 
 export interface WhisperModelInfo {

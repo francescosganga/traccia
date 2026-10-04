@@ -1,5 +1,5 @@
 import { locale, t } from '../shared/i18n'
-import type { FrameRef } from '../shared/recording-reader'
+import type { FrameRef, MsRange } from '../shared/recording-reader'
 import { formatTime } from '../shared/time'
 import type { ClickEvent, CursorSample, OutputFormat, Rect, TranscriptSegment, TranscriptWord } from '../shared/types'
 import type { PlacedLayout } from './compose'
@@ -74,6 +74,8 @@ export interface TimelineInput {
   audio: boolean
   /** What the computer played, mixed into the same audio track (never transcribed) */
   systemAudio?: boolean
+  /** Where the editor silenced the audio, ms from the start */
+  muted?: MsRange[]
   whisperModel?: string
   language?: string
   t0: number
@@ -184,6 +186,7 @@ export function buildTimeline(input: TimelineInput): string {
   } else {
     header.push(input.systemAudio ? t('tl.systemAudioOnly') : t('tl.audioNone'))
   }
+  if (input.muted?.length) header.push(t('tl.muted', { ranges: input.muted.map((m) => `${formatTime(m.fromMs)} → ${formatTime(m.toMs)}`).join(', ') }))
   const unit = isFrames ? t('tl.unitImage') : t('tl.unitVideo')
   header.push(clicksOnly ? t('tl.cursorClicksOnly', { unit }) : t('tl.cursorFull', { unit, hz: input.cursorHz }))
   header.push('#')

@@ -76,6 +76,7 @@ export function textsInputFromJson(meta: RecordingJson, fallbackCursorHz: number
       durationMs: meta.durationMs,
       audio: meta.audio,
       systemAudio: meta.systemAudio,
+      muted: meta.muted,
       whisperModel: meta.whisper?.model,
       language: meta.whisper?.language,
       t0: 0,

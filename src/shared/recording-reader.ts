@@ -105,6 +105,12 @@ export async function readSettingsFile(path = settingsPath()): Promise<Settings>
 
 // ---- recording.json ---------------------------------------------------------------
 
+/** A stretch of a recording, ms from its start. */
+export interface MsRange {
+  fromMs: number
+  toMs: number
+}
+
 export interface FrameRef {
   /** Path relative to the recording folder, e.g. frames/frame_00001.jpg */
   file: string
@@ -159,14 +165,23 @@ export interface RecordingJson {
   cursorHz?: number
   /** Whether mouse clicks were recorded; missing in older recordings */
   clicksTracked?: boolean
-  /** Present once trimmed: the part kept, in ms of the original recording, whose files are in original/ */
-  trimmed?: { fromMs: number; toMs: number }
+  /** Present once edited: the parts of the original recording kept, in the order they play; the original's files are in original/ */
+  edited?: { kept: MsRange[] }
+  /** The single part kept by the first version of the editor, which only trimmed; read as edited.kept */
+  trimmed?: MsRange
+  /** Where the editor silenced the audio, ms from the start; the speech there was dropped from the transcript */
+  muted?: MsRange[]
   /** Present when the webcam was recorded; `media` is then the video without it, if one was saved */
   webcam?: {
     /** Video with the webcam laid over the screen, for people */
     video: string
     /** Each change, ms from the start; the rectangle is in output pixels */
     layout: (WebcamLayoutEvent & { rect: Rect })[]
+    /**
+     * The webcam alone, as recorded, kept beside a video without it so the editor can lay it again;
+     * an instant t of it is t + offsetMs of the original recording (see edited)
+     */
+    track?: { file: string; offsetMs: number }
   }
   warnings: string[]
 }

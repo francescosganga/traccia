@@ -31,7 +31,7 @@ import { getPermissions, openPrivacySettings, requestPermission } from './permis
 import { getSettings } from './settings'
 import { recordingTexts } from './texts'
 import { clipToDuration, mapPoint, wordsAround, type Geometry } from './timeline'
-import { trimRecording } from './trim-recording'
+import { editRecording } from './edit-recording'
 import { isModelInstalled, killWorker, transcribe } from './whisper'
 
 export interface SessionHost {
@@ -266,18 +266,18 @@ export class RecordingSession {
   }
 
   /**
-   * Keeps the part of a past recording between `fromMs` and `toMs`, reporting progress like the
-   * processing of a recording. Refused (false) while one is being recorded or processed.
+   * Applies the editor's edit list to a past recording, reporting progress like the processing
+   * of a recording. Refused (false) while one is being recorded or processed.
    */
-  async trim(dir: string, fromMs: number, toMs: number): Promise<boolean> {
+  async edit(dir: string, parts: unknown): Promise<boolean> {
     if (this.isBusy) return false
-    this.progress({ step: t('step.trimStart'), progress: -1 })
+    this.progress({ step: t('step.editStart'), progress: -1 })
     try {
-      const result = await trimRecording(dir, fromMs, toMs, { cursorHz: getSettings().cursorHz, onProgress: (p) => this.progress(p) })
+      const result = await editRecording(dir, parts, { cursorHz: getSettings().cursorHz, onProgress: (p) => this.progress(p) })
       this.setState({ status: 'done', result })
     } catch (e) {
-      console.error('trim failed', dir, fromMs, toMs, e)
-      this.setState({ status: 'error', message: t('err.trim', { error: (e as Error).message }) })
+      console.error('edit failed', dir, JSON.stringify(parts), e)
+      this.setState({ status: 'error', message: t('err.edit', { error: (e as Error).message }) })
     }
     return true
   }

@@ -22,6 +22,3 @@ export function parseTime(text: string): number | null {
   if ((min !== undefined && s >= 60) || (h !== undefined && Number(min) >= 60)) return null
   return Math.round(((Number(h ?? 0) * 60 + Number(min ?? 0)) * 60 + s) * 1000)
 }
-
-/** The shortest part of a recording a trim may keep. */
-export const MIN_TRIM_MS = 1000

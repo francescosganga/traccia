@@ -1,7 +1,7 @@
 import type { ReactElement, SVGProps } from 'react'
 
 /** Inline icon set (outlines based on Lucide, ISC). Stroke and size come from the `.icon` class. */
-export type IconName = 'record' | 'settings' | 'monitor' | 'pointer' | 'mic' | 'sparkles' | 'check' | 'x' | 'alert' | 'folder' | 'file' | 'copy' | 'arrow-left' | 'more' | 'webcam' | 'webcam-off' | 'play' | 'pause' | 'plus' | 'minus'
+export type IconName = 'record' | 'settings' | 'monitor' | 'pointer' | 'mic' | 'sparkles' | 'check' | 'x' | 'alert' | 'folder' | 'file' | 'copy' | 'arrow-left' | 'more' | 'webcam' | 'webcam-off' | 'play' | 'pause' | 'plus' | 'minus' | 'scissors' | 'undo' | 'redo' | 'volume' | 'volume-off' | 'link'
 
 const PATHS: Record<IconName, ReactElement> = {
   record: (
@@ -77,6 +77,28 @@ const PATHS: Record<IconName, ReactElement> = {
       <rect x="14" y="4" width="4" height="16" rx="1" />
     </>
   ),
+  scissors: (
+    <>
+      <circle cx="6" cy="6" r="3" />
+      <circle cx="6" cy="18" r="3" />
+      <path d="M8.12 8.12 12 12M20 4 8.12 15.88M14.8 14.8 20 20" />
+    </>
+  ),
+  undo: <path d="M9 14 4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />,
+  redo: <path d="m15 14 5-5-5-5M20 9H9.5a5.5 5.5 0 0 0 0 11H13" />,
+  volume: (
+    <>
+      <path d="M11 4.7a.7.7 0 0 0-1.2-.5L6.4 7.6A1.4 1.4 0 0 1 5.4 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.4a1.4 1.4 0 0 1 1 .4l3.4 3.4a.7.7 0 0 0 1.2-.5z" />
+      <path d="M16 9a5 5 0 0 1 0 6M19.4 18.4a9 9 0 0 0 0-12.8" />
+    </>
+  ),
+  'volume-off': (
+    <>
+      <path d="M11 4.7a.7.7 0 0 0-1.2-.5L6.4 7.6A1.4 1.4 0 0 1 5.4 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.4a1.4 1.4 0 0 1 1 .4l3.4 3.4a.7.7 0 0 0 1.2-.5z" />
+      <path d="m22 9-6 6M16 9l6 6" />
+    </>
+  ),
+  link: <path d="M9 17H7A5 5 0 0 1 7 7h2M15 7h2a5 5 0 1 1 0 10h-2M8 12h8" />,
   plus: <path d="M5 12h14M12 5v14" />,
   minus: <path d="M5 12h14" />,
   more: (

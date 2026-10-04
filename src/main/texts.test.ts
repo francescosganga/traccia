@@ -110,6 +110,13 @@ describe('textsInputFromJson', () => {
     expect(txt).toContain('00:03.300 click right -90,-40 (outside)')
   })
 
+  it('says where the editor silenced the audio', () => {
+    const { json } = recording('mp4')
+    const { txt } = recordingTexts(textsInputFromJson({ ...json, muted: [{ fromMs: 1000, toMs: 2500 }] }, 10).input, '/rec', true)
+    expect(txt).toContain('# Silenced after the recording: 00:01.000 → 00:02.500;')
+    expect(recordingTexts(textsInputFromJson(json, 10).input, '/rec', true).txt).not.toContain('Silenced')
+  })
+
   it('falls back to the current cursor rate for recordings that did not store it', () => {
     const { json } = recording('mp4')
     delete json.cursorHz

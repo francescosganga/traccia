@@ -21,6 +21,7 @@ import type {
   WhisperModelId,
   WhisperModelInfo
 } from '../shared/types'
+import type { EditPart } from '../shared/edit-list'
 import type { WebcamLayout } from '../shared/webcam'
 
 type Unsubscribe = () => void
@@ -83,12 +84,12 @@ const api = {
     showInFolder: (p: string): Promise<void> => ipcRenderer.invoke('recordings:showInFolder', p),
     open: (p: string): Promise<string> => ipcRenderer.invoke('recordings:open', p),
     rename: (dir: string, title: string): Promise<void> => ipcRenderer.invoke('recordings:rename', dir, title),
-    /** What the trim view plays */
+    /** What the editor shows */
     media: (dir: string): Promise<RecordingMedia> => ipcRenderer.invoke('recordings:media', dir),
-    /** The frame of the video at that instant, small, as a data URL; null when there is none */
+    /** The frame of the screen at that instant, small, as a data URL; null when there is none */
     thumbnail: (dir: string, tMs: number): Promise<string | null> => ipcRenderer.invoke('recordings:thumbnail', dir, tMs),
-    /** Keeps the part between the two instants; false when refused because a recording is in progress. Progress and result come as state */
-    trim: (dir: string, fromMs: number, toMs: number): Promise<boolean> => ipcRenderer.invoke('recordings:trim', dir, fromMs, toMs),
+    /** Applies the edit list; false when refused because a recording is in progress. Progress and result come as state */
+    edit: (dir: string, parts: EditPart[]): Promise<boolean> => ipcRenderer.invoke('recordings:edit', dir, parts),
     trash: (dir: string): Promise<void> => ipcRenderer.invoke('recordings:trash', dir)
   },
   mics: {

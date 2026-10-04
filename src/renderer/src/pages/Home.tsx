@@ -10,7 +10,7 @@ import { WebcamPicker } from '../components/WebcamPicker'
 import { formatDate, formatDuration, formatShortcut } from '../format'
 import { FORMATS, JPG_FPS, RESOLUTIONS, resolutionLabel } from '../options'
 import type { SettingsSection } from './Settings'
-import { TrimView } from './Trim'
+import { EditView } from './Edit'
 
 interface Props {
   settings: Settings
@@ -52,8 +52,8 @@ export function Home({ settings, state, modelInstalled, platform, goSettings }: 
   const [choices, setChoices] = useState<Choices>(() => defaultsOf(settings))
   // Folder of the recording whose name is being edited
   const [renaming, setRenaming] = useState<string | null>(null)
-  // The recording being trimmed: the trim view takes the place of the page
-  const [trimming, setTrimming] = useState<{ dir: string; name: string } | null>(null)
+  // The recording being edited: the editor takes the place of the page
+  const [editing, setEditing] = useState<{ dir: string; name: string } | null>(null)
 
   const refreshRecordings = () => void window.api.recordings.list().then(setRecordings)
   const choose = (patch: Partial<Choices>) => setChoices((c) => ({ ...c, ...patch }))
@@ -77,9 +77,9 @@ export function Home({ settings, state, modelInstalled, platform, goSettings }: 
   const start = () => void window.api.recording.start({ mode, displayId, overrides: choices })
   const reveal = platform === 'darwin' ? t('home.revealMac') : t('home.revealOther')
   const busy = state.status === 'processing' || state.status === 'recording' || state.status === 'countdown' || state.status === 'selecting'
-  // A recording started from the tray or a shortcut closes the trim view: its result shows here
+  // A recording started from the tray or a shortcut closes the editor: its result shows here
   useEffect(() => {
-    if (busy) setTrimming(null)
+    if (busy) setEditing(null)
   }, [busy])
   const shortcut = settings.shortcutsEnabled ? formatShortcut(mode === 'region' ? settings.shortcutRegion : settings.shortcutScreen, platform) : null
   const modelMissing = choices.audio && settings.transcribe && !modelInstalled
@@ -105,7 +105,7 @@ export function Home({ settings, state, modelInstalled, platform, goSettings }: 
     { label: t('home.openRawTxt'), onSelect: () => void window.api.recordings.open(r.rawTxtPath) },
     ...(r.format !== 'jpg' ? [{ label: t('home.openVideo'), onSelect: () => void window.api.recordings.open(r.videoPath) }] : []),
     // Not while recording or processing: the main process would refuse it
-    ...(!busy ? [{ label: t('home.trim'), onSelect: () => setTrimming({ dir: r.dir, name: r.name }) }] : []),
+    ...(!busy ? [{ label: t('home.edit'), onSelect: () => setEditing({ dir: r.dir, name: r.name }) }] : []),
     { label: t('home.rename'), onSelect: () => setRenaming(r.dir) },
     { label: t('home.trash'), onSelect: () => void trash(r), danger: true }
   ]
@@ -113,13 +113,13 @@ export function Home({ settings, state, modelInstalled, platform, goSettings }: 
   const done = state.status === 'done' ? state.result : null
   // The list, refreshed when the recording ends, carries the name given to it
   const doneEntry = done ? recordings.find((r) => r.dir === done.dir) : undefined
-  const doneLabel = done?.trimmed ? t('home.trimmed') : t('home.done')
+  const doneLabel = done?.edited ? t('home.edited') : t('home.done')
 
-  if (trimming) {
+  if (editing) {
     return (
       <div className="content">
         <div className="content-inner">
-          <TrimView dir={trimming.dir} name={trimming.name} onClose={() => setTrimming(null)} />
+          <EditView dir={editing.dir} name={editing.name} onClose={() => setEditing(null)} />
         </div>
       </div>
     )

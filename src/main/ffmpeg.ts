@@ -77,6 +77,18 @@ export function maxVolume(path: string): Promise<number | null> {
   })
 }
 
+/** Whether a media file has a sound track, from what ffmpeg says about its input; false when it cannot be read. */
+export function hasAudioStream(path: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    // Without an output ffmpeg describes the input and exits with an error, which is expected here
+    const child = spawn(ffmpegPath(), ['-hide_banner', '-i', path])
+    let stderr = ''
+    child.stderr.on('data', (d) => (stderr += d.toString()))
+    child.on('error', () => resolve(false))
+    child.on('close', () => resolve(/Stream #\d+:\d+.*: Audio:/.test(stderr)))
+  })
+}
+
 let encoderCache: string | null = null
 
 /** Picks a hardware H.264 encoder when available, otherwise libx264. */
