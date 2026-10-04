@@ -87,7 +87,9 @@ export class RecordingSession {
   /** What the widget shows while recording: the choices most often regretted afterwards. */
   private recordingInfo(): RecordingInfo {
     const s = this.settings()
-    return { mode: this.region ? 'region' : 'screen', format: s.format, jpgFps: s.jpgFps, audio: s.audio }
+    // Once the engine runs, whether the microphone actually opened
+    const audio = this.info ? this.info.hasAudio : s.audio
+    return { mode: this.region ? 'region' : 'screen', format: s.format, jpgFps: s.jpgFps, audio }
   }
 
   private hideOverlays(): void {
@@ -288,6 +290,7 @@ export class RecordingSession {
     const info = this.info!
     const durationMs = this.stoppedAt - info.t0
     const warnings = [...tracking.warnings]
+    if (settings.audio && !info.hasAudio) warnings.push(t('warn.micUnavailable'))
     if (info.micFallback && settings.micDevice) warnings.push(t('warn.micFallback', { name: settings.micDevice.label }))
     const g = this.geometry()
     const format: OutputFormat = settings.format

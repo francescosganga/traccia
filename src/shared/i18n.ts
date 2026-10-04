@@ -267,6 +267,7 @@ const en = {
   'warn.modelMissing': 'Transcription skipped: the Whisper model "{model}" is not installed (Settings → Audio & transcription)',
   'warn.transcriptionFailed': 'Transcription failed: {error}',
   'warn.transcriptionSkipped': 'Transcription skipped by the user',
+  'warn.micUnavailable': 'No audio: the microphone could not be opened',
   'warn.micFallback': 'The microphone "{name}" was not connected: the system default was recorded',
 
   // processing steps
@@ -606,6 +607,7 @@ const it: Record<TranslationKey, string> = {
   'warn.modelMissing': 'Trascrizione saltata: il modello Whisper "{model}" non è installato (Impostazioni → Audio e trascrizione)',
   'warn.transcriptionFailed': 'Trascrizione fallita: {error}',
   'warn.transcriptionSkipped': "Trascrizione saltata dall'utente",
+  'warn.micUnavailable': 'Nessun audio: non è stato possibile aprire il microfono',
   'warn.micFallback': 'Il microfono "{name}" non era collegato: è stato registrato quello predefinito di sistema',
 
   'step.frames': 'Estrazione frame',
