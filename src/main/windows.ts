@@ -1,7 +1,8 @@
-import { BrowserWindow, nativeTheme, screen, shell, type Display } from 'electron'
+import { BrowserWindow, app, nativeTheme, screen, shell, type Display } from 'electron'
 import { join } from 'path'
 import type { Rect } from '../shared/types'
 import { webcamRect, type WebcamLayout } from '../shared/webcam'
+import { getSettings } from './settings'
 
 const PRELOAD = () => join(__dirname, '../preload/index.js')
 
@@ -74,6 +75,10 @@ export function createMainWindow(opts: { show?: boolean } = {}): BrowserWindow {
 
 export function showMainWindow(): void {
   const win = createMainWindow()
+  // The floating windows below are made visible over fullscreen apps, and Electron does that by
+  // hiding the Dock icon: without it back, the window falls behind the other apps' windows with
+  // no Dock icon or Cmd+Tab to return to it, only the tray.
+  if (getSettings().showInDock && app.dock && !app.dock.isVisible()) void app.dock.show()
   win.show()
   win.focus()
 }
