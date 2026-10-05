@@ -13,6 +13,9 @@ import type { InputDevice, MicList } from '../../shared/types'
  */
 const PROCESSING = { echoCancellation: false, noiseSuppression: false, autoGainControl: true }
 
+/** Below this a microphone is in a headset's call mode (AirPods and other Bluetooth headsets: 16 or 24 kHz). */
+const CALL_QUALITY_RATE = 32_000
+
 // Chromium appends the USB vendor:product ids to some names ("FaceTime HD Camera (05ac:8514)")
 const cleanLabel = (label: string) => label.replace(/ \([0-9a-f]{4}:[0-9a-f]{4}\)$/i, '')
 
@@ -30,13 +33,14 @@ export async function listMics(): Promise<MicList> {
 }
 
 /** Opens the chosen microphone, or the system default when it is null or not connected. */
-export async function openMic(wanted: InputDevice | null): Promise<{ stream: MediaStream; fallback: boolean }> {
+export async function openMic(wanted: InputDevice | null): Promise<{ stream: MediaStream; fallback: boolean; callQuality: boolean }> {
   const device = wanted ? findDevice(wanted, (await listMics()).devices) : undefined
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: device ? { ...PROCESSING, deviceId: { exact: device.id } } : PROCESSING,
     video: false
   })
-  return { stream, fallback: !!wanted && !device }
+  const rate = stream.getAudioTracks()[0]?.getSettings().sampleRate
+  return { stream, fallback: !!wanted && !device, callQuality: !!rate && rate < CALL_QUALITY_RATE }
 }
 
 /** The cameras, by name. Labels are empty until the camera permission is granted. */

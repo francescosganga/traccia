@@ -448,6 +448,7 @@ export class RecordingSession {
     const warnings = [...tracking.warnings]
     if (settings.audio && !info.hasAudio) warnings.push(t('warn.micUnavailable'))
     if (info.micFallback && settings.micDevice) warnings.push(t('warn.micFallback', { name: settings.micDevice.label }))
+    if (info.hasAudio && info.micCallQuality) warnings.push(t('warn.micCallQuality'))
     const g = this.geometry()
     const format: OutputFormat = settings.format
 

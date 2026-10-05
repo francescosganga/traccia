@@ -366,6 +366,8 @@ export interface EngineStartedInfo {
   hasAudio: boolean
   /** The chosen microphone was not connected and the system default was recorded */
   micFallback: boolean
+  /** The microphone runs at a call's sample rate (a Bluetooth headset): the voice comes out muffled */
+  micCallQuality: boolean
   /** The webcam is being recorded too; its own start time arrives with engine:sideStarted */
   hasWebcam: boolean
   /** macOS handed over the system audio, recorded as a side track */

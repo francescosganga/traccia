@@ -104,6 +104,7 @@ export function installEngine(): void {
 
       let hasAudio = false
       let micFallback = false
+      let micCallQuality = false
       if (cmd.audio) {
         try {
           const mic = await openMic(cmd.micDevice)
@@ -111,6 +112,7 @@ export function installEngine(): void {
           tracks.push(...mic.stream.getAudioTracks())
           hasAudio = true
           micFallback = mic.fallback
+          micCallQuality = mic.callQuality
           // Measured on the recorded track itself: a microphone denied silently shows as a flat bar
           meter = levelMeter(mic.stream)
         } catch (e) {
@@ -145,7 +147,7 @@ export function installEngine(): void {
         queue = queue.then(async () => window.api.engine.chunk(await e.data.arrayBuffer()))
       }
       rec.onstart = () => {
-        window.api.engine.started({ t0: Date.now(), width, height, mimeType: rec.mimeType || mimeType, hasAudio, micFallback, hasWebcam, hasSystemAudio })
+        window.api.engine.started({ t0: Date.now(), width, height, mimeType: rec.mimeType || mimeType, hasAudio, micFallback, micCallQuality, hasWebcam, hasSystemAudio })
         // setInterval, not requestAnimationFrame: this window is hidden while recording
         if (meter) levelTimer = setInterval(() => meter && window.api.engine.level(meter.read()), LEVEL_INTERVAL)
       }
