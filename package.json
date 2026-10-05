@@ -1,6 +1,6 @@
 {
   "name": "traccia",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Traccia — screen recorder that produces AI-readable output: video or frames + cursor/click timeline + local Whisper transcript",
   "main": "./out/main/index.js",
   "author": "Francesco Sganga",
