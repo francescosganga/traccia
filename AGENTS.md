@@ -8,6 +8,7 @@ Traccia is an Electron app for macOS that records the screen and writes output m
 npm install
 npm run dev          # app with hot reload
 npm run typecheck    # app (both tsconfigs) and CLI; must pass before every commit
+npm test             # vitest, src/**/*.test.ts; must pass before every commit
 npm run build        # production build into out/, plus the CLI (npm run build:cli) into packages/cli/dist/traccia.cjs
 npm run link         # unpacked .app symlinked into /Applications, for testing the packaged build
 npm run dist         # DMG in dist/, signed only if a Developer ID certificate is in the keychain
@@ -52,7 +53,7 @@ Node 20+. There is no linter or formatter configured: match the surrounding code
 
 - Small commits, one change each, with a message that says what changed and why. No generated trailers (`Co-Authored-By`, `Generated-by`, ...).
 - The subject of every `feat:` and `fix:` commit ends up verbatim in the release notes (`scripts/release-notes.sh`): write it for the people who use the app, not for the code.
-- `npm run typecheck` before committing; `npm test` too once it exists.
+- `npm run typecheck` and `npm test` before committing.
 - Never commit `out/`, `dist/`, `.claude/`, or screenshots you did not re-capture.
 
 ## Contributing with AI tools
