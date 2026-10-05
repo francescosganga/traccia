@@ -6,8 +6,12 @@
 import { findDevice } from '../../shared/devices'
 import type { InputDevice, MicList } from '../../shared/types'
 
-/** The same processing for the recording and for the level shown before it, so the bar shows what gets recorded. */
-const PROCESSING = { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+/**
+ * The same processing for the recording and for the level shown before it, so the bar shows what gets recorded.
+ * No echo cancellation or noise suppression: built for calls, they gate every pause to digital silence and
+ * clip the ends of words, so a narration comes out chopped and Whisper mishears it. Whisper copes with noise.
+ */
+const PROCESSING = { echoCancellation: false, noiseSuppression: false, autoGainControl: true }
 
 // Chromium appends the USB vendor:product ids to some names ("FaceTime HD Camera (05ac:8514)")
 const cleanLabel = (label: string) => label.replace(/ \([0-9a-f]{4}:[0-9a-f]{4}\)$/i, '')
