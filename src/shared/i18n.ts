@@ -175,7 +175,7 @@ const en = {
   'home.namePlaceholder': 'Name of this recording',
   'home.trash': 'Move to Trash',
   'home.confirmTrash': 'Move the recording "{name}" to the Trash?',
-  'home.edit': 'Edit…',
+  'home.edit': 'Edit',
   'home.edited': 'Recording edited',
 
   // editor
@@ -624,7 +624,7 @@ const it: Record<TranslationKey, string> = {
   'home.namePlaceholder': 'Nome di questa registrazione',
   'home.trash': 'Sposta nel Cestino',
   'home.confirmTrash': 'Spostare la registrazione "{name}" nel Cestino?',
-  'home.edit': 'Modifica…',
+  'home.edit': 'Modifica',
   'home.edited': 'Registrazione modificata',
 
   // editor
