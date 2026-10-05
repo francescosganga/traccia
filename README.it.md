@@ -172,7 +172,7 @@ Mentre è aperta, l'app ascolta su `~/Library/Application Support/traccia/contro
 
 ## Sviluppo
 
-Il codice l'ho scritto io con un uso intensivo di Claude Code. Ogni riga è stata letta e capita; l'architettura, il formato di output e le scelte sono mie. Issue e PR sono benvenute, e rispondo personalmente.
+Il codice l'ho scritto io con un uso intensivo di Claude Code. Ogni riga è stata letta e capita; l'architettura, il formato di output e le scelte sono mie. Issue e PR sono benvenute, e rispondo personalmente: [CONTRIBUTING.md](CONTRIBUTING.md) (in inglese) spiega come proporre una modifica.
 
 Richiede Node 20+.
 

@@ -1,6 +1,6 @@
 # Working in this repository
 
-Traccia is an Electron app for macOS that records the screen and writes output meant to be read by an AI: a video or a JPG sequence plus `recording.txt` (clicks and transcript on one timeline), `recording-raw.txt` (same, with the pointer movement) and `recording.json`. [README.md](README.md) says what it does; this file says how to work on it. It is written for coding agents and applies to humans too.
+Traccia is an Electron app for macOS that records the screen and writes output meant to be read by an AI: a video or a JPG sequence plus `recording.txt` (clicks and transcript on one timeline), `recording-raw.txt` (same, with the pointer movement) and `recording.json`. [README.md](README.md) says what it does; this file says how to work on it, and [CONTRIBUTING.md](CONTRIBUTING.md) how to propose a change. It is written for coding agents and applies to humans too.
 
 ## Commands
 
@@ -34,7 +34,7 @@ Node 20+. There is no linter or formatter configured: match the surrounding code
 - Every user-facing string goes through `t()` in `src/shared/i18n.ts`, in both `en` and `it`. Adding a language means adding a dictionary there and an entry in `UI_LANGUAGES`.
 - Errors shown to the user are translated; the original error is logged with `console.error` and enough context to find it.
 - `README.md` and `README.it.md` say the same things: change both. The README describes what exists, not what is planned; the roadmap stays a short list of intentions.
-- Do not add files the project does not need (CONTRIBUTING, CODE_OF_CONDUCT, CHANGELOG, issue templates, lint configs, editor settings) unless asked.
+- Do not add files the project does not need (CODE_OF_CONDUCT, CHANGELOG, issue templates, lint configs, editor settings) unless asked.
 
 ## Things that bite
 

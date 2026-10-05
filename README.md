@@ -172,7 +172,7 @@ While the app runs it listens on `~/Library/Application Support/traccia/control.
 
 ## Development
 
-The code was written by me with heavy use of Claude Code. Every line has been read and understood; the architecture, the output format and the trade-offs are mine. Issues and PRs are welcome, and I answer them personally.
+The code was written by me with heavy use of Claude Code. Every line has been read and understood; the architecture, the output format and the trade-offs are mine. Issues and PRs are welcome, and I answer them personally: [CONTRIBUTING.md](CONTRIBUTING.md) says how to propose a change.
 
 Requires Node 20+.
 
