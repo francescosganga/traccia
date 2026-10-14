@@ -17,6 +17,7 @@ import type {
   RecordingMedia,
   RecordingRequest,
   Settings,
+  SpeakerModelStatus,
   SideTrackKind,
   WhisperModelId,
   WhisperModelInfo
@@ -58,6 +59,12 @@ const api = {
     installInFile: (): Promise<AgentInstallResult | null> => ipcRenderer.invoke('agents:installInFile'),
     commands: (): Promise<McpCommands> => ipcRenderer.invoke('agents:commands')
   },
+  speakers: {
+    status: (): Promise<SpeakerModelStatus> => ipcRenderer.invoke('speakers:status'),
+    download: (): Promise<void> => ipcRenderer.invoke('speakers:download'),
+    cancel: (): Promise<void> => ipcRenderer.invoke('speakers:cancel'),
+    onProgress: (cb: (status: SpeakerModelStatus) => void) => on<SpeakerModelStatus>('speakers:progress', cb)
+  },
   whisper: {
     models: (): Promise<WhisperModelInfo[]> => ipcRenderer.invoke('whisper:models'),
     dir: (): Promise<string> => ipcRenderer.invoke('whisper:dir'),
@@ -89,7 +96,7 @@ const api = {
     /** The frame of the screen at that instant, small, as a data URL; null when there is none */
     thumbnail: (dir: string, tMs: number): Promise<string | null> => ipcRenderer.invoke('recordings:thumbnail', dir, tMs),
     /** Applies the edit list; false when refused because a recording is in progress. Progress and result come as state */
-    edit: (dir: string, parts: EditPart[]): Promise<boolean> => ipcRenderer.invoke('recordings:edit', dir, parts),
+    edit: (dir: string, parts: EditPart[], speakerNames?: Record<string, string>): Promise<boolean> => ipcRenderer.invoke('recordings:edit', dir, parts, speakerNames),
     trash: (dir: string): Promise<void> => ipcRenderer.invoke('recordings:trash', dir)
   },
   mics: {

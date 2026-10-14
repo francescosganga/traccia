@@ -2,7 +2,7 @@
 import type { UiLanguage } from './i18n'
 import type { WebcamCorner, WebcamLayout, WebcamLayoutEvent, WebcamShape } from './webcam'
 
-export type OutputFormat = 'mp4' | 'mov' | 'webm' | 'jpg'
+export type OutputFormat = 'mp4' | 'mov' | 'webm' | 'jpg' | 'm4a'
 export type Resolution = 'native' | '1080' | '720' | '480'
 export type CaptureMode = 'screen' | 'region'
 export type WhisperModelId = 'tiny' | 'base' | 'small' | 'large-v3-turbo'
@@ -29,8 +29,12 @@ export interface Settings {
   audio: boolean
   /** Microphone to record; null follows the system default */
   micDevice: InputDevice | null
-  /** Record what the computer plays, mixed with the microphone in the video; not transcribed */
+  /** Record what the computer plays, keeping a separate source as well as the mix */
   systemAudio: boolean
+  /** Transcribe both sources and retain conversation-oriented output */
+  conversation: boolean
+  /** Detect multiple speakers on each recorded source */
+  multiSpeaker: boolean
   /** Record the webcam and lay it over a corner of the video (video formats only) */
   webcam: boolean
   /** Camera to record; null takes the first one */
@@ -103,7 +107,7 @@ export interface DisplayInfo {
 
 /** Settings a single recording may override without changing the saved ones (control socket). */
 export type RecordingOverrides = Partial<
-  Pick<Settings, 'format' | 'resolution' | 'jpgFps' | 'skipUnchangedFrames' | 'audio' | 'systemAudio' | 'webcam' | 'transcribe' | 'countdown'>
+  Pick<Settings, 'format' | 'resolution' | 'jpgFps' | 'skipUnchangedFrames' | 'audio' | 'systemAudio' | 'webcam' | 'transcribe' | 'countdown' | 'conversation' | 'multiSpeaker'>
 >
 
 export interface RecordingRequest {
@@ -134,12 +138,34 @@ export interface TranscriptSegment {
   start: number
   end: number
   text: string
+  speaker?: string
+  /** User-assigned display name; the stable speaker ID remains unchanged. */
+  speakerName?: string
+  source?: AudioSource
 }
 
 export interface TranscriptWord {
   start: number
   end: number
   text: string
+  speaker?: string
+  speakerName?: string
+  source?: AudioSource
+}
+
+export type AudioSource = 'microphone' | 'system'
+
+export interface SpeakerTurn {
+  start: number
+  end: number
+  speaker: string
+}
+
+export interface SpeakerModelStatus {
+  installed: boolean
+  downloading: boolean
+  progress: number
+  error?: string
 }
 
 export interface TranscriptResult {
@@ -180,7 +206,7 @@ export type AppState =
 
 export interface RecordingResult {
   dir: string
-  /** What the AI reads: the frames folder, the video, or the video without the webcam */
+  /** What the AI reads: the frames folder, the video, the video without the webcam, or audio.m4a */
   mediaPath: string
   /** The video to watch: with the webcam when there is one; equals mediaPath otherwise */
   videoPath: string
@@ -215,9 +241,9 @@ export interface RecordingMedia {
   width: number
   height: number
   fps: number
-  /** The screen: the video without the webcam when there is one, the video otherwise; null in JPG mode */
+  /** The screen: the video without the webcam when there is one, the video otherwise; null for JPG and audio-only recordings */
   video: string | null
-  /** audio.m4a of a JPG recording, when there is one */
+  /** audio.m4a of an audio-only or JPG recording, when there is one */
   audio: string | null
   /** The recording has sound */
   hasAudio: boolean
@@ -349,6 +375,7 @@ export type SideTrackKind = 'webcam' | 'systemAudio'
 
 /** Sent from main to the recorder engine living in the main window's renderer */
 export interface EngineStartCommand {
+  audioOnly: boolean
   audio: boolean
   micDevice: InputDevice | null
   systemAudio: boolean

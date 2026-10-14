@@ -92,8 +92,12 @@ const nextKept = (parts: EditPart[], i: number) => parts.findIndex((p, k) => k >
  * through the parts in their order and skips those cut out.
  */
 function Editor({ dir, media, onClose }: { dir: string; media: RecordingMedia; onClose: () => void }) {
+  const speakers = [...new Set(media.transcript.flatMap((s) => s.speaker ? [s.speaker] : []))]
+  const initialNames = Object.fromEntries(speakers.map((id) => [id, media.transcript.find((s) => s.speaker === id)?.speakerName ?? '']))
+  const [speakerNames, setSpeakerNames] = useState<Record<string, string>>(initialNames)
+  const namedMedia = { ...media, transcript: media.transcript.map((s) => ({ ...s, speakerName: s.speaker ? speakerNames[s.speaker]?.trim() || undefined : s.speakerName })) }
   const duration = media.durationMs
-  const snap = (ms: number) => (media.format === 'jpg' ? ms : snapToFrame(ms, media.fps))
+  const snap = (ms: number) => (media.format === 'jpg' || media.format === 'm4a' ? ms : snapToFrame(ms, media.fps))
   const [history, setHistory] = useState<History>({ past: [], present: wholeRecording(duration), future: [] })
   const parts = history.present
   const partsRef = useRef(parts)
@@ -349,7 +353,7 @@ function Editor({ dir, media, onClose }: { dir: string; media: RecordingMedia; o
         e.preventDefault()
         const delta = e.key === 'ArrowLeft' ? -1 : 1
         if (e.altKey) moveBy(delta)
-        else seek(timeRef.current + delta * (e.shiftKey ? 1000 : 1000 / media.fps))
+        else seek(timeRef.current + delta * (e.shiftKey ? 1000 : 1000 / (media.fps || 10)))
       }
     }
     window.addEventListener('keydown', onKey)
@@ -369,7 +373,7 @@ function Editor({ dir, media, onClose }: { dir: string; media: RecordingMedia; o
     const el = stage.current
     if (!el) return
     const fit = () => {
-      const aspect = media.width / media.height
+      const aspect = media.height ? media.width / media.height : 4
       const width = Math.min(el.clientWidth, el.clientHeight * aspect)
       setBox({ width, height: width / aspect })
     }
@@ -401,10 +405,10 @@ function Editor({ dir, media, onClose }: { dir: string; media: RecordingMedia; o
 
   const kept = keptDuration(parts)
   const valid = kept >= MIN_RESULT_MS
-  const changed = isEdited(parts)
+  const changed = isEdited(parts) || speakers.some((id) => speakerNames[id].trim() !== initialNames[id])
   const save = () => {
     player.current?.pause()
-    void window.api.recordings.edit(dir, parts)
+    void window.api.recordings.edit(dir, parts, speakerNames)
     onClose()
   }
   const cancel = () => {
@@ -430,6 +434,7 @@ function Editor({ dir, media, onClose }: { dir: string; media: RecordingMedia; o
           ) : (
             frame && <img src={mediaUrl(frame.path)} alt="" />
           )}
+          {media.format === 'm4a' && <p className="audio-preview">{t('conversation.audioOnly')}</p>}
           {media.audio && <audio ref={bindPlayer} src={mediaUrl(media.audio)} preload="auto" {...playerEvents} />}
           {webcam && editing !== 'none' && (
             <div className={`edit-webcam ${editing}`} style={{ ...(overlay?.style ?? {}), borderRadius: overlay?.radius, visibility: overlay ? 'visible' : 'hidden' }}>
@@ -461,7 +466,7 @@ function Editor({ dir, media, onClose }: { dir: string; media: RecordingMedia; o
 
       <EditTimeline
         dir={dir}
-        media={media}
+        media={namedMedia}
         parts={parts}
         selection={selection}
         time={time}
@@ -537,8 +542,24 @@ function Editor({ dir, media, onClose }: { dir: string; media: RecordingMedia; o
       )}
       {track === 'webcam' && editing !== 'full' && <p className="small dim mt-2">{editing === 'hide' ? t('edit.webcamHideOnly') : t('edit.webcamNone')}</p>}
 
+      {speakers.length > 0 && <section className="speaker-names mt-3" aria-label={t('speakers.namesTitle')}>
+        <h2>{t('speakers.namesTitle')}</h2>
+        <p className="hint">{t('speakers.namesHint')}</p>
+        <div className="grid-2 mt-3">
+          {speakers.map((id) => {
+            const sample = media.transcript.find((s) => s.speaker === id)!
+            return <label className="field" key={id}>
+              <span className="small dim">{id}</span>
+              <input type="text" aria-label={t('speakers.nameFor', { id })} placeholder={id} value={speakerNames[id]} maxLength={80}
+                onChange={(e) => setSpeakerNames((names) => ({ ...names, [id]: e.target.value }))} />
+              <span className="hint speaker-sample">{sample.text}</span>
+            </label>
+          })}
+        </div>
+      </section>}
+
       <p className="small dim mt-3">{t('edit.timelineHint')}</p>
-      <p className="small dim mt-2">{media.edited ? t('edit.hintEdited') : t('edit.hint')}</p>
+      {(isEdited(parts) || !speakers.length) && <p className="small dim mt-2">{media.edited ? t('edit.hintEdited') : t('edit.hint')}</p>}
       <div className="row mt-3">
         <button className="btn primary" disabled={!valid || !changed} onClick={save}>
           {t('common.save')}

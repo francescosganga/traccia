@@ -21,7 +21,7 @@ export class CursorTracker {
     this.clicks = []
     this.warnings = []
     this.clicksTracked = false
-    this.timer = setInterval(() => {
+    if (sampleHz > 0) this.timer = setInterval(() => {
       const p = screen.getCursorScreenPoint()
       this.samples.push({ t: Date.now(), x: p.x, y: p.y })
     }, Math.round(1000 / sampleHz))

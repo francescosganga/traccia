@@ -90,7 +90,7 @@ async function recordingMessages(outputDir: string, id: string): Promise<{ messa
         type: 'text',
         text:
           `Screen recording "${entry.id}" made with ${APP_NAME} (${formatTime(meta.durationMs)}, ${meta.width}x${meta.height}, ` +
-          `${meta.format === 'jpg' ? `${meta.frames?.length ?? 0} JPG frames` : `${meta.format} video`}` +
+          `${meta.format === 'jpg' ? `${meta.frames?.length ?? 0} JPG frames` : `${meta.format} ${meta.format === 'm4a' ? 'audio' : 'video'}`}` +
           `${meta.transcript ? ', voice transcribed' : meta.audio ? ', audio without transcript' : ', no audio'}).\n\n` +
           `Timeline (${timelineFileName('clicks')}): clicks with their coordinates in image pixels, the words spoken at each click, ` +
           `${meta.format === 'jpg' ? 'the instant each frame was captured, ' : ''}and the transcript:\n\n${timeline}`
@@ -252,22 +252,28 @@ export async function runMcpServer(opts: McpOptions): Promise<void> {
           .object({ x: z.number(), y: z.number(), width: z.number().positive(), height: z.number().positive() })
           .optional()
           .describe('Region in points relative to the top-left corner of the display; omit it to let the user select one on screen'),
-        format: z.enum(['mp4', 'mov', 'webm', 'jpg']).optional().describe('Output format; "jpg" writes a frame sequence plus the timeline'),
+        format: z.enum(['mp4', 'mov', 'webm', 'jpg', 'm4a']).optional().describe('Output format; "m4a" records audio only; "jpg" writes frames'),
         resolution: z.enum(['native', '1080', '720', '480']).optional(),
         jpgFps: z.number().positive().optional().describe('Frames per second in jpg mode'),
         audio: z.boolean().optional().describe('Record the microphone'),
+        systemAudio: z.boolean().optional().describe('Record system audio'),
+        conversation: z.boolean().optional().describe('Transcribe both audio sources locally'),
+        multiSpeaker: z.boolean().optional().describe('Recognize speakers on each source; requires the local speaker models'),
         transcribe: z.boolean().optional().describe('Transcribe the audio with Whisper when the recording ends'),
         countdown: z.number().int().min(0).max(60).optional().describe('Seconds of countdown before recording starts'),
         launch: z.boolean().default(false).describe('Open the app if it is not running (macOS only)')
       },
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false }
     },
-    async ({ mode, displayId, region, format, resolution, jpgFps, audio, transcribe, countdown, launch }) => {
+    async ({ mode, displayId, region, format, resolution, jpgFps, audio, systemAudio, conversation, multiSpeaker, transcribe, countdown, launch }) => {
       try {
         const overrides: RecordingRequest['overrides'] = {}
         if (format !== undefined) overrides.format = format
         if (resolution !== undefined) overrides.resolution = resolution
         if (jpgFps !== undefined) overrides.jpgFps = jpgFps
+        if (systemAudio !== undefined) overrides.systemAudio = systemAudio
+        if (conversation !== undefined) overrides.conversation = conversation
+        if (multiSpeaker !== undefined) overrides.multiSpeaker = multiSpeaker
         if (audio !== undefined) overrides.audio = audio
         if (transcribe !== undefined) overrides.transcribe = transcribe
         if (countdown !== undefined) overrides.countdown = countdown

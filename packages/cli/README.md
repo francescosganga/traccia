@@ -36,3 +36,12 @@ Frames of video recordings are extracted with `ffmpeg` (from the `PATH`, `TRACCI
 Environment: `TRACCIA_OUTPUT_DIR` (recordings folder, otherwise the app's setting), `TRACCIA_USER_DATA` (the app's profile folder), `TRACCIA_CONTROL_SOCKET` (socket path).
 
 Full documentation in the [Traccia README](https://github.com/francescosganga/traccia#cli--mcp). MIT license.
+
+Record a conversation with microphone and system audio, without video:
+
+```bash
+traccia record start --format m4a --conversation --multi-speaker --system-audio
+traccia record stop
+```
+
+Download the local speaker models once in the app before using `--multi-speaker`. No account is required. For people in the same room, disable system audio in the app settings and omit `--system-audio`; speaker recognition also applies to the microphone. Audio-only recordings return no frames.

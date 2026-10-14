@@ -4,6 +4,7 @@ import type { LoginItemStatus, Settings, SpeechLanguage } from '../../../shared/
 import { AgentsPanel } from '../components/AgentsPanel'
 import { LanguagePicker } from '../components/LanguagePicker'
 import { MicPicker } from '../components/MicPicker'
+import { SpeakerModels } from '../components/SpeakerModels'
 import { ModelManager } from '../components/ModelManager'
 import { NumberField } from '../components/NumberField'
 import { ShortcutSettings } from '../components/ShortcutSettings'
@@ -210,9 +211,12 @@ export function SettingsPage({ settings, update, jump, onSection }: Props) {
             label={t('settings.transcribe')}
             hint={t('settings.transcribeHint')}
             value={settings.transcribe}
-            disabled={!settings.audio}
+            disabled={!settings.audio && !settings.systemAudio}
             onChange={(v) => update({ transcribe: v })}
           />
+          <Toggle label={t('conversation.title')} hint={t('conversation.description')} value={settings.conversation} onChange={(conversation) => update({ conversation })} />
+          <Toggle label={t('conversation.multiSpeaker')} hint={t('conversation.multiSpeakerHint')} value={settings.multiSpeaker} onChange={(multiSpeaker) => update({ multiSpeaker })} />
+          <SpeakerModels />
           <div className="field mt-4">
             <label>{t('settings.speechLanguage')}</label>
             <select value={settings.speechLanguage} onChange={(e) => update({ speechLanguage: e.target.value as SpeechLanguage })}>

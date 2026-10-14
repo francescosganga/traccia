@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type 
 import { canMoveBoundary, partAt, partStarts, type EditPart } from '../../../shared/edit-list'
 import { t } from '../../../shared/i18n'
 import { mediaUrl } from '../../../shared/media-url'
+import { speechText } from '../../../shared/speakers'
 import { formatTime } from '../../../shared/time'
 import type { RecordingMedia } from '../../../shared/types'
 import type { WebcamLayout, WebcamLayoutEvent } from '../../../shared/webcam'
@@ -246,7 +247,7 @@ export function EditTimeline({ dir, media, parts, selection, time, playing, onSe
     e.preventDefault()
     e.stopPropagation()
     onBoundaryStart()
-    onBoundary(i, starts[i + 1] + delta * (e.shiftKey ? 1000 : 1000 / media.fps))
+    onBoundary(i, starts[i + 1] + delta * (e.shiftKey ? 1000 : 1000 / (media.fps || 10)))
   }
 
   // Only what is in view (and a tile either side) is drawn: zoomed in, a long recording has thousands of tiles
@@ -254,7 +255,7 @@ export function EditTimeline({ dir, media, parts, selection, time, playing, onSe
   const viewTo = pxPerMs ? (view.left + view.width) / pxPerMs : duration
   // Thumbnails as wide as their picture: at zoom 1 a whole number of them fills the strip, and each
   // zoom level splits them in halves, so the ones already made are reused
-  const thumbPx = clamp((STRIP_PX * media.width) / media.height, 32, 160)
+  const thumbPx = clamp(media.height ? (STRIP_PX * media.width) / media.height : 80, 32, 160)
   const baseMs = duration / Math.max(1, Math.round(view.width / thumbPx))
   const tileMs = pxPerMs ? baseMs / 2 ** Math.max(0, Math.round(Math.log2((baseMs * pxPerMs) / thumbPx))) : duration
   const tiles: number[] = []
@@ -329,7 +330,7 @@ export function EditTimeline({ dir, media, parts, selection, time, playing, onSe
           <div className="timeline-label ruler" />
           <div className="timeline-label strip">
             <Icon name="monitor" />
-            {media.format === 'jpg' ? t('edit.laneFrames') : t('edit.laneScreen')}
+            {media.format === 'm4a' ? t('conversation.audioOnly') : media.format === 'jpg' ? t('edit.laneFrames') : t('edit.laneScreen')}
           </div>
           {webcam && (
             <div className="timeline-label webcam">
@@ -368,7 +369,7 @@ export function EditTimeline({ dir, media, parts, selection, time, playing, onSe
               ))}
             </div>
             <div className="timeline-lanes">
-              <div className="timeline-lane strip" data-track="screen" title={media.format === 'jpg' ? t('edit.laneFrames') : t('edit.laneScreen')}>
+              <div className="timeline-lane strip" data-track="screen" title={media.format === 'm4a' ? t('conversation.audioOnly') : media.format === 'jpg' ? t('edit.laneFrames') : t('edit.laneScreen')}>
                 {parts.map((p, i) =>
                   partBox(
                     'screen',
@@ -416,9 +417,9 @@ export function EditTimeline({ dir, media, parts, selection, time, playing, onSe
                             key={k}
                             className="phrase"
                             style={inPart(p, Math.max(s.start * 1000, p.from), Math.min(s.end * 1000, p.to))}
-                            title={`${formatTime(s.start * 1000)} → ${formatTime(s.end * 1000)}  ${s.text}`}
+                            title={`${formatTime(s.start * 1000)} → ${formatTime(s.end * 1000)}  ${speechText(s)}`}
                           >
-                            {s.text}
+                            {speechText(s)}
                           </span>
                         ))}
                       </>,

@@ -90,33 +90,37 @@ function cutSpans<T extends Span>(items: T[], segments: Segment[]): T[] {
   return out.sort((p, q) => p.start - q.start)
 }
 
-/** The words each phrase was made of: whisper-worker joins them with spaces, a word goes to the first phrase that holds it. */
-function wordsOfPhrases(phrases: Span[], words: TranscriptWord[]): TranscriptWord[][] {
-  let j = 0
-  return phrases.map((p) => {
-    const mine: TranscriptWord[] = []
-    while (j < words.length && words[j].start < p.start) j++
-    while (j < words.length && words[j].start <= p.end && words[j].end <= p.end) mine.push(words[j++])
-    return mine
-  })
+/** Source and speaker keep simultaneous speech on different tracks from being combined by an edit. */
+function wordsOfPhrases(phrases: TranscriptSegment[], words: TranscriptWord[]): TranscriptWord[][] {
+  const assigned = new Set<TranscriptWord>()
+  return phrases.map((p) => words.filter((w) => {
+    if (assigned.has(w) || w.source !== p.source || w.speaker !== p.speaker || w.start < p.start || w.start > p.end || w.end > p.end) return false
+    assigned.add(w)
+    return true
+  }))
 }
 
 /**
  * The phrases in each segment. With word timestamps a phrase keeps only the words in the segment,
  * so its text says what is left of it (none left: the phrase is gone); without, it is clamped.
  */
-function cutPhrases(phrases: TranscriptSegment[], words: TranscriptWord[], hasWords: boolean, segments: Segment[]): TranscriptSegment[] {
-  if (!hasWords) return cutSpans(phrases, segments)
+function cutPhrases(phrases: TranscriptSegment[], words: TranscriptWord[], hasWords: boolean, segments: Segment[], heard: (span: Span) => boolean): TranscriptSegment[] {
+  if (!hasWords) return cutSpans(phrases.filter(heard), segments)
   const groups = wordsOfPhrases(phrases, words)
   const out: TranscriptSegment[] = []
   for (const s of segments) {
     const a = s.from / 1000
     const b = s.to / 1000
     const at = s.at / 1000
-    for (const group of groups) {
-      const inside = group.filter((w) => overlaps(w, a, b))
+    for (const [index, group] of groups.entries()) {
+      if (!group.length) {
+        if (heard(phrases[index])) out.push(...cutSpans([phrases[index]], [s]))
+        continue
+      }
+      const inside = group.filter((w) => heard(w) && overlaps(w, a, b))
       if (!inside.length) continue
       out.push({
+        ...phrases[index],
         start: round3(Math.max(Math.min(...inside.map((w) => w.start)), a) - a + at),
         end: round3(Math.min(Math.max(...inside.map((w) => w.end)), b) - a + at),
         text: inside.map((w) => w.text.trim()).join(' ')
@@ -275,7 +279,7 @@ export function editRecordingJson(meta: RecordingJson, input: EditPart[]): Recor
   const sourceWords = (meta.words ?? []).filter(heard)
   const hasWords = (meta.words ?? []).length > 0
   const words = cutSpans(sourceWords, segments)
-  const transcript = meta.transcript ? cutPhrases(hasWords ? meta.transcript : meta.transcript.filter(heard), sourceWords, hasWords, segments) : null
+  const transcript = meta.transcript ? cutPhrases(meta.transcript, meta.words ?? [], hasWords, segments, heard) : null
   const clicks = meta.clicks
     .flatMap((c) => {
       const t = place(c.t)

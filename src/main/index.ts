@@ -10,6 +10,7 @@ import { setupScreenshots, useScreenshotProfile } from './screenshots'
 import { RecordingSession } from './session'
 import { getSettings, updateSettings } from './settings'
 import { createTray, refreshTray, updateTray, type TrayActions } from './tray'
+import { cancelDiarization, cancelSpeakerDownload } from './speakers'
 import { cleanupLegacyModels, killWorker } from './whisper'
 import {
   broadcast,
@@ -64,6 +65,7 @@ const session = new RecordingSession({
 /** Entry point for every "start recording" request (UI, tray, shortcut). */
 async function startRecording(req: RecordingRequest): Promise<void> {
   if (session.isBusy) return
+  if ((req.overrides?.format ?? getSettings().format) === 'm4a') req = { ...req, mode: 'screen', region: undefined }
   updateSettings({ lastMode: req.mode, lastDisplayId: req.displayId ?? null })
   if (req.mode === 'region' && !req.region) {
     session.setState({ status: 'selecting' })
@@ -153,4 +155,6 @@ app.on('before-quit', () => {
   globalShortcut.unregisterAll()
   stopControlServer()
   killWorker()
+  cancelDiarization()
+  cancelSpeakerDownload()
 })

@@ -136,3 +136,23 @@ describe('textsInputFromJson', () => {
     expect(textsInputFromJson({ ...none, warnings: [warning] }, 10).clicksTracked).toBe(false)
   })
 })
+
+it('exports an audio conversation with speaker labels and no video instructions', () => {
+  const { live } = recording('mp4')
+  live.format = 'm4a'
+  live.mediaName = 'audio.m4a'
+  live.conversation = true
+  live.width = live.height = live.fps = 0
+  live.samples = []
+  live.clicks = []
+  live.audio = false
+  live.systemAudio = true
+  live.segments = [{ start: 0.5, end: 2, text: 'remote voice', source: 'system', speaker: 'system_2' }]
+  const texts = recordingTexts(live, '/tmp/conversation', false)
+  expect(texts.txt).toContain('[system_2] remote voice')
+  expect(texts.txt).toContain('audio.m4a')
+  expect(texts.txt).not.toContain('# Video:')
+  expect(texts.txt).not.toContain('not transcribed')
+  expect(texts.prompt).toContain('audio-only')
+  expect(texts.prompt).not.toContain('Extract and')
+})

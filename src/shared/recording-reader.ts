@@ -9,6 +9,7 @@ import { createHash } from 'crypto'
 import { homedir, tmpdir } from 'os'
 import { basename, isAbsolute, join, resolve } from 'path'
 import { SHORTCUT_PRESETS } from './shortcuts'
+import { speechText } from './speakers'
 import { formatTime } from './time'
 import type { OutputFormat, RecordingEntry, Rect, Settings, TranscriptSegment, TranscriptWord } from './types'
 import type { WebcamLayoutEvent } from './webcam'
@@ -71,6 +72,8 @@ export const SETTINGS_DEFAULTS: Omit<Settings, 'outputDir'> = {
   audio: true,
   micDevice: null,
   systemAudio: false,
+  conversation: false,
+  multiSpeaker: false,
   webcam: false,
   webcamDevice: null,
   webcamShape: 'square',
@@ -153,6 +156,10 @@ export interface RecordingJson {
   audio: boolean
   /** What the computer played, mixed into the same audio track; missing in older recordings */
   systemAudio?: boolean
+  conversation?: boolean
+  multiSpeaker?: boolean
+  /** Source files aligned to the recording clock, also cut by the editor */
+  audioTracks?: { microphone?: string; system?: string }
   whisper: { model: string; language: string } | null
   /** [ms, x, y] in output pixels, full sample rate */
   cursor: [number, number, number][]
@@ -321,5 +328,5 @@ export function sampleTimes(durationMs: number, opts: { from?: number; to?: numb
 /** The transcript as timestamped lines, one segment per line. Empty string when there is none. */
 export function transcriptText(meta: RecordingJson): string {
   if (!meta.transcript?.length) return ''
-  return meta.transcript.map((s) => `[${formatTime(s.start * 1000)} → ${formatTime(s.end * 1000)}] ${s.text}`).join('\n') + '\n'
+  return meta.transcript.map((s) => `[${formatTime(s.start * 1000)} → ${formatTime(s.end * 1000)}] ${speechText(s)}`).join('\n') + '\n'
 }

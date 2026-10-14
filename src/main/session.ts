@@ -32,6 +32,8 @@ import { getSettings } from './settings'
 import { recordingTexts } from './texts'
 import { clipToDuration, mapPoint, wordsAround, type Geometry } from './timeline'
 import { editRecording } from './edit-recording'
+import { labelSpeakers } from '../shared/speakers'
+import { cancelDiarization, diarize, speakerStatus } from './speakers'
 import { isModelInstalled, killWorker, transcribe } from './whisper'
 
 export interface SessionHost {
@@ -78,6 +80,7 @@ export class RecordingSession {
   private countdownAbort = false
   private overrides: RecordingOverrides = {}
   private transcribing = false
+  private transcriptionCancelled = false
   /** Tracks recorded beside the screen, each to its own file */
   private sides: Record<SideTrackKind, SideTrack> = { webcam: new SideTrack(), systemAudio: new SideTrack() }
   /** Shape, corner and visibility over time, ms from the start of the recording */
@@ -103,7 +106,7 @@ export class RecordingSession {
   /** The webcam is laid over a video: there is no video to lay it over in JPG mode. */
   private webcamWanted(): boolean {
     const s = this.settings()
-    return s.webcam && s.format !== 'jpg'
+    return s.webcam && s.format !== 'jpg' && s.format !== 'm4a'
   }
 
   /** What the widget shows while recording: the choices most often regretted afterwards. */
@@ -144,7 +147,14 @@ export class RecordingSession {
   /** Starts a recording. For region mode the region must already be chosen. */
   async start(req: RecordingRequest): Promise<void> {
     if (this.isBusy) return
-    if (process.platform === 'darwin') {
+    this.overrides = req.overrides ?? {}
+    const settings = this.settings()
+    const audioOnly = settings.format === 'm4a'
+    if (audioOnly && !settings.audio && !settings.systemAudio) {
+      this.setState({ status: 'error', message: t('conversation.noAudio') })
+      return
+    }
+    if (process.platform === 'darwin' && (!audioOnly || settings.systemAudio)) {
       const status = systemPreferences.getMediaAccessStatus('screen')
       if (status === 'denied' || status === 'restricted') {
         // macOS also says 'denied' when it has never been asked (or the app was removed from
@@ -156,11 +166,9 @@ export class RecordingSession {
         return
       }
     }
-    this.overrides = req.overrides ?? {}
-    const settings = this.settings()
     const displays = screen.getAllDisplays()
     this.display = displays.find((d) => d.id === req.displayId) ?? screen.getPrimaryDisplay()
-    this.region = req.mode === 'region' && req.region ? req.region : null
+    this.region = !audioOnly && req.mode === 'region' && req.region ? req.region : null
     this.info = null
     this.startedAtDate = new Date()
     this.dir = join(settings.outputDir, timestampName(this.startedAtDate))
@@ -218,13 +226,13 @@ export class RecordingSession {
     }
 
     const perms = getPermissions()
-    this.tracker.start(settings.trackClicks && perms.accessibility)
-    if (settings.trackClicks && !perms.accessibility) {
+    this.tracker.start(!audioOnly && settings.trackClicks && perms.accessibility, audioOnly ? 0 : 120)
+    if (!audioOnly && settings.trackClicks && !perms.accessibility) {
       this.tracker.warnings.push(t('warn.clicksNoAccessibility'))
     }
 
     this.setState({ status: 'countdown', seconds: 0, info: this.recordingInfo() })
-    engine.send('engine:start', { audio: settings.audio, micDevice: settings.micDevice, systemAudio: settings.systemAudio, webcam, webcamDevice: settings.webcamDevice, frameRate: FRAME_RATE })
+    engine.send('engine:start', { audioOnly, audio: settings.audio, micDevice: settings.micDevice, systemAudio: settings.systemAudio, webcam, webcamDevice: settings.webcamDevice, frameRate: FRAME_RATE })
     this.startTimer = setTimeout(() => {
       if (this.state.status === 'countdown') this.fail(t('err.engineTimeout'))
     }, ENGINE_START_TIMEOUT)
@@ -269,11 +277,11 @@ export class RecordingSession {
    * Applies the editor's edit list to a past recording, reporting progress like the processing
    * of a recording. Refused (false) while one is being recorded or processed.
    */
-  async edit(dir: string, parts: unknown): Promise<boolean> {
+  async edit(dir: string, parts: unknown, speakerNames?: unknown): Promise<boolean> {
     if (this.isBusy) return false
     this.progress({ step: t('step.editStart'), progress: -1 })
     try {
-      const result = await editRecording(dir, parts, { cursorHz: getSettings().cursorHz, onProgress: (p) => this.progress(p) })
+      const result = await editRecording(dir, parts, { speakerNames, cursorHz: getSettings().cursorHz, onProgress: (p) => this.progress(p) })
       this.setState({ status: 'done', result })
     } catch (e) {
       console.error('edit failed', dir, JSON.stringify(parts), e)
@@ -284,7 +292,11 @@ export class RecordingSession {
 
   /** Gives up the transcription in progress; the recording is saved without it. */
   skipTranscription(): void {
-    if (this.transcribing) killWorker()
+    if (this.transcribing) {
+      this.transcriptionCancelled = true
+      killWorker()
+      cancelDiarization()
+    }
   }
 
   // ---- events coming from the renderer engine --------------------------------
@@ -351,6 +363,7 @@ export class RecordingSession {
   private geometry(): Geometry {
     const info = this.info!
     const display = this.display!
+    if (this.settings().format === 'm4a') return { displayBounds: display.bounds, scale: 1, cropPx: { x: 0, y: 0, width: 0, height: 0 }, outScale: 1, outWidth: 0, outHeight: 0 }
     const scale = info.width / display.bounds.width
     let cropPx: Rect = { x: 0, y: 0, width: info.width, height: info.height }
     if (this.region) {
@@ -483,7 +496,23 @@ export class RecordingSession {
     let frames: { file: string; tMs: number }[] | undefined
     let skipped = 0
 
-    if (format === 'jpg') {
+    const audioTracks: NonNullable<RecordingJson['audioTracks']> = {}
+    if (info.hasAudio) {
+      await runFfmpeg(['-i', this.rawPath, '-vn', '-af', `apad,atrim=end=${durationMs / 1000}`, '-c:a', 'aac', '-b:a', '128k', join(this.dir, 'microphone.m4a')])
+      audioTracks.microphone = 'microphone.m4a'
+    }
+    if (systemAudio) {
+      const offset = this.sides.systemAudio.offset(info.t0)
+      const shift = offset >= 0 ? `adelay=${Math.round(offset * 1000)}:all=1` : `atrim=start=${-offset},asetpts=PTS-STARTPTS`
+      await runFfmpeg(['-i', this.sides.systemAudio.path, '-vn', '-af', `${shift},apad,atrim=end=${durationMs / 1000}`, '-c:a', 'aac', '-b:a', '128k', join(this.dir, 'system.m4a')])
+      audioTracks.system = 'system.m4a'
+    }
+
+    if (format === 'm4a') {
+      const audio = this.audioPlan(systemAudio, 1, durationMs)
+      mediaPath = videoPath = join(this.dir, 'audio.m4a')
+      await runFfmpeg(['-i', this.rawPath, ...audio.inputs, ...(audio.filter ? ['-filter_complex', audio.filter, '-map', audio.map] : ['-vn']), '-c:a', 'aac', '-b:a', '128k', mediaPath])
+    } else if (format === 'jpg') {
       this.progress({ step: t('step.frames'), progress: 0 })
       const res = await extractFrames({
         input: this.rawPath,
@@ -523,35 +552,60 @@ export class RecordingSession {
 
     let segments: TranscriptSegment[] | null = null
     let words: TranscriptWord[] = []
-    if (settings.audio && info.hasAudio && settings.transcribe) {
+    this.transcriptionCancelled = false
+    if (settings.transcribe && (info.hasAudio || ((settings.conversation || settings.multiSpeaker || format === 'm4a') && systemAudio))) {
       if (!isModelInstalled(settings.whisperModel)) {
         warnings.push(t('warn.modelMissing', { model: settings.whisperModel }))
       } else {
+        const sources = Object.entries(audioTracks).filter(([source]) => source === 'microphone' || settings.conversation || settings.multiSpeaker || format === 'm4a') as ['microphone' | 'system', string][]
+        const recognizeSpeakers = settings.multiSpeaker && speakerStatus().installed
+        if (settings.multiSpeaker && !recognizeSpeakers) warnings.push(t('speakers.missing'))
+        this.transcribing = true
+        segments = []
         try {
-          this.progress({ step: t('step.extractAudio'), progress: -1 })
-          const audioPath = join(this.dir, 'audio.f32')
-          await runFfmpeg(['-i', this.rawPath, '-vn', '-ac', '1', '-ar', '16000', '-f', 'f32le', '-acodec', 'pcm_f32le', audioPath])
-          const transcribeStep = t('step.transcribe', { model: settings.whisperModel })
-          this.progress({ step: transcribeStep, progress: -1, canSkipTranscription: true })
-          this.transcribing = true
-          const transcript = await transcribe(audioPath, settings.whisperModel, settings.speechLanguage, (p) =>
-            this.progress({ step: transcribeStep, progress: p > 0 ? p : -1, canSkipTranscription: true })
-          ).finally(() => {
-            this.transcribing = false
-            void rm(audioPath, { force: true })
-          })
-          // Like cursor samples and clicks, speech is limited to the recording's time span
-          // (Whisper can hallucinate text timestamped past the end of the audio).
-          segments = clipToDuration(transcript.segments, durationMs)
-          words = clipToDuration(transcript.words, durationMs)
-        } catch (e) {
-          // killWorker() rejects with "cancelled": that is the user skipping it, not a failure
-          if ((e as Error).message === 'cancelled') warnings.push(t('warn.transcriptionSkipped'))
-          else {
-            console.error('transcription failed', e)
-            warnings.push(t('warn.transcriptionFailed', { error: (e as Error).message }))
+          for (const [source, file] of sources) {
+            if (this.transcriptionCancelled) throw new Error('cancelled')
+            const audioPath = join(this.dir, 'audio.f32')
+            try {
+              this.progress({ step: t('step.extractAudio'), progress: -1, canSkipTranscription: true })
+              await runFfmpeg(['-i', join(this.dir, file), '-vn', '-ac', '1', '-ar', '16000', '-f', 'f32le', '-acodec', 'pcm_f32le', audioPath])
+              if (this.transcriptionCancelled) throw new Error('cancelled')
+              const step = t('step.transcribe', { model: settings.whisperModel })
+              this.progress({ step, detail: t(source === 'microphone' ? 'home.mic' : 'home.systemAudio'), progress: -1, canSkipTranscription: true })
+              const transcript = await transcribe(audioPath, settings.whisperModel, settings.speechLanguage, (p) =>
+                this.progress({ step, detail: t(source === 'microphone' ? 'home.mic' : 'home.systemAudio'), progress: p > 0 ? p : -1, canSkipTranscription: true })
+              )
+              let turns
+              if (recognizeSpeakers) {
+                if (this.transcriptionCancelled) throw new Error('cancelled')
+                this.progress({ step: t('speakers.processing'), detail: t(source === 'microphone' ? 'home.mic' : 'home.systemAudio'), progress: -1, canSkipTranscription: true })
+                try {
+                  turns = await diarize(audioPath)
+                } catch (error) {
+                  if (this.transcriptionCancelled) throw error
+                  console.error('diarization failed', source, error)
+                  warnings.push(t('speakers.failed'))
+                }
+              }
+              const labeled = labelSpeakers(transcript, source, turns)
+              segments.push(...clipToDuration(labeled.segments, durationMs))
+              words.push(...clipToDuration(labeled.words, durationMs))
+            } catch (error) {
+              if (this.transcriptionCancelled) throw error
+              console.error('transcription failed', source, error)
+              warnings.push(t('conversation.transcriptionFailed', { source: t(source === 'microphone' ? 'home.mic' : 'home.systemAudio') }))
+            } finally {
+              await rm(audioPath, { force: true })
+            }
           }
+        } catch (error) {
+          if (this.transcriptionCancelled) warnings.push(t('warn.transcriptionSkipped'))
+          else throw error
+        } finally {
+          this.transcribing = false
         }
+        segments.sort((a, b) => a.start - b.start)
+        words.sort((a, b) => a.start - b.start)
       }
     }
 
@@ -570,10 +624,11 @@ export class RecordingSession {
       webcam: placed ? { video: basename(videoPath), cleanCopy: mediaPath !== videoPath, layout: placed } : undefined,
       width: g.outWidth,
       height: g.outHeight,
-      fps: format === 'jpg' ? settings.jpgFps : FRAME_RATE,
+      fps: format === 'm4a' ? 0 : format === 'jpg' ? settings.jpgFps : FRAME_RATE,
       durationMs,
       audio: settings.audio && info.hasAudio,
       systemAudio,
+      conversation: settings.conversation || settings.multiSpeaker || format === 'm4a',
       whisperModel: settings.whisperModel,
       language: settings.speechLanguage,
       t0: info.t0,
@@ -603,7 +658,7 @@ export class RecordingSession {
       prompt: 'PROMPT.md',
       width: g.outWidth,
       height: g.outHeight,
-      fps: format === 'jpg' ? settings.jpgFps : FRAME_RATE,
+      fps: format === 'm4a' ? 0 : format === 'jpg' ? settings.jpgFps : FRAME_RATE,
       durationMs,
       display: { id: this.display!.id, bounds: this.display!.bounds, scaleFactor: this.display!.scaleFactor },
       capture: { width: info.width, height: info.height, mimeType: info.mimeType },
@@ -611,6 +666,9 @@ export class RecordingSession {
       cropPx: g.cropPx,
       audio: settings.audio && info.hasAudio,
       systemAudio,
+      conversation: settings.conversation || settings.multiSpeaker || format === 'm4a',
+      multiSpeaker: settings.multiSpeaker,
+      audioTracks,
       whisper: segments ? { model: settings.whisperModel, language: settings.speechLanguage } : null,
       /** [ms, x, y] in output pixels, full sample rate */
       cursor: tracking.samples

@@ -27,6 +27,7 @@ export interface FrameSelection {
  * recording, otherwise stills extracted from the video with ffmpeg.
  */
 export async function renderFrames(dir: string, meta: RecordingJson, sel: FrameSelection): Promise<RenderedFrame[]> {
+  if (meta.format === 'm4a') return []
   const maxWidth = sel.maxWidth ?? MAX_WIDTH
   if (meta.format === 'jpg') {
     const picked = selectFrames(listFrames(dir, meta), sel)

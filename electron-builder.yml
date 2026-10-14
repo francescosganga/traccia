@@ -19,6 +19,7 @@ extraResources:
   - from: build/it.lproj
     to: it.lproj
 asarUnpack:
+  - node_modules/sherpa-onnx-*/**
   - node_modules/ffmpeg-static/**
   - node_modules/uiohook-napi/**
   - node_modules/onnxruntime-node/**

@@ -9,6 +9,7 @@ import type { RecordingSession } from './session'
 import { recordingMedia, recordingThumbnail } from './edit-recording'
 import { getSettings } from './settings'
 import { setMics } from './tray'
+import { speakerStatus, downloadSpeakers, cancelSpeakerDownload } from './speakers'
 import * as whisper from './whisper'
 import { broadcast, getMainWindow, resizeControls, resolveRegion, sendToControls, showMainWindow } from './windows'
 
@@ -67,6 +68,10 @@ export function registerIpc({ session, startRecording, suspendShortcuts }: IpcDe
   ipcMain.handle('agents:installInFile', () => installAgentInFile())
   ipcMain.handle('agents:commands', () => mcpCommands())
 
+  ipcMain.handle('speakers:status', () => speakerStatus())
+  ipcMain.handle('speakers:download', () => downloadSpeakers((status) => broadcast('speakers:progress', status)))
+  ipcMain.handle('speakers:cancel', () => cancelSpeakerDownload())
+
   // whisper models
   ipcMain.handle('whisper:models', () => whisper.listModels())
   ipcMain.handle('whisper:dir', () => whisper.modelsDir())
@@ -119,7 +124,7 @@ export function registerIpc({ session, startRecording, suspendShortcuts }: IpcDe
   ipcMain.handle('recordings:rename', (_e, dir: string, title: string) => setRecordingTitle(dir, title))
   ipcMain.handle('recordings:media', (_e, dir: string) => recordingMedia(dir))
   ipcMain.handle('recordings:thumbnail', (_e, dir: string, tMs: number) => recordingThumbnail(dir, tMs))
-  ipcMain.handle('recordings:edit', (_e, dir: string, parts: unknown) => session.edit(dir, parts))
+  ipcMain.handle('recordings:edit', (_e, dir: string, parts: unknown, speakerNames: unknown) => session.edit(dir, parts, speakerNames))
   ipcMain.handle('recordings:trash', async (_e, dir: string) => {
     await shell.trashItem(dir)
     if (session.state.status === 'done' && session.state.result.dir === dir) session.reset()

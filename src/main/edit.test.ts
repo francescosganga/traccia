@@ -385,3 +385,39 @@ describe('ffmpeg arguments', () => {
     )
   })
 })
+
+describe('conversation editing', () => {
+  it('keeps simultaneous sources and speaker attribution separate across cuts', () => {
+    const meta = jpgRecording()
+    meta.format = 'm4a'
+    meta.media = 'audio.m4a'
+    meta.fps = 0
+    meta.audioTracks = { microphone: 'microphone.m4a', system: 'system.m4a' }
+    meta.transcript = [
+      { start: 1, end: 4, text: 'hello room', source: 'microphone', speaker: 'microphone_2' },
+      { start: 1, end: 4, text: 'hello remote', source: 'system', speaker: 'system_1' }
+    ]
+    meta.words = [
+      { start: 1, end: 2, text: 'hello', source: 'microphone', speaker: 'microphone_2' },
+      { start: 1, end: 2, text: 'hello', source: 'system', speaker: 'system_1' },
+      { start: 3, end: 4, text: 'room', source: 'microphone', speaker: 'microphone_2' },
+      { start: 3, end: 4, text: 'remote', source: 'system', speaker: 'system_1' }
+    ]
+    const out = edit(meta, [2500, 5000])
+    expect(out.transcript).toEqual([
+      { start: 0.5, end: 1.5, text: 'room', source: 'microphone', speaker: 'microphone_2' },
+      { start: 0.5, end: 1.5, text: 'remote', source: 'system', speaker: 'system_1' }
+    ])
+    expect(out.audioTracks).toEqual(meta.audioTracks)
+  })
+
+  it('preserves a source with chunk-only timestamps when another source has words', () => {
+    const meta = jpgRecording()
+    meta.transcript = [
+      { start: 1, end: 3, text: 'mic', source: 'microphone', speaker: 'microphone_1' },
+      { start: 1, end: 3, text: 'remote chunk', source: 'system', speaker: 'system_2' }
+    ]
+    meta.words = [{ start: 1, end: 3, text: 'mic', source: 'microphone', speaker: 'microphone_1' }]
+    expect(edit(meta, [0, 4000]).transcript).toEqual(meta.transcript)
+  })
+})

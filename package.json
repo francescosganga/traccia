@@ -34,6 +34,7 @@
     "ffmpeg-static": "^5.3.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
+    "sherpa-onnx-node": "1.13.8",
     "uiohook-napi": "^1.5.5"
   },
   "devDependencies": {

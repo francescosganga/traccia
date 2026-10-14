@@ -169,7 +169,7 @@ const isLayout = (w: unknown): w is WebcamLayout => {
  * The edit list as it came from the renderer, checked: whole ms, parts that cover the recording
  * `durationMs` long exactly once, a result long enough, and something to save. Throws a RangeError otherwise.
  */
-export function checkParts(input: unknown, durationMs: number): EditPart[] {
+export function checkParts(input: unknown, durationMs: number, allowUnchanged = false): EditPart[] {
   if (!Array.isArray(input) || input.length === 0) throw new RangeError('no parts')
   const parts = input.map((raw: unknown) => {
     const p = raw as EditPart
@@ -183,6 +183,6 @@ export function checkParts(input: unknown, durationMs: number): EditPart[] {
   })
   if (sorted[sorted.length - 1].to !== durationMs) throw new RangeError(`the parts end at ${sorted[sorted.length - 1].to} ms, not ${durationMs}`)
   if (keptDuration(parts) < MIN_RESULT_MS) throw new RangeError(`the result would be ${keptDuration(parts)} ms`)
-  if (!isEdited(parts)) throw new RangeError('nothing to edit')
+  if (!allowUnchanged && !isEdited(parts)) throw new RangeError('nothing to edit')
   return parts
 }

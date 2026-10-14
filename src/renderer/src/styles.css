@@ -1762,3 +1762,20 @@ input[type='text'] {
 .controls .meta .meter > * {
   transition: transform 66ms linear;
 }
+
+.audio-preview {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: var(--muted);
+}
+
+.speaker-names {
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+.speaker-sample {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -15,8 +15,9 @@ export interface PromptInput {
   durationMs: number
   /** The microphone */
   audio: boolean
-  /** What the computer played, mixed into the same audio track (never transcribed) */
+  /** What the computer played; also transcribed in conversation mode */
   systemAudio?: boolean
+  conversation?: boolean
   transcribed: boolean
   /** Word-level timestamps available (clicks carry the words being spoken) */
   hasWords: boolean
@@ -43,6 +44,16 @@ function listJoin(items: string[]): string {
  * sentence "read the file .../PROMPT.md" is enough to get an agent started.
  */
 export function buildPrompt(input: PromptInput): string {
+  if (input.conversation || input.format === 'm4a') {
+    return [
+      t('conversation.promptTitle'), '',
+      t('conversation.promptFiles', { transcript: join(input.dir, 'recording.txt'), json: join(input.dir, 'recording.json'), media: join(input.dir, input.mediaName) }),
+      t('conversation.promptSpeakers'),
+      input.format === 'm4a' ? t('conversation.promptAudio') : t('conversation.promptVideo'),
+      t('conversation.promptTask'),
+      ...input.warnings.map((text) => t('prompt.warning', { text })), ''
+    ].join('\n')
+  }
   const isFrames = input.format === 'jpg'
   const abs = (name: string) => join(input.dir, name)
   const duration = formatTime(input.durationMs)

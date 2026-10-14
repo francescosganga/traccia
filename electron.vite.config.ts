@@ -9,7 +9,8 @@ export default defineConfig({
       rollupOptions: {
         input: {
           index: resolve(__dirname, 'src/main/index.ts'),
-          'whisper-worker': resolve(__dirname, 'src/main/whisper-worker.ts')
+          'whisper-worker': resolve(__dirname, 'src/main/whisper-worker.ts'),
+          'speaker-worker': resolve(__dirname, 'src/main/speaker-worker.ts')
         }
       }
     }

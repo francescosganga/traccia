@@ -1,3 +1,4 @@
+import { speechText } from '../shared/speakers'
 import { locale, t } from '../shared/i18n'
 import type { FrameRef, MsRange } from '../shared/recording-reader'
 import { formatTime } from '../shared/time'
@@ -72,8 +73,9 @@ export interface TimelineInput {
   durationMs: number
   /** The microphone */
   audio: boolean
-  /** What the computer played, mixed into the same audio track (never transcribed) */
+  /** What the computer played; also transcribed in conversation mode */
   systemAudio?: boolean
+  conversation?: boolean
   /** Where the editor silenced the audio, ms from the start */
   muted?: MsRange[]
   whisperModel?: string
@@ -160,7 +162,7 @@ export function buildTimeline(input: TimelineInput): string {
     for (const seg of segments) {
       const start = seg.start * 1000
       const end = seg.end * 1000
-      events.push({ t: start, order: 3, line: `[${formatTime(start)} → ${formatTime(end)}] ${seg.text}` })
+      events.push({ t: start, order: 3, line: `[${formatTime(start)} → ${formatTime(end)}] ${speechText(seg)}` })
     }
   }
 
@@ -169,14 +171,18 @@ export function buildTimeline(input: TimelineInput): string {
   const date = input.createdAt.toLocaleString(locale())
   const duration = formatTime(input.durationMs)
   const header: string[] = [t('tl.title', { date })]
-  if (isFrames) {
+  if (input.format === 'm4a') {
+    header.push(t('conversation.audioTimeline', { name: input.mediaName, duration }))
+  } else if (isFrames) {
     const skipped = input.skippedFrames ? t('tl.skipped', { n: input.skippedFrames }) : ''
     header.push(t('tl.frames', { w: input.width, h: input.height, fps: input.fps, n: input.frames?.length ?? 0, skipped, duration }))
   } else {
     header.push(t('tl.video', { name: input.mediaName, w: input.width, h: input.height, fps: input.fps, duration }))
   }
   if (input.webcam) header.push(input.webcam.cleanCopy ? t('tl.webcamClean', { video: input.webcam.video, name: input.mediaName }) : t('tl.webcamOver'))
-  if (input.audio) {
+  if (input.conversation) {
+    header.push(t('conversation.timeline'))
+  } else if (input.audio) {
     header.push(
       input.segments
         ? t('tl.audioTranscribed', { model: input.whisperModel ?? '', lang: input.language ?? 'auto' })
@@ -188,13 +194,13 @@ export function buildTimeline(input: TimelineInput): string {
   }
   if (input.muted?.length) header.push(t('tl.muted', { ranges: input.muted.map((m) => `${formatTime(m.fromMs)} → ${formatTime(m.toMs)}`).join(', ') }))
   const unit = isFrames ? t('tl.unitImage') : t('tl.unitVideo')
-  header.push(clicksOnly ? t('tl.cursorClicksOnly', { unit }) : t('tl.cursorFull', { unit, hz: input.cursorHz }))
+  if (input.format !== 'm4a') header.push(clicksOnly ? t('tl.cursorClicksOnly', { unit }) : t('tl.cursorFull', { unit, hz: input.cursorHz }))
   header.push('#')
   header.push(t('tl.formatTitle'))
   if (isFrames) header.push(clicksOnly ? t('tl.fmtFrameNoCursor') : t('tl.fmtFrame'))
-  if (!clicksOnly) header.push(t('tl.fmtCursor'))
+  if (!clicksOnly && input.format !== 'm4a') header.push(t('tl.fmtCursor'))
   if (webcamLines.length) header.push(t('tl.fmtWebcam'))
-  header.push(words.length ? t('tl.fmtClickSpeech') : t('tl.fmtClick'))
+  if (input.format !== 'm4a') header.push(words.length ? t('tl.fmtClickSpeech') : t('tl.fmtClick'))
   if (input.segments) header.push(t('tl.fmtSpeech'))
   if (input.warnings.length) {
     header.push('#')

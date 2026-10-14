@@ -35,10 +35,13 @@ Record options:
   --region                select a region on screen by dragging, as from the app
   --rect x,y,w,h          region in points relative to the display, without the on-screen selection
   --display <id>          display to record (see \`traccia displays\`); default: the primary one
-  --format <f>            mp4 | mov | webm | jpg          (default: the app's setting)
+  --format <f>            mp4 | mov | webm | jpg | m4a    (default: the app's setting)
   --jpg                   same as --format jpg
   --fps <n>               frames per second in jpg mode
   --resolution <r>        native | 1080 | 720 | 480
+  --conversation          transcribe both sources locally
+  --multi-speaker         recognize speakers on each source (download the models in the app first)
+  --system-audio          record system audio
   --no-audio              do not record the microphone
   --no-transcribe         skip the Whisper transcription
   --countdown <s>         seconds before the recording starts
@@ -67,6 +70,9 @@ const options = {
   display: { type: 'string' },
   format: { type: 'string' },
   jpg: { type: 'boolean', default: false },
+  conversation: { type: 'boolean', default: false },
+  'multi-speaker': { type: 'boolean', default: false },
+  'system-audio': { type: 'boolean', default: false },
   fps: { type: 'string' },
   resolution: { type: 'string' },
   'no-audio': { type: 'boolean', default: false },
@@ -189,7 +195,7 @@ function parseRect(raw: string): RecordingRequest['region'] {
 
 async function recordStart(flags: Flags): Promise<void> {
   const overrides: RecordingOverrides = {}
-  const format = flags.jpg ? 'jpg' : oneOf<OutputFormat>(flags, 'format', ['mp4', 'mov', 'webm', 'jpg'])
+  const format = flags.jpg ? 'jpg' : oneOf<OutputFormat>(flags, 'format', ['mp4', 'mov', 'webm', 'jpg', 'm4a'])
   if (format) overrides.format = format
   const resolution = oneOf<Resolution>(flags, 'resolution', ['native', '1080', '720', '480'])
   if (resolution) overrides.resolution = resolution
@@ -197,6 +203,9 @@ async function recordStart(flags: Flags): Promise<void> {
   if (fps !== undefined) overrides.jpgFps = fps
   const countdown = number(flags, 'countdown')
   if (countdown !== undefined) overrides.countdown = countdown
+  if (flags.conversation) overrides.conversation = true
+  if (flags['multi-speaker']) overrides.multiSpeaker = true
+  if (flags['system-audio']) overrides.systemAudio = true
   if (flags['no-audio']) overrides.audio = false
   if (flags['no-transcribe']) overrides.transcribe = false
   const region = flags.rect ? parseRect(flags.rect) : undefined

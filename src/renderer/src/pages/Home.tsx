@@ -10,6 +10,7 @@ import { WebcamPicker } from '../components/WebcamPicker'
 import { formatDate, formatDuration, formatShortcut } from '../format'
 import { FORMATS, JPG_FPS, RESOLUTIONS, resolutionLabel } from '../options'
 import type { SettingsSection } from './Settings'
+import { SpeakerModels } from '../components/SpeakerModels'
 import { EditView } from './Edit'
 
 interface Props {
@@ -21,14 +22,17 @@ interface Props {
 }
 
 /** The choices on this page apply to the next recording only; the defaults live in Settings. */
-type Choices = Required<Pick<RecordingOverrides, 'format' | 'resolution' | 'jpgFps' | 'audio' | 'systemAudio' | 'webcam'>>
+type Choices = Required<Pick<RecordingOverrides, 'format' | 'resolution' | 'jpgFps' | 'audio' | 'systemAudio' | 'webcam' | 'conversation' | 'multiSpeaker' | 'transcribe'>>
 const defaultsOf = (s: Settings): Choices => ({
   format: s.format,
   resolution: s.resolution,
   jpgFps: s.jpgFps,
   audio: s.audio,
   systemAudio: s.systemAudio,
-  webcam: s.webcam
+  webcam: s.webcam,
+  conversation: s.conversation || s.multiSpeaker || s.format === 'm4a',
+  multiSpeaker: s.multiSpeaker,
+  transcribe: s.transcribe
 })
 
 
@@ -66,7 +70,7 @@ export function Home({ settings, state, modelInstalled, platform, goSettings }: 
     refreshRecordings()
   }, [])
   // The page goes back to the defaults when they change, and once a recording has ended
-  useEffect(() => setChoices(defaultsOf(settings)), [settings.format, settings.resolution, settings.jpgFps, settings.audio, settings.systemAudio, settings.webcam])
+  useEffect(() => setChoices(defaultsOf(settings)), [settings.format, settings.resolution, settings.jpgFps, settings.audio, settings.systemAudio, settings.webcam, settings.conversation, settings.multiSpeaker, settings.transcribe])
   useEffect(() => {
     if (state.status === 'done' || state.status === 'error') {
       setChoices(defaultsOf(settings))
@@ -82,7 +86,8 @@ export function Home({ settings, state, modelInstalled, platform, goSettings }: 
     if (busy) setEditing(null)
   }, [busy])
   const shortcut = settings.shortcutsEnabled ? formatShortcut(mode === 'region' ? settings.shortcutRegion : settings.shortcutScreen, platform) : null
-  const modelMissing = choices.audio && settings.transcribe && !modelInstalled
+  const wantsTranscript = choices.transcribe && (choices.audio || ((choices.conversation || choices.multiSpeaker || choices.format === 'm4a') && choices.systemAudio))
+  const modelMissing = wantsTranscript && !modelInstalled
   const countdown = settings.countdown > 0 ? t('home.seconds', { n: settings.countdown }) : t('home.off')
   const dismiss = (
     <button className="btn ghost icon-btn" aria-label={t('common.cancel')} onClick={() => window.api.recording.reset()}>
@@ -103,7 +108,7 @@ export function Home({ settings, state, modelInstalled, platform, goSettings }: 
   const actions = (r: RecordingRef): MenuItem[] => [
     { label: t('home.openTxt'), onSelect: () => void window.api.recordings.open(r.txtPath) },
     { label: t('home.openRawTxt'), onSelect: () => void window.api.recordings.open(r.rawTxtPath) },
-    ...(r.format !== 'jpg' ? [{ label: t('home.openVideo'), onSelect: () => void window.api.recordings.open(r.videoPath) }] : []),
+    ...(r.format !== 'jpg' ? [{ label: t(r.format === 'm4a' ? 'conversation.openAudio' : 'home.openVideo'), onSelect: () => void window.api.recordings.open(r.videoPath) }] : []),
     // Not while recording or processing: the main process would refuse it
     ...(!busy ? [{ label: t('home.edit'), onSelect: () => setEditing({ dir: r.dir, name: r.name }) }] : []),
     { label: t('home.rename'), onSelect: () => setRenaming(r.dir) },
@@ -167,7 +172,7 @@ export function Home({ settings, state, modelInstalled, platform, goSettings }: 
             )}
             <p className="dim mt-2">
               {doneEntry?.title ? `${doneLabel} · ` : ''}
-              {formatDuration(done.durationMs)} · {done.width}×{done.height} · {done.format.toUpperCase()}
+              {formatDuration(done.durationMs)} · {done.format !== 'm4a' && `${done.width}×${done.height} · `}{done.format.toUpperCase()}
               {done.frames !== undefined && ` · ${t('home.frames', { n: done.frames })}${done.skippedFrames ? ' ' + t('home.skipped', { n: done.skippedFrames }) : ''}`}
               {done.transcriptSegments !== undefined && ` · ${t('home.segments', { n: done.transcriptSegments })}`}
             </p>
@@ -227,8 +232,23 @@ export function Home({ settings, state, modelInstalled, platform, goSettings }: 
         {!busy && (
           <>
             <div className="card">
+              <div className="field">
+                <label>{t('conversation.mode')}</label>
+                <Segmented options={[{ id: 'screen', label: t('conversation.screen') }, { id: 'conversation', label: t('conversation.title') }]}
+                  value={choices.conversation ? 'conversation' : 'screen'}
+                  onChange={(value) => choose(value === 'conversation'
+                    ? { conversation: true, multiSpeaker: true, transcribe: true, audio: true, format: 'm4a', webcam: false }
+                    : { conversation: false, multiSpeaker: false, format: 'mp4' })} />
+                {choices.conversation && <span className="hint">{t('conversation.description')}</span>}
+              </div>
+              {choices.conversation && <div className="field">
+                <label>{t('conversation.capture')}</label>
+                <Segmented options={[{ id: 'audio', label: t('conversation.audioOnly') }, { id: 'video', label: t('conversation.withScreen') }]}
+                  value={choices.format === 'm4a' ? 'audio' : 'video'}
+                  onChange={(value) => choose({ format: value === 'audio' ? 'm4a' : 'mp4' })} />
+              </div>}
               <div className="grid-2">
-                <div className="field">
+                {choices.format !== 'm4a' && <div className="field">
                   <label>{t('home.what')}</label>
                   <Segmented<CaptureMode>
                     options={[
@@ -238,8 +258,8 @@ export function Home({ settings, state, modelInstalled, platform, goSettings }: 
                     value={mode}
                     onChange={setMode}
                   />
-                </div>
-                {displays.length > 1 && mode === 'screen' && (
+                </div>}
+                {choices.format !== 'm4a' && displays.length > 1 && mode === 'screen' && (
                   <div className="field">
                     <label>{t('home.display')}</label>
                     <select value={displayId} onChange={(e) => setDisplayId(Number(e.target.value))}>
@@ -252,14 +272,14 @@ export function Home({ settings, state, modelInstalled, platform, goSettings }: 
                     </select>
                   </div>
                 )}
-                <div className="field">
+                {choices.format !== 'm4a' && <div className="field">
                   <label>{t('home.format')}</label>
                   <Segmented options={FORMATS} value={choices.format} onChange={(format) => choose({ format })} />
-                </div>
-                <div className="field">
+                </div>}
+                {choices.format !== 'm4a' && <div className="field">
                   <label>{t('home.resolution')}</label>
                   <Segmented options={RESOLUTIONS.map((r) => ({ id: r, label: resolutionLabel(r) }))} value={choices.resolution} onChange={(resolution) => choose({ resolution })} />
-                </div>
+                </div>}
                 {choices.format === 'jpg' && (
                   <div className="field">
                     <label>{t('home.jpgFps')}</label>
@@ -280,7 +300,18 @@ export function Home({ settings, state, modelInstalled, platform, goSettings }: 
                   {choices.audio && <MicPicker value={settings.micDevice} onChange={(micDevice) => void window.api.settings.update({ micDevice })} />}
                   <Toggle label={t('home.systemAudio')} value={choices.systemAudio} onChange={(systemAudio) => choose({ systemAudio })} />
                 </div>
-                <div className="field">
+                {choices.conversation && <div className="field">
+                  <Toggle label={t('settings.transcribe')} value={choices.transcribe} onChange={(transcribe) => choose({ transcribe })} />
+                  <Toggle label={t('conversation.multiSpeaker')} hint={t('conversation.multiSpeakerHint')}
+                    value={choices.multiSpeaker} disabled={!choices.transcribe} onChange={(multiSpeaker) => choose({ multiSpeaker })} />
+                  {choices.multiSpeaker && choices.transcribe && <SpeakerModels />}
+                  <details className="hint mt-2">
+                    <summary>{t('conversation.sourcesDetails')}</summary>
+                    <p>{t('conversation.sourcesHint')}</p>
+                  </details>
+                  {choices.format === 'm4a' && choices.systemAudio && <p className="hint">{t('conversation.loopbackHint')}</p>}
+                </div>}
+                {choices.format !== 'm4a' && <div className="field">
                   <label>{t('home.webcam')}</label>
                   {choices.format === 'jpg' ? (
                     <span className="hint">{t('home.webcamVideoOnly')}</span>
@@ -307,17 +338,17 @@ export function Home({ settings, state, modelInstalled, platform, goSettings }: 
                       )}
                     </>
                   )}
-                </div>
+                </div>}
               </div>
               <div className="row wrap small dim mt-2">
                 <button className={`link ${modelMissing ? 'text-warn' : ''}`} onClick={() => goSettings('audio')}>
                   {t('home.transcription', {
-                    value: choices.audio && settings.transcribe ? (modelMissing ? t('home.modelMissing') : `Whisper ${settings.whisperModel}`) : t('home.off')
+                    value: wantsTranscript ? (modelMissing ? t('home.modelMissing') : `Whisper ${settings.whisperModel}`) : t('home.off')
                   })}
                 </button>
                 <span>·</span>
                 <button className="link" onClick={() => goSettings('cursor')}>
-                  {t('home.clicks', { value: settings.trackClicks ? t('common.yes') : t('common.no') })}
+                  {t('home.clicks', { value: choices.format !== 'm4a' && settings.trackClicks ? t('common.yes') : t('common.no') })}
                 </button>
                 <span>·</span>
                 <button className="link" onClick={() => goSettings('recording')}>
@@ -332,8 +363,8 @@ export function Home({ settings, state, modelInstalled, platform, goSettings }: 
             </div>
 
             <div className="record-panel">
-              <button className="btn primary big record" onClick={start}>
-                {mode === 'region' ? t('home.recordAreaButton') : t('home.recordButton')}
+              <button className="btn primary big record" onClick={start} disabled={choices.format === 'm4a' && !choices.audio && !choices.systemAudio}>
+                {choices.format === 'm4a' ? t('conversation.recordAudio') : mode === 'region' ? t('home.recordAreaButton') : t('home.recordButton')}
               </button>
               <p className="hint">{shortcut ? t('home.hideNote', { shortcut }) : t('home.hideNoteNoShortcut')}</p>
             </div>

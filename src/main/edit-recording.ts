@@ -1,7 +1,8 @@
 import { existsSync } from 'fs'
 import { copyFile, link, mkdir, rename, rm, rmdir, writeFile } from 'fs/promises'
 import { join } from 'path'
-import { checkParts, snapParts } from '../shared/edit-list'
+import { checkParts, isEdited, snapParts } from '../shared/edit-list'
+import { renameSpeakers } from '../shared/speakers'
 import { t } from '../shared/i18n'
 import { listFrames, readRecordingJson, type MsRange, type RecordingJson } from '../shared/recording-reader'
 import type { ProcessingProgress, RecordingMedia, RecordingResult, WebcamEditing } from '../shared/types'
@@ -19,6 +20,7 @@ const PREVIOUS_DIR = '.edit-previous'
 const TEXT_FILES = ['recording.txt', 'recording-raw.txt', 'PROMPT.md', 'recording.json']
 
 export interface EditOptions {
+  speakerNames?: unknown
   /** For recordings made before recording.json stored it: the current setting */
   cursorHz: number
   onProgress: (p: ProcessingProgress) => void
@@ -28,7 +30,7 @@ const exists = (dir: string, name: string | undefined): name is string => !!name
 
 /** The video without the webcam (or the only video), which the AI reads and the editor shows; null in JPG mode. */
 function screenVideo(dir: string, meta: RecordingJson): string | null {
-  if (meta.format === 'jpg') return null
+  if (meta.format === 'jpg' || meta.format === 'm4a') return null
   return [meta.media, meta.webcam?.video].find((name) => exists(dir, name)) ?? null
 }
 
@@ -55,10 +57,12 @@ async function linkOrCopy(src: string, dst: string): Promise<void> {
  * something fails the recording is left as it was.
  */
 export async function editRecording(dir: string, input: unknown, opts: EditOptions): Promise<RecordingResult> {
-  const meta = await readRecordingJson(dir)
-  const checked = checkParts(input, meta.durationMs)
+  const original = await readRecordingJson(dir)
+  const named = renameSpeakers({ segments: original.transcript ?? [], words: original.words ?? [] }, opts.speakerNames)
+  const meta = { ...original, transcript: original.transcript === null ? null : named.segments, words: named.words }
+  const checked = checkParts(input, meta.durationMs, opts.speakerNames !== undefined)
   // Cuts on the frames keep the sound in step at every join (see joinGraph)
-  const parts = meta.format === 'jpg' ? checked : snapParts(checked, meta.fps, meta.durationMs)
+  const parts = meta.format === 'jpg' || meta.format === 'm4a' ? checked : snapParts(checked, meta.fps, meta.durationMs)
   const editing = webcamEditing(dir, meta)
   const laid = parts.filter((p) => !p.removed && p.webcam)
   if (laid.length && (editing === 'none' || (editing === 'hide' && laid.some((p) => p.webcam?.visible)))) {
@@ -66,7 +70,8 @@ export async function editRecording(dir: string, input: unknown, opts: EditOptio
   }
   // The guesses for older recordings are made on the whole of it, and stored, so the next edit needs none
   const before = textsInputFromJson(meta, opts.cursorHz)
-  const json = editRecordingJson({ ...meta, cursorHz: before.input.cursorHz, clicksTracked: before.clicksTracked }, parts)
+  const mediaChanged = isEdited(parts)
+  const json = mediaChanged ? editRecordingJson({ ...meta, cursorHz: before.input.cursorHz, clicksTracked: before.clicksTracked }, parts) : { ...meta }
   json.prompt = 'PROMPT.md'
   const segments = keptSegments(parts)
 
@@ -75,32 +80,41 @@ export async function editRecording(dir: string, input: unknown, opts: EditOptio
   await mkdir(staging)
   const staged: string[] = []
   try {
-    const render = new Renderer(dir, staging, meta, json, segments, opts.onProgress)
-    if (meta.format === 'jpg') {
-      if (meta.frames && json.frames) {
-        opts.onProgress({ step: t('step.editFrames'), progress: -1 })
-        await mkdir(join(staging, 'frames'))
-        const sources = keptFrames(meta.frames, segments)
-        for (let i = 0; i < sources.length; i++) await linkOrCopy(join(dir, sources[i].frame.file), join(staging, json.frames[i].file))
-        staged.push('frames')
+    if (mediaChanged) {
+      const render = new Renderer(dir, staging, meta, json, segments, opts.onProgress)
+      if (meta.format === 'jpg' || meta.format === 'm4a') {
+        if (meta.frames && json.frames) {
+          opts.onProgress({ step: t('step.editFrames'), progress: -1 })
+          await mkdir(join(staging, 'frames'))
+          const sources = keptFrames(meta.frames, segments)
+          for (let i = 0; i < sources.length; i++) await linkOrCopy(join(dir, sources[i].frame.file), join(staging, json.frames[i].file))
+          staged.push('frames')
+        }
+        if (exists(dir, 'audio.m4a')) {
+          await render.audioOnly('audio.m4a')
+          staged.push('audio.m4a')
+        }
+      } else {
+        const screen = screenVideo(dir, meta)
+        if (screen) {
+          await render.cut(screen)
+          staged.push(screen)
+        }
+        const composite = meta.webcam?.video
+        if (composite && composite !== screen && exists(dir, composite)) {
+          const hidden = hiddenByEdit(parts)
+          if (editing === 'full' && json.webcam) await render.layWebcam(composite, meta.media, json)
+          else if (editing === 'hide' && hidden.length) await render.hideWebcam(composite, meta.media, hidden)
+          else await render.cut(composite)
+          staged.push(composite)
+        }
       }
-      if (exists(dir, 'audio.m4a')) {
-        await render.audioOnly('audio.m4a')
-        staged.push('audio.m4a')
-      }
-    } else {
-      const screen = screenVideo(dir, meta)
-      if (screen) {
-        await render.cut(screen)
-        staged.push(screen)
-      }
-      const composite = meta.webcam?.video
-      if (composite && composite !== screen && exists(dir, composite)) {
-        const hidden = hiddenByEdit(parts)
-        if (editing === 'full' && json.webcam) await render.layWebcam(composite, meta.media, json)
-        else if (editing === 'hide' && hidden.length) await render.hideWebcam(composite, meta.media, hidden)
-        else await render.cut(composite)
-        staged.push(composite)
+
+      for (const name of Object.values(meta.audioTracks ?? {})) {
+        if (name && exists(dir, name) && !staged.includes(name)) {
+          await render.audioOnly(name)
+          staged.push(name)
+        }
       }
     }
 
@@ -113,7 +127,7 @@ export async function editRecording(dir: string, input: unknown, opts: EditOptio
     await writeFile(join(staging, 'recording.json'), JSON.stringify(json), 'utf8')
     staged.push(...TEXT_FILES)
 
-    await swapIn(dir, staging, staged)
+    await swapIn(dir, staging, staged, mediaChanged)
   } finally {
     await rm(staging, { recursive: true, force: true }).catch((e) => console.error('cannot remove', staging, e))
   }
@@ -230,8 +244,8 @@ class Renderer {
  * Puts the staged files in place of the current ones, which go to original/ if there is none yet,
  * and are deleted otherwise. Renames only, undone if one fails.
  */
-async function swapIn(dir: string, staging: string, names: string[]): Promise<void> {
-  const first = !existsSync(join(dir, ORIGINAL_DIR))
+async function swapIn(dir: string, staging: string, names: string[], preserveOriginal = true): Promise<void> {
+  const first = preserveOriginal && !existsSync(join(dir, ORIGINAL_DIR))
   const backup = join(dir, first ? ORIGINAL_DIR : PREVIOUS_DIR)
   await mkdir(backup, { recursive: true })
   const moved: string[] = []
@@ -272,8 +286,8 @@ export async function recordingMedia(dir: string): Promise<RecordingMedia> {
     height: meta.height,
     fps: meta.fps,
     video: screen ? join(dir, screen) : null,
-    audio: meta.format === 'jpg' && existsSync(audio) ? audio : null,
-    hasAudio: meta.format === 'jpg' ? existsSync(audio) : !!screen && (await hasAudioStream(join(dir, screen))),
+    audio: (meta.format === 'jpg' || meta.format === 'm4a') && existsSync(audio) ? audio : null,
+    hasAudio: meta.format === 'jpg' || meta.format === 'm4a' ? existsSync(audio) : !!screen && (await hasAudioStream(join(dir, screen))),
     frames: listFrames(dir, meta).map(({ path, tMs }) => ({ path, tMs })),
     transcript: meta.transcript ?? [],
     clicks: meta.clicks.map(({ t, button }) => ({ t, button })),

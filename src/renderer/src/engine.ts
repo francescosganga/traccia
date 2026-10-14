@@ -85,17 +85,14 @@ export function installEngine(): void {
 
   window.api.engine.onStart(async (cmd) => {
     try {
-      // The main process answers with the system loopback as the audio, when asked for
-      const screenStream = await navigator.mediaDevices.getDisplayMedia({
-        video: { frameRate: { ideal: cmd.frameRate, max: cmd.frameRate } },
-        audio: cmd.systemAudio
-      })
-      streams.push(screenStream)
-      const videoTrack = screenStream.getVideoTracks()[0]
-      const tracks: MediaStreamTrack[] = [videoTrack]
-
-      // Its own file, not the screen's audio track: Whisper transcribes the microphone alone
-      const systemTrack = screenStream.getAudioTracks()[0]
+      // Chromium requires a display stream for loopback, but audio-only never encodes its video track.
+      const screenStream = !cmd.audioOnly || cmd.systemAudio
+        ? await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: cmd.frameRate, max: cmd.frameRate } }, audio: cmd.systemAudio })
+        : null
+      if (screenStream) streams.push(screenStream)
+      const videoTrack = screenStream?.getVideoTracks()[0]
+      const tracks: MediaStreamTrack[] = !cmd.audioOnly && videoTrack ? [videoTrack] : []
+      const systemTrack = screenStream?.getAudioTracks()[0]
       const hasSystemAudio = !!systemTrack && systemTrack.readyState === 'live'
       if (cmd.systemAudio && !hasSystemAudio) console.warn('system audio requested but not provided', systemTrack?.readyState)
       if (hasSystemAudio) {
@@ -132,8 +129,10 @@ export function installEngine(): void {
         }
       }
 
-      const { width = 0, height = 0 } = videoTrack.getSettings()
-      const mimeType = pickMimeType(MIME_CANDIDATES)
+      if (cmd.audioOnly && !hasAudio && hasSystemAudio) tracks.push(systemTrack!)
+      if (!tracks.length) throw new Error(t('conversation.noAudio'))
+      const { width = 0, height = 0 } = cmd.audioOnly ? {} : videoTrack!.getSettings()
+      const mimeType = pickMimeType(cmd.audioOnly ? SYSTEM_AUDIO_MIME_CANDIDATES : MIME_CANDIDATES)
       const rec = new MediaRecorder(new MediaStream(tracks), {
         mimeType: mimeType || undefined,
         videoBitsPerSecond: bitrateFor(width, height),
@@ -163,7 +162,8 @@ export function installEngine(): void {
         })
       }
       // The OS can end the capture (e.g. permission revoked): treat it as a stop.
-      videoTrack.onended = () => {
+      const primaryTrack = cmd.audioOnly ? tracks[0] : videoTrack!
+      primaryTrack.onended = () => {
         if (rec.state !== 'inactive') rec.stop()
       }
       rec.start(1000)
