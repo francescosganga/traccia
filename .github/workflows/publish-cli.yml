@@ -21,9 +21,15 @@ permissions:
   contents: read
   id-token: write # trusted publishing exchanges the workflow identity for a publish token
 
+# A manual retry and a release event must not upload the same version concurrently.
+concurrency:
+  group: publish-cli
+  cancel-in-progress: false
+
 jobs:
   npm:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v5
 
@@ -44,27 +50,68 @@ jobs:
 
       - run: npm run build -w packages/cli
 
-      # The registry accepts the tarball and stages the version before it is readable; a
-      # retried PUT then meets its own upload as 409 "Cannot publish over previously staged
-      # version" (npm/cli#9889). That answer is a publish that landed, so the step treats it
-      # as success once the version reads back, and fails on anything else.
+      # npm scans accepted uploads before making them installable. Availability usually
+      # takes minutes, sometimes more than fifteen; it is separate from upload success.
+      # https://github.blog/changelog/2026-07-28-npm-publish-time-malware-scanning-and-dual-use-metadata/
       - name: Publish
+        shell: bash
         run: |
-          set +e
-          output=$(npm publish -w packages/cli --access public --provenance 2>&1)
-          code=$?
-          set -e
-          printf '%s\n' "$output"
-          if [ "$code" -ne 0 ] && ! printf '%s' "$output" | grep -q 'previously staged version'; then
-            exit "$code"
-          fi
           version=$(node -p "require('./packages/cli/package.json').version")
-          for _ in $(seq 1 12); do
-            if npm view "traccia-cli@$version" version >/dev/null 2>&1; then
-              echo "traccia-cli@$version is on the registry"
+          package="traccia-cli@$version"
+          registry=https://registry.npmjs.org/
+
+          # Only E404 means absent: authentication and network errors must stay visible.
+          is_published() {
+            local result
+            if result=$(npm view "$package" version --json --registry="$registry" --prefer-online --fetch-retries=0 --fetch-timeout=15000 2>&1); then
+              return 0
+            fi
+            if grep -q '"code": "E404"' <<< "$result"; then
+              return 1
+            fi
+            printf '%s\n' "$result" >&2
+            return 2
+          }
+
+          state=0
+          is_published || state=$?
+          if [ "$state" -eq 0 ]; then
+            echo "$package is already on the registry; skipping publication"
+            echo "$package was already available; no upload needed." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          elif [ "$state" -ne 1 ]; then
+            exit "$state"
+          fi
+
+          code=0
+          output=$(npm publish -w packages/cli --access public --provenance --registry="$registry" 2>&1) || code=$?
+          printf '%s\n' "$output"
+          if [ "$code" -ne 0 ]; then
+            # A staged-version conflict can come from an earlier upload, but does not
+            # prove publication succeeded. Require registry visibility in that case.
+            if ! grep -q 'E409\|409 Conflict' <<< "$output" || ! grep -q 'Cannot publish over previously staged version' <<< "$output"; then
+              exit "$code"
+            fi
+          fi
+
+          for attempt in $(seq 1 40); do
+            state=0
+            is_published || state=$?
+            if [ "$state" -eq 0 ]; then
+              echo "$package is on the registry"
+              echo "$package is available on npm." >> "$GITHUB_STEP_SUMMARY"
               exit 0
             fi
-            sleep 10
+            echo "Waiting for npm availability ($attempt/40, registry status $state)"
+            if [ "$attempt" -lt 40 ]; then sleep 30; fi
           done
-          echo "traccia-cli@$version did not become readable within two minutes" >&2
-          exit 1
+
+          if [ "$code" -ne 0 ]; then
+            echo "::error::$package had a staged-version conflict and is still unavailable. Check its status on npm before retrying."
+            exit "$code"
+          fi
+
+          # npm accepted this upload. A slow scan or registry outage does not undo it;
+          # report pending availability explicitly instead of encouraging another upload.
+          echo "::warning::npm accepted $package, but availability is not confirmed after approximately 20 minutes. Check npm processing/review status; do not bump the version just to retry."
+          echo "npm accepted $package. Availability is still unconfirmed: check npm processing/review status before announcing it as installable." >> "$GITHUB_STEP_SUMMARY"
