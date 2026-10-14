@@ -9,18 +9,25 @@
  *               { id, type: 'error', error }
  */
 import { readFileSync } from 'fs'
+import { transcriptionStart } from './transcription-audio'
 import type { TranscriptResult, TranscriptSegment, TranscriptWord } from '../shared/types'
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const tf = require('@huggingface/transformers') as {
   pipeline: (task: string, model: string, opts: Record<string, unknown>) => Promise<AsrPipeline>
   env: Record<string, unknown>
+  Tensor: new (type: string, data: BigInt64Array, dims: number[]) => unknown
 }
 
-type AsrPipeline = (
+type AsrPipeline = ((
   audio: Float32Array,
   opts: Record<string, unknown>
-) => Promise<{ text: string; chunks?: { timestamp: [number, number | null]; text: string }[] }>
+) => Promise<{ text: string; chunks?: { timestamp: [number, number | null]; text: string }[] }>) & {
+  processor: (audio: Float32Array) => Promise<Record<string, unknown>>
+  model: ((inputs: Record<string, unknown>) => Promise<{ logits: { data: Float32Array } }>) & {
+    generation_config: { decoder_start_token_id: number; lang_to_id: Record<string, number> }
+  }
+}
 
 tf.env.cacheDir = process.env.MODELS_DIR
 tf.env.allowRemoteModels = true
@@ -67,6 +74,34 @@ function load(model: string, id: number, reportProgress: boolean): Promise<AsrPi
 
 const SAMPLE_RATE = 16000
 const PIECE_SECONDS = 600
+
+/** Transformers.js currently defaults to English for an omitted language; use Whisper's language logits instead. */
+async function detectLanguage(asr: AsrPipeline, audio: Float32Array): Promise<string> {
+  // Skip leading quiet frames so a meeting's initial silence does not determine its language.
+  let start = 0
+  const frame = SAMPLE_RATE / 10
+  for (; start + frame < audio.length; start += frame) {
+    let energy = 0
+    for (let j = start; j < start + frame; j++) energy += audio[j] * audio[j]
+    if (Math.sqrt(energy / frame) > 0.01) break
+  }
+  start = Math.max(0, start - frame * 2)
+  const inputs = await asr.processor(audio.subarray(start, start + SAMPLE_RATE * 30))
+  const config = asr.model.generation_config
+  const output = await asr.model({
+    ...inputs,
+    decoder_input_ids: new tf.Tensor('int64', BigInt64Array.of(BigInt(config.decoder_start_token_id)), [1, 1])
+  })
+  let language = 'en'
+  let best = -Infinity
+  for (const [token, index] of Object.entries(config.lang_to_id)) {
+    if (output.logits.data[index] > best) {
+      best = output.logits.data[index]
+      language = token.slice(2, -2)
+    }
+  }
+  return language
+}
 
 // Phrase splitting: a new segment starts after sentence punctuation, after a pause,
 // after clause punctuation once the phrase is long enough, or at a hard duration cap.
@@ -128,20 +163,27 @@ function clipToAudio<T extends { start: number; end: number }>(items: T[], audio
 }
 
 async function transcribe(id: number, model: string, audioPath: string, language: string): Promise<void> {
-  const asr = await load(model, id, false)
   const buf = readFileSync(audioPath)
   const audio = new Float32Array(buf.buffer, buf.byteOffset, Math.floor(buf.byteLength / 4))
   const totalSec = audio.length / SAMPLE_RATE
   const result: TranscriptResult = { segments: [], words: [] }
-  const common = { language: language === 'auto' ? undefined : language, task: 'transcribe', chunk_length_s: 30, stride_length_s: 5 }
+  const firstSound = transcriptionStart(audio, SAMPLE_RATE)
+  if (firstSound === null) {
+    port.postMessage({ id, type: 'result', result })
+    return
+  }
+  const asr = await load(model, id, false)
+  const common = { language: language === 'auto' ? await detectLanguage(asr, audio) : language, task: 'transcribe', chunk_length_s: 30, stride_length_s: 5 }
 
   // Long recordings are processed in 10-minute pieces so we can report progress and bound memory.
   const pieces = Math.max(1, Math.ceil(totalSec / PIECE_SECONDS))
   for (let i = 0; i < pieces; i++) {
     const from = i * PIECE_SECONDS * SAMPLE_RATE
     const to = Math.min(audio.length, (i + 1) * PIECE_SECONDS * SAMPLE_RATE)
-    const piece = audio.subarray(from, to)
-    const offset = from / SAMPLE_RATE
+    const leading = transcriptionStart(audio.subarray(from, to), SAMPLE_RATE)
+    if (leading === null) continue
+    const piece = audio.subarray(from + leading, to)
+    const offset = (from + leading) / SAMPLE_RATE
     const pieceEnd = piece.length / SAMPLE_RATE
     const audioEnd = offset + pieceEnd
     port.postMessage({ id, type: 'progress', progress: i / pieces })
