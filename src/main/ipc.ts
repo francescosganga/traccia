@@ -1,6 +1,7 @@
 import { app, clipboard, dialog, ipcMain, screen, shell } from 'electron'
 import type { AgentTarget, DisplayInfo, EngineStartedInfo, LoginItemStatus, MicList, RecordingRequest, Settings, SideTrackKind, WhisperModelId } from '../shared/types'
 import type { WebcamLayout } from '../shared/webcam'
+import type { ResizeResolution } from '../shared/resize'
 import { agentTargets, installAgent, installAgentInFile, mcpCommands } from './agents'
 import { applySettings } from './apply-settings'
 import { getPermissions, openKeyboardShortcuts, openPrivacySettings, requestPermission } from './permissions'
@@ -143,6 +144,7 @@ export function registerIpc({ session, startRecording, suspendShortcuts }: IpcDe
   ipcMain.handle('recordings:media', (_e, dir: string) => recordingMedia(dir))
   ipcMain.handle('recordings:thumbnail', (_e, dir: string, tMs: number) => recordingThumbnail(dir, tMs))
   ipcMain.handle('recordings:edit', (_e, dir: string, parts: unknown, speakerNames: unknown) => exclusive('editing', () => session.edit(dir, parts, speakerNames)))
+  ipcMain.handle('recordings:resize', (_e, dir: string, resolution: ResizeResolution) => exclusive('editing', () => session.resize(dir, resolution)))
   ipcMain.handle('recordings:trash', async (_e, dir: string) => {
     await shell.trashItem(dir)
     if (session.state.status === 'done' && session.state.result.dir === dir) session.reset()

@@ -23,6 +23,7 @@ import type {
   WhisperModelInfo
 } from '../shared/types'
 import type { EditPart } from '../shared/edit-list'
+import type { ResizeResolution } from '../shared/resize'
 import type { WebcamLayout } from '../shared/webcam'
 
 import type { DictationCapture, DictationState } from '../shared/dictation'
@@ -116,6 +117,8 @@ const api = {
     thumbnail: (dir: string, tMs: number): Promise<string | null> => ipcRenderer.invoke('recordings:thumbnail', dir, tMs),
     /** Applies the edit list; false when refused because a recording is in progress. Progress and result come as state */
     edit: (dir: string, parts: EditPart[], speakerNames?: Record<string, string>): Promise<boolean> => ipcRenderer.invoke('recordings:edit', dir, parts, speakerNames),
+    /** Creates a smaller copy; progress and result come as state. */
+    resize: (dir: string, resolution: ResizeResolution): Promise<boolean> => ipcRenderer.invoke('recordings:resize', dir, resolution),
     trash: (dir: string): Promise<void> => ipcRenderer.invoke('recordings:trash', dir)
   },
   mics: {

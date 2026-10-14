@@ -300,7 +300,7 @@ export async function recordingMedia(dir: string): Promise<RecordingMedia> {
           track: track ? { path: join(dir, track.file), offsetMs: track.offsetMs, kept: originalKept(meta) } : null
         }
       : null,
-    edited: meta.edited !== undefined || meta.trimmed !== undefined
+    edited: existsSync(join(dir, ORIGINAL_DIR))
   }
 }
 

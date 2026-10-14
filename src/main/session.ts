@@ -32,6 +32,8 @@ import { getSettings } from './settings'
 import { recordingTexts } from './texts'
 import { clipToDuration, mapPoint, wordsAround, type Geometry } from './timeline'
 import { editRecording } from './edit-recording'
+import { resizeRecording } from './resize-recording'
+import type { ResizeResolution } from '../shared/resize'
 import { labelSpeakers } from '../shared/speakers'
 import { cancelDiarization, diarize, speakerStatus } from './speakers'
 import { isModelInstalled, killWorker, transcribe } from './whisper'
@@ -286,6 +288,20 @@ export class RecordingSession {
     } catch (e) {
       console.error('edit failed', dir, JSON.stringify(parts), e)
       this.setState({ status: 'error', message: t('err.edit', { error: (e as Error).message }) })
+    }
+    return true
+  }
+
+  /** Creates a smaller copy, reporting progress and the new recording through the usual result card. */
+  async resize(dir: string, resolution: ResizeResolution): Promise<boolean> {
+    if (this.isBusy || this.state.status === 'selecting') return false
+    this.progress({ step: t('resize.progress', { resolution }), progress: -1 })
+    try {
+      const result = await resizeRecording(dir, resolution, { cursorHz: getSettings().cursorHz, onProgress: (p) => this.progress(p) })
+      this.setState({ status: 'done', result })
+    } catch (error) {
+      console.error('resize failed', dir, resolution, error)
+      this.setState({ status: 'error', message: t('resize.failed') })
     }
     return true
   }

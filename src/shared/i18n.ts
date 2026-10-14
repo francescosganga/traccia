@@ -282,6 +282,11 @@ const en = {
   'home.confirmTrash': 'Move the recording "{name}" to the Trash?',
   'home.edit': 'Edit',
   'home.edited': 'Recording edited',
+  'resize.action': 'Create a {resolution}p copy',
+  'resize.progress': 'Creating a {resolution}p copy',
+  'resize.done': 'Smaller copy created',
+  'resize.failed': 'Could not create the smaller copy. The original recording is unchanged. Check the available disk space and try again.',
+  'resize.busy': 'Wait for the current activity to finish, then try creating the copy again.',
 
   // editor
   'edit.title': 'Edit recording',
@@ -837,6 +842,11 @@ const it: Record<TranslationKey, string> = {
   'home.confirmTrash': 'Spostare la registrazione "{name}" nel Cestino?',
   'home.edit': 'Modifica',
   'home.edited': 'Registrazione modificata',
+  'resize.action': 'Crea una copia a {resolution}p',
+  'resize.progress': 'Creazione della copia a {resolution}p',
+  'resize.done': 'Copia ridimensionata creata',
+  'resize.failed': 'Impossibile creare la copia ridimensionata. La registrazione originale è invariata. Controlla lo spazio disponibile sul disco e riprova.',
+  'resize.busy': 'Attendi il termine dell’attività in corso, poi riprova a creare la copia.',
 
   // editor
   'edit.title': 'Modifica la registrazione',

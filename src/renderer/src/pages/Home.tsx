@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { t } from '../../../shared/i18n'
+import { resizeOptions, type ResizeResolution } from '../../../shared/resize'
 import type { AppState, CaptureMode, DisplayInfo, OutputFormat, RecordingEntry, RecordingOverrides, Settings } from '../../../shared/types'
 import { Icon } from '../components/Icon'
 import { Menu, type MenuItem } from '../components/Menu'
@@ -44,6 +45,8 @@ interface RecordingRef {
   txtPath: string
   rawTxtPath: string
   videoPath: string
+  width: number
+  height: number
 }
 
 const folderName = (dir: string): string => dir.split(/[\\/]/).pop() ?? dir
@@ -58,6 +61,7 @@ export function Home({ settings, state, modelInstalled, platform, goSettings }: 
   const [renaming, setRenaming] = useState<string | null>(null)
   // The recording being edited: the editor takes the place of the page
   const [editing, setEditing] = useState<{ dir: string; name: string } | null>(null)
+  const [resizeError, setResizeError] = useState<string | null>(null)
 
   const refreshRecordings = () => void window.api.recordings.list().then(setRecordings)
   const choose = (patch: Partial<Choices>) => setChoices((c) => ({ ...c, ...patch }))
@@ -105,20 +109,32 @@ export function Home({ settings, state, modelInstalled, platform, goSettings }: 
     await window.api.recordings.trash(r.dir)
     refreshRecordings()
   }
+  const resize = async (r: RecordingRef, resolution: ResizeResolution) => {
+    setResizeError(null)
+    try {
+      if (!await window.api.recordings.resize(r.dir, resolution)) setResizeError(t('resize.busy'))
+    } catch (error) {
+      console.error('resize request failed', r.dir, resolution, error)
+      setResizeError(t('resize.busy'))
+    }
+  }
   const actions = (r: RecordingRef): MenuItem[] => [
     { label: t('home.openTxt'), onSelect: () => void window.api.recordings.open(r.txtPath) },
     { label: t('home.openRawTxt'), onSelect: () => void window.api.recordings.open(r.rawTxtPath) },
     ...(r.format !== 'jpg' ? [{ label: t(r.format === 'm4a' ? 'conversation.openAudio' : 'home.openVideo'), onSelect: () => void window.api.recordings.open(r.videoPath) }] : []),
     // Not while recording or processing: the main process would refuse it
     ...(!busy ? [{ label: t('home.edit'), onSelect: () => setEditing({ dir: r.dir, name: r.name }) }] : []),
+    ...(!busy ? resizeOptions(r.format, r.width, r.height).map((resolution) => ({
+      label: t('resize.action', { resolution }), onSelect: () => void resize(r, resolution)
+    })) : []),
     { label: t('home.rename'), onSelect: () => setRenaming(r.dir) },
-    { label: t('home.trash'), onSelect: () => void trash(r), danger: true }
+    ...(!busy ? [{ label: t('home.trash'), onSelect: () => void trash(r), danger: true }] : [])
   ]
 
   const done = state.status === 'done' ? state.result : null
   // The list, refreshed when the recording ends, carries the name given to it
   const doneEntry = done ? recordings.find((r) => r.dir === done.dir) : undefined
-  const doneLabel = done?.edited ? t('home.edited') : t('home.done')
+  const doneLabel = done?.resized ? t('resize.done') : done?.edited ? t('home.edited') : t('home.done')
 
   if (editing) {
     return (
@@ -136,6 +152,8 @@ export function Home({ settings, state, modelInstalled, platform, goSettings }: 
         <div className="page-header">
           <h1>{t('home.title')}</h1>
         </div>
+
+        {resizeError && <div className="notice warn" role="alert"><Icon name="alert" /><span>{resizeError}</span></div>}
 
         {state.status === 'processing' && (
           <div className="card info">
@@ -196,7 +214,9 @@ export function Home({ settings, state, modelInstalled, platform, goSettings }: 
                   format: done.format,
                   txtPath: done.txtPath,
                   rawTxtPath: done.rawTxtPath,
-                  videoPath: done.videoPath
+                  videoPath: done.videoPath,
+                  width: done.width,
+                  height: done.height
                 })}
               />
             </div>
@@ -385,7 +405,7 @@ export function Home({ settings, state, modelInstalled, platform, goSettings }: 
                     )}
                     <span className="small dim">
                       {r.title ? `${formatDate(r.createdAt)} · ` : ''}
-                      {formatDuration(r.durationMs)} · {r.format.toUpperCase()}
+                      {formatDuration(r.durationMs)} · {r.format !== 'm4a' && `${r.width}×${r.height} · `}{r.format.toUpperCase()}
                     </span>
                   </div>
                   <div className="row">
@@ -402,7 +422,9 @@ export function Home({ settings, state, modelInstalled, platform, goSettings }: 
                         format: r.format,
                         txtPath: r.txtPath,
                         rawTxtPath: r.rawTxtPath,
-                        videoPath: r.videoPath
+                        videoPath: r.videoPath,
+                        width: r.width,
+                        height: r.height
                       })}
                     />
                   </div>

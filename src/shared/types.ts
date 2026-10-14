@@ -231,6 +231,8 @@ export interface RecordingResult {
   warnings: string[]
   /** The result of editing a past recording, not of a new one */
   edited?: boolean
+  /** A new copy created at a lower resolution */
+  resized?: boolean
 }
 
 /**
