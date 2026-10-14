@@ -12,7 +12,7 @@ Traccia is maintained by one person, and every issue and pull request is read an
 
 A recording folder (`recording.txt`, `recording.json`) often shows the problem better than a description, but it holds your screen and what you said: share only what you would show anyone.
 
-**Features.** Open an issue before writing code for anything larger than a small fix, so we can agree it fits before you spend time on it. Traccia does one thing, a recording an AI can read, and the [roadmap](README.md#roadmap) lists what is already planned.
+**Features.** Open an issue before writing code for anything larger than a small fix, so we can agree it fits before you spend time on it. Traccia focuses on local screen recording, conversation transcription and dictation, with recording files that people and AI agents can read. The [roadmap](README.md#roadmap) lists what is already planned.
 
 **Security.** Do not describe a vulnerability in a public issue. Open one that only says you have a security report, and a private channel will be arranged.
 

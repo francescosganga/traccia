@@ -1,7 +1,7 @@
 {
   "name": "traccia",
   "version": "0.3.1",
-  "description": "Traccia — screen recorder that produces AI-readable output: video or frames + cursor/click timeline + local Whisper transcript",
+  "description": "Local screen recording, conversation transcription and dictation for macOS. Turn screen and audio into files AI agents can read, or speech into text in your apps.",
   "main": "./out/main/index.js",
   "author": "Francesco Sganga",
   "repository": {

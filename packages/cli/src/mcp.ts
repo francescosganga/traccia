@@ -89,11 +89,12 @@ async function recordingMessages(outputDir: string, id: string): Promise<{ messa
       content: {
         type: 'text',
         text:
-          `Screen recording "${entry.id}" made with ${APP_NAME} (${formatTime(meta.durationMs)}, ${meta.width}x${meta.height}, ` +
+          `Recording "${entry.id}" made with ${APP_NAME} (${formatTime(meta.durationMs)}, ${meta.format === 'm4a' ? '' : `${meta.width}x${meta.height}, `}` +
           `${meta.format === 'jpg' ? `${meta.frames?.length ?? 0} JPG frames` : `${meta.format} ${meta.format === 'm4a' ? 'audio' : 'video'}`}` +
           `${meta.transcript ? ', voice transcribed' : meta.audio ? ', audio without transcript' : ', no audio'}).\n\n` +
-          `Timeline (${timelineFileName('clicks')}): clicks with their coordinates in image pixels, the words spoken at each click, ` +
-          `${meta.format === 'jpg' ? 'the instant each frame was captured, ' : ''}and the transcript:\n\n${timeline}`
+          `Timeline (${timelineFileName('clicks')}): timestamped transcript when enabled, with source and speaker labels when available. ` +
+          `${meta.format === 'm4a' ? 'Audio only: no frames or clicks. ' : 'Screen recordings also include captured clicks with image coordinates and speech at each click. '}` +
+          `${meta.format === 'jpg' ? 'JPG frame capture times are included. ' : ''}\n\n${timeline}`
       }
     }
   ]
@@ -124,7 +125,7 @@ export async function runMcpServer(opts: McpOptions): Promise<void> {
     'list_recordings',
     {
       title: 'List recordings',
-      description: `Lists the screen recordings made with ${APP_NAME}, newest first, with their id, date, duration, format and output folder.`,
+      description: `Lists screen and conversation recordings made with ${APP_NAME}, including audio-only recordings, newest first, with their id, date, duration, format and output folder. Dictation has no recording history.`,
       inputSchema: { limit: z.number().int().min(1).max(200).default(20).describe('How many recordings to return') },
       annotations: { readOnlyHint: true }
     },
@@ -144,8 +145,9 @@ export async function runMcpServer(opts: McpOptions): Promise<void> {
     {
       title: 'Get timeline',
       description:
-        'Returns the text timeline of a recording: mouse clicks with coordinates (in image pixels) and the words spoken at that moment, ' +
-        'the transcript with timestamps, and in JPG mode the instant each frame was captured. The "raw" variant also lists the pointer movement.',
+        'Returns a screen or conversation recording timeline, including the timestamped transcript when enabled, audio-source labels, ' +
+        'and speaker labels or manually assigned names when available. Screen recordings also include captured clicks with image coordinates ' +
+        'and speech at each click; JPG recordings include frame capture times. The "raw" variant adds pointer movement for screen recordings. Audio-only recordings have no clicks or frames.',
       inputSchema: {
         id: z.string().describe(ID_DESCRIPTION),
         variant: z.enum(['clicks', 'raw']).default('clicks').describe('"clicks" (recording.txt) or "raw" (recording-raw.txt, with pointer movement)')
@@ -166,7 +168,7 @@ export async function runMcpServer(opts: McpOptions): Promise<void> {
     'get_transcript',
     {
       title: 'Get transcript',
-      description: 'Returns the voice transcript of a recording as timestamped segments (Whisper, run locally by the app).',
+      description: 'Returns the saved transcript of a screen or conversation recording as timestamped text (Whisper, run locally by the app), including audio-source labels and speaker labels or manually assigned names when available. Speaker labels distinguish voices within each source, not verified identities. Does not transcribe new audio or retrieve dictation text.',
       inputSchema: { id: z.string().describe(ID_DESCRIPTION) },
       annotations: { readOnlyHint: true }
     },
@@ -188,7 +190,7 @@ export async function runMcpServer(opts: McpOptions): Promise<void> {
       title: 'Get frames',
       description:
         `Returns frames of a recording as JPEG images (downscaled to ${MAX_WIDTH}px wide), spread evenly between "from" and "to". ` +
-        'JPG recordings return their stored frames; video recordings need ffmpeg to extract stills. ' +
+        'JPG recordings return their stored frames; video recordings need ffmpeg to extract stills. Audio-only recordings return no frames. ' +
         `Each image costs roughly 1,000 tokens: ask for a narrow time range rather than many frames (default ${DEFAULT_FRAMES}, at most ${MAX_FRAMES}).`,
       inputSchema: {
         id: z.string().describe(ID_DESCRIPTION),
@@ -223,7 +225,7 @@ export async function runMcpServer(opts: McpOptions): Promise<void> {
     'get_status',
     {
       title: 'Get status',
-      description: `Whether ${APP_NAME} is running and what it is doing (idle, selecting a region, countdown, recording, processing, done, error).`,
+      description: `Whether ${APP_NAME} is running and the state of its recording session (idle, selecting a region, countdown, recording, processing, done, error). Does not report the separate dictation session.`,
       annotations: { readOnlyHint: true }
     },
     async () => {
@@ -242,7 +244,8 @@ export async function runMcpServer(opts: McpOptions): Promise<void> {
     {
       title: 'Start recording',
       description:
-        `Starts a screen recording in ${APP_NAME} (the app must be running; on macOS "launch" opens it). ` +
+        `Starts a screen or audio-only conversation recording in ${APP_NAME} (the app must be running; on macOS "launch" opens it). ` +
+        'Use format "m4a" for audio only. Microphone-only audio capture does not require Screen Recording permission; system audio does. Does not start dictation. ' +
         'Returns once the recording is rolling. Region mode without a region opens the on-screen selector and waits for the user to drag it. ' +
         'Options not given use the settings saved in the app; the ones given apply to this recording only.',
       inputSchema: {
@@ -257,8 +260,8 @@ export async function runMcpServer(opts: McpOptions): Promise<void> {
         jpgFps: z.number().positive().optional().describe('Frames per second in jpg mode'),
         audio: z.boolean().optional().describe('Record the microphone'),
         systemAudio: z.boolean().optional().describe('Record system audio'),
-        conversation: z.boolean().optional().describe('Transcribe both audio sources locally'),
-        multiSpeaker: z.boolean().optional().describe('Recognize speakers on each source; requires the local speaker models'),
+        conversation: z.boolean().optional().describe('Include microphone and system audio in local transcription when captured and transcription is enabled'),
+        multiSpeaker: z.boolean().optional().describe('Label voices within each source when transcription is enabled; requires downloaded speaker models. Names are assigned manually in the app'),
         transcribe: z.boolean().optional().describe('Transcribe the audio with Whisper when the recording ends'),
         countdown: z.number().int().min(0).max(60).optional().describe('Seconds of countdown before recording starts'),
         launch: z.boolean().default(false).describe('Open the app if it is not running (macOS only)')
@@ -292,8 +295,8 @@ export async function runMcpServer(opts: McpOptions): Promise<void> {
     {
       title: 'Stop recording',
       description:
-        'Stops the current recording. By default waits for the output to be written (conversion and transcription can take a while) ' +
-        'and returns the recording id and folder, ready for get_timeline and get_frames.',
+        'Stops the current screen or conversation recording, not dictation. By default waits for the output to be written (conversion and transcription can take a while) ' +
+        'and returns the recording id and folder, ready for get_timeline and get_transcript, or get_frames when there is visual media.',
       inputSchema: { wait: z.boolean().default(true).describe('Wait for processing to finish') },
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true }
     },
@@ -325,7 +328,7 @@ export async function runMcpServer(opts: McpOptions): Promise<void> {
     'write_bug_report',
     {
       title: 'Write a bug report',
-      description: 'Turns a recording (timeline, transcript and frames) into a bug report with steps to reproduce.',
+      description: 'Provides a prompt and recorded evidence for the client AI to write a bug report with steps to reproduce. Best suited to screen recordings with clicks, transcript and frames; audio-only recordings provide no visual evidence.',
       argsSchema: { id: z.string().describe(ID_DESCRIPTION) }
     },
     async ({ id }): Promise<GetPromptResult> => {
@@ -350,7 +353,7 @@ export async function runMcpServer(opts: McpOptions): Promise<void> {
     'explain_recording',
     {
       title: 'Explain a recording',
-      description: 'Explains what happens in a recording, step by step, from the timeline, the transcript and the frames.',
+      description: 'Provides a prompt for the client AI to explain a recording from its timeline, available transcript and frames. Audio-only conversations provide the transcript and timeline without frames. Traccia supplies the evidence; the client generates the explanation.',
       argsSchema: { id: z.string().describe(ID_DESCRIPTION) }
     },
     async ({ id }): Promise<GetPromptResult> => {
@@ -391,7 +394,7 @@ export async function runMcpServer(opts: McpOptions): Promise<void> {
       },
       complete: { id: async (value) => (await listRecordings(await dir(), 50)).map((r) => r.id).filter((id) => id.startsWith(value)) }
     }),
-    { title: 'Recording files', description: 'recording.txt, recording-raw.txt and recording.json of each recording' },
+    { title: 'Recording files', description: 'recording.txt, recording-raw.txt and recording.json of screen and conversation recordings, including audio-only recordings; no dictation history' },
     async (uri, { id, file }) => {
       const name = String(file)
       const mimeType = files[name]
@@ -404,7 +407,7 @@ export async function runMcpServer(opts: McpOptions): Promise<void> {
   server.registerResource(
     'recording-frame',
     new ResourceTemplate('recording://{id}/frames/{name}', { list: undefined }),
-    { title: 'Recording frame', description: `A JPG frame of a recording, downscaled to ${MAX_WIDTH}px wide (e.g. recording://<id>/frames/frame_00003.jpg)`, mimeType: 'image/jpeg' },
+    { title: 'Recording frame', description: `A stored frame from a JPG recording, downscaled to ${MAX_WIDTH}px wide (e.g. recording://<id>/frames/frame_00003.jpg); not available for audio-only recordings`, mimeType: 'image/jpeg' },
     async (uri, { id, name }) => {
       const { entry, meta } = await readRecording(await dir(), String(id))
       const frame = (meta.frames ?? []).find((f) => f.file === `frames/${String(name)}`)

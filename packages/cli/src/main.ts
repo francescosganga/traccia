@@ -17,13 +17,17 @@ import { runMcpServer } from './mcp'
 declare const __CLI_VERSION__: string
 const VERSION = typeof __CLI_VERSION__ === 'string' ? __CLI_VERSION__ : 'dev'
 
-const HELP = `traccia ${VERSION} — CLI and MCP server for ${APP_NAME}, the AI screen recorder
+const HELP = `traccia ${VERSION} — CLI and MCP server for ${APP_NAME}
+Local screen recording, conversation transcription and dictation for macOS.
+
+Read recording files and control screen or audio-only conversation recordings.
+Dictation is available from the app or its shortcut, not through the CLI or MCP.
 
 Usage:
   traccia list [--limit N] [--json]           recordings in the output folder, newest first
   traccia show <id> [--raw] [--json]          print a recording's timeline (recording.txt, or recording-raw.txt with --raw)
   traccia status [--json]                     what the running app is doing
-  traccia record start [options] [--json]     start a recording (the app must be running, or pass --launch)
+  traccia record start [options] [--json]     start a screen or audio-only recording (app running, or --launch)
   traccia record stop [--no-wait] [--json]    stop the recording and wait for its files
   traccia displays [--json]                   displays the app can record
   traccia settings                            the app's settings, as JSON
@@ -35,17 +39,20 @@ Record options:
   --region                select a region on screen by dragging, as from the app
   --rect x,y,w,h          region in points relative to the display, without the on-screen selection
   --display <id>          display to record (see \`traccia displays\`); default: the primary one
-  --format <f>            mp4 | mov | webm | jpg | m4a    (default: the app's setting)
+  --format <f>            mp4 | mov | webm | jpg | m4a (audio only; default: the app's setting)
   --jpg                   same as --format jpg
   --fps <n>               frames per second in jpg mode
   --resolution <r>        native | 1080 | 720 | 480
-  --conversation          transcribe both sources locally
-  --multi-speaker         recognize speakers on each source (download the models in the app first)
+  --conversation          include microphone and system audio in local transcription, when enabled
+  --multi-speaker         label voices within each source (download speaker models in the app first)
   --system-audio          record system audio
   --no-audio              do not record the microphone
   --no-transcribe         skip the Whisper transcription
   --countdown <s>         seconds before the recording starts
   --launch                open the app when it is not running (macOS)
+
+Speaker labels do not identify people by name; assign names in the app editor.
+Audio-only recordings have transcripts when enabled, but no frames or clicks.
 
 Global options:
   --dir <path>            output folder (default: the app's setting, TRACCIA_OUTPUT_DIR, or ~/Movies/${APP_NAME})

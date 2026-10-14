@@ -15,8 +15,8 @@ interface Props {
 }
 
 const STEPS = 4
-const FEATURES = ['screen', 'cursor', 'voice', 'ai'] as const
-const ICONS: Record<(typeof FEATURES)[number], IconName> = { screen: 'monitor', cursor: 'pointer', voice: 'mic', ai: 'sparkles' }
+const FEATURES = ['screen', 'conversation', 'dictation', 'ai'] as const
+const ICONS: Record<(typeof FEATURES)[number], IconName> = { screen: 'monitor', conversation: 'volume', dictation: 'mic', ai: 'sparkles' }
 
 export function Wizard({ settings, update, platform, onDone }: Props) {
   const [step, setStep] = useState(0)
@@ -65,7 +65,7 @@ export function Wizard({ settings, update, platform, onDone }: Props) {
                   </span>
                   <div>
                     <strong>{t(`wizard.feature.${f}.title`)}</strong>
-                    <p className="dim small">{t(`wizard.feature.${f}.desc`, { file: 'recording.txt' })}</p>
+                    <p className="dim small">{t(`wizard.feature.${f}.desc`)}</p>
                   </div>
                 </div>
               ))}

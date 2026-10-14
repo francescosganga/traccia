@@ -17,7 +17,7 @@ Consequences that follow from that rule:
 
 | | |
 |---|---|
-| Name | **Traccia** — Italian for *trace/track*: what the app produces (frames + pointer + clicks + speech on one timeline). Descriptor: *AI screen recorder*. |
+| Name | **Traccia** — Italian for *trace/track*: a record of what you show and say, or speech turned into text in your apps. Descriptor: *Local recording and dictation for macOS*. Recording files are readable by people and AI agents. |
 | Mark | Ring + dot (the universal record glyph) in `--rec` on a rounded graphite tile — the app icon (`scripts/make-icons.cjs`), the `<Logo>` in the sidebar and the welcome step, and the black *template* version in the menu bar. |
 | Voice | Short, concrete, second person. Labels are nouns, buttons are verbs. |
 

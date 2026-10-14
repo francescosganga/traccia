@@ -1,21 +1,38 @@
-# Traccia — AI screen recorder
+# Traccia — local recording and dictation for macOS
 
-🇬🇧 English · [🇮🇹 Italiano](README.it.md)
+English · [Italiano](README.it.md)
 
-Record your screen to explain something **to an AI**, not just to a person.
+**Record your screen, transcribe conversations, or dictate into your apps — with local speech processing.**
+
+Traccia turns what you show and say into files you can read, edit and give to an AI agent. Dictation puts your words directly into the app you were using.
+
+| What you want to do | What Traccia gives you |
+|---|---|
+| Show a bug, a workflow or an idea on screen | Video or JPG frames, with clicks and an optional voice transcript on one timeline |
+| Keep a record of a meeting, interview or conversation in the room | Audio only or audio with screen video, separate microphone and system tracks, and a local transcript with optional speaker labels you can name |
+| Write by speaking | A compact dictation badge, automatic stop on silence, and text inserted into the original field when it can be verified; Copy and Edit text otherwise |
+
+Transcription uses Whisper on your Mac. Optional speaker recognition also runs locally. Download the models once from the app; no account or API key is needed for these features. Recording files stay on your disk. If you give them to an AI client through **Copy prompt for AI** or MCP, that client's processing and sharing settings apply.
+
+## Screen recording example
 
 <p align="center">
   <img src="docs/demo.gif" alt="Demo: select a region, record with the microphone, get JPG frames plus an AI-readable timeline" width="100%">
 </p>
 <p align="center"><sub>Pick <em>Region</em> and <em>JPG + txt</em> → drag the area → record while talking → stop from the widget → frames + <code>recording.txt</code> are ready. <a href="docs/demo.mp4">MP4 version</a>.</sub></p>
 
-Every recording produces, in the same folder:
+## Recording files
 
-- the video (`recording.mp4` / `.mov` / `.webm`) **or** a JPG sequence at a few frames per second (`frames/`); with the webcam, `recording.mp4` has it in a corner and `recording-screen.mp4` is the same video without it, the one the files below refer to;
-- `recording.txt`: a timeline a model can read, with the **mouse clicks** (and their coordinates) and the **voice transcript** (Whisper, running locally);
-- `recording-raw.txt`: the same timeline plus the **pointer movement** (position sampled at a configurable rate) — heavier, for when the path of the pointer matters;
-- `recording.json`: the same data in full (cursor at 120 Hz, geometry, etc.);
-- `PROMPT.md`: the instructions for the AI — what the folder contains (with absolute paths), how to read the timeline and what to do with it. When the recording is done, **Copy prompt for AI** puts `Read the file …/PROMPT.md and follow its instructions.` in the clipboard: paste it into Claude Code, Cursor or any agent that can read files and it finds everything on its own.
+Screen and conversation recordings each have their own folder. Its contents depend on the capture mode and enabled options:
+
+- **Media**: `recording.mp4`, `.mov` or `.webm`, a JPG sequence in `frames/`, or `audio.m4a` for audio-only conversations. With a webcam and the clean-copy option enabled, `recording-screen.<format>` keeps the screen unobstructed for the AI; `webcam.webm` preserves the camera track for editing.
+- **Separate audio sources**: `microphone.m4a` and `system.m4a`, when captured, synchronized to the recording timeline. These are tracks per source, not separate audio files for each speaker.
+- **`recording.txt`**: a text timeline with the enabled click tracking and transcript. Conversations include audio-source labels and, when enabled and available, speaker labels and the names you assign in the editor.
+- **`recording-raw.txt`**: the same timeline plus pointer movement for screen recordings, at the configured sampling rate. Audio-only recordings have no pointer or click events.
+- **`recording.json`**: structured recording metadata, transcript and captured events for tools to read.
+- **`PROMPT.md`**: instructions for an AI agent, with file paths and guidance on reading the recording. **Copy prompt for AI** copies `Read the file …/PROMPT.md and follow its instructions.`; paste it into an agent that can access those files. Conversation prompts ask the agent to summarize the discussion, decisions and next steps; Traccia itself produces the transcript, not a generated summary.
+
+Dictation is separate: it inserts or lets you copy text, without creating a recording folder or permanent history.
 
 The `recording.txt` produced by the demo above (JPG mode, 2 fps):
 
@@ -51,32 +68,45 @@ The `recording.txt` produced by the demo above (JPG mode, 2 fps):
 
 ## Features
 
+### Screen recording
+
 - Full screen or a region selected by dragging (macOS style).
 - Output as MP4, MOV, WebM or **JPG + txt** with configurable frame rate (1, 2, 4…). The choices on the home page (format, resolution, fps, which audio, webcam on or off) apply to the next recording only; the defaults live in Settings.
 - Native (Retina), 1080p, 720p or 480p resolution.
-- Microphone recording and transcription with **Whisper running locally** (models can be downloaded and deleted from the app; nothing leaves your computer).
 - **Webcam in a corner of the video**: circle, square or rectangle, in any corner, chosen on the home page or in Settings with a live preview, and changed (or hidden) from the widget while recording: the video follows from that instant. While recording, a bubble shows it where it will be in the video; like the widget, it is excluded from the capture, and the webcam is recorded on its own and laid over the screen when the video is put together; with the copy without it, its own track is kept too (`webcam.webm`), so the editor can lay it again. By default the AI gets the copy without it (`recording-screen.mp4`), so the webcam never hides part of the screen; without that copy the timeline says which rectangle it covers. Video formats only.
-- **System audio on macOS** (13 or later): what the computer plays (videos, apps, calls), alone or with the microphone. Microphone and system audio are also saved separately as `microphone.m4a` and `system.m4a`, synchronized to the recording timeline. Screen mode transcribes the microphone; Conversation mode transcribes both sources; if macOS hands over nothing, or only silence, the recording says so instead of keeping a mute track.
-- **Conversations**: record meetings, interviews or people in the same room, with the screen or as **audio only (M4A)**. Enable **Recognize multiple speakers** to label voices on both the microphone and system audio. Download the speaker models once from the app (about 45 MB), without an account, token or Python installation; transcription and speaker recognition run locally after recording. Microphone-only audio recording does not request screen capture; system audio still needs the macOS Screen Recording permission, but no video is saved in audio-only mode.
-- Speaker recognition uses [pyannote segmentation through sherpa-onnx](https://k2-fsa.github.io/sherpa/onnx/speaker-diarization/models.html) and NVIDIA TitaNet-S, alongside the existing Whisper models. It is a different pipeline from pyannote Community-1. TXT and JSON carry source-scoped speaker IDs such as `microphone_1` and `system_2`; IDs do not identify people by name or match voices across sources. Automatic speaker counts and overlapping speech can be inaccurate. Headphones help prevent remote voices being captured twice. If speaker recognition is unavailable, the transcript retains source labels and a warning. The editor keeps speaker labels and the separate audio sources in sync with cuts and silencing. In the editor, **Speaker names** lets you name each voice; Save updates both TXT transcripts and the JSON (`speakerName`, alongside the stable `speaker` ID), without re-encoding media when only names change. Clear a name to restore its ID.
-- Choice of the microphone (home page, Settings, menu bar), with the live input level under it and in the widget: a silent microphone shows before the take, not after. The choice is kept; if that microphone is not connected, the system default is recorded and the recording says so.
-- Models already present in the Hugging Face cache (`~/.cache/huggingface/hub`, `HF_HOME`, `HF_HUB_CACHE`) are imported with hard links instead of being downloaded again.
 - **Word-level timestamps**: speech is split into short phrases that interleave with the clicks, and every click line also carries the words being spoken at that moment (`click left 820,352 "now I click Save"`).
 - Pointer sampled at 120 Hz and global mouse clicks (with the Accessibility permission).
 - In JPG mode, frames identical to the previous one (cursor excluded) are skipped.
-- `PROMPT.md` in every recording folder and a one-click **Copy prompt for AI** (also in the recent recordings list and in the menu bar).
 - Floating widget with timer, Stop and what is being recorded (format, microphone with its level), excluded from the capture; with the webcam, a button opens its shape, corner and Hide above the widget; a red frame outlines the region being recorded, like the macOS recorder. Optional global shortcuts, off by default: the macOS screenshot keys (⇧⌘5 full screen, ⇧⌘4 region), alternative ones (⌃⌥⌘5, ⌃⌥⌘4) or your own, recorded by pressing the keys; either one also stops.
+
+### Conversations and speaker names
+
+- **Conversations**: record meetings, interviews or people in the same room, with the screen or as **audio only (M4A)**. Enable **Recognize multiple speakers** to label voices on both the microphone and system audio. Download the speaker models once from the app (about 45 MB), without an account, token or Python installation; transcription and speaker recognition run locally after recording. Microphone-only audio recording does not request screen capture; system audio still needs the macOS Screen Recording permission, but no video is saved in audio-only mode.
+- Speaker recognition uses [pyannote segmentation through sherpa-onnx](https://k2-fsa.github.io/sherpa/onnx/speaker-diarization/models.html) and NVIDIA TitaNet-S, alongside the existing Whisper models. It is a different pipeline from pyannote Community-1. TXT and JSON carry source-scoped speaker IDs such as `microphone_1` and `system_2`; IDs do not identify people by name or match voices across sources. Automatic speaker counts and overlapping speech can be inaccurate. Headphones help prevent remote voices being captured twice. If speaker recognition is unavailable, the transcript retains source labels and a warning. The editor keeps speaker labels and the separate audio sources in sync with cuts and silencing. In the editor, **Speaker names** lets you name each voice; Save updates both TXT transcripts and the JSON (`speakerName`, alongside the stable `speaker` ID), without re-encoding media when only names change. Clear a name to restore its ID.
+
+### Dictation in your apps
+
+- **Local dictation** from the menu bar or an optional configurable global shortcut. A compact badge at the bottom center shows listening without taking focus. After about 1.4 seconds of silence, it transcribes and inserts into the original app automatically, without confirmation. If insertion fails, the text stays available with **Copy** and **Edit text**. Insertion requires macOS Accessibility, checks the original app, field and selection, leaves the text on the clipboard, and never presses Enter. If the field cannot be verified, copy and paste manually. Microphone, Whisper model and language have independent preferences under Settings → Dictation.
+- Dictation uses only the microphone, with a five-minute limit and local Whisper processing after silence or manual Stop; eight seconds without speech discard the take without transcribing it; no account, token, screen permission, speaker models or permanent history. Download the Whisper model once in Settings → Audio. Temporary audio is removed after success or discard; a failed transcription can be retried until the panel is closed. Text awaiting recovery remains editable in memory until a new dictation or the app quits. After successful insertion, the badge disappears and the shortcut starts a new dictation. Recording, processing, editing and model operations must finish before dictation can start, and vice versa.
+
+### Audio, editing and everyday use
+
+- Microphone recording and transcription with **Whisper running locally** (models can be downloaded and deleted from the app; audio is processed on your Mac). Choose the spoken language or let Whisper detect it.
+- **System audio on macOS** (13 or later): what the computer plays (videos, apps, calls), alone or with the microphone. Microphone and system audio are also saved separately as `microphone.m4a` and `system.m4a`, synchronized to the recording timeline. Screen mode transcribes the microphone; Conversation mode transcribes both sources; if macOS hands over nothing, or only silence, the recording says so instead of keeping a mute track.
+- Choice of the microphone (home page, Settings, menu bar), with the live input level under it and in the widget: a silent microphone shows before the take, not after. The choice is kept; if that microphone is not connected, the system default is recorded and the recording says so. A warning flags the reduced sample rate of a microphone in Bluetooth call mode.
+- Models already present in the Hugging Face cache (`~/.cache/huggingface/hub`, `HF_HOME`, `HF_HUB_CACHE`) are imported with hard links instead of being downloaded again.
+- `PROMPT.md` in every recording folder and a one-click **Copy prompt for AI** (also in the recent recordings list and in the menu bar).
 - Recordings can be named and moved to the Trash from the app; a transcription that takes too long can be skipped.
 - **Edit** a recording afterwards (**Edit** among its actions): a timeline with a track for the screen (thumbnails), the webcam and the audio (with what was said), and the clicks. Split at the playhead, then cut parts out, put them back, join them again, drag them into another order or drag a cut to shorten a part; undo and redo before saving. On the webcam track a part can hide the webcam or give it another shape and corner while the screen stays as it is (recordings made before this version can only hide it, taking those frames from the copy without it); on the audio track a part can be silenced, and what was said there leaves the transcript too. The video, the frames, the audio, the timeline, the transcript and `PROMPT.md` all follow the edit, in step to the millisecond at every join; the files as they were move to an `original/` folder inside the recording.
 - **Smaller copies after recording**: choose **Create a 1080p / 720p / 480p copy** from a recording’s actions, including recent recordings. Only resolutions below its current height are offered. A separate folder contains the resized video or JPGs, with click and pointer coordinates, webcam geometry, both timelines and `PROMPT.md` updated; audio and transcript are preserved. The original stays unchanged.
-- **Local dictation** from the menu bar or an optional configurable global shortcut. A compact badge at the bottom center shows listening without taking focus. After about 1.4 seconds of silence, it transcribes and inserts into the original app automatically, without confirmation. If insertion fails, the text stays available with **Copy** and **Edit text**. Insertion requires macOS Accessibility, checks the original app, field and selection, leaves the text on the clipboard, and never presses Enter. If the field cannot be verified, copy and paste manually. Microphone, Whisper model and language have independent preferences under Settings → Dictation.
-- Dictation uses only the microphone, with a five-minute limit and local Whisper processing after silence or manual Stop; eight seconds without speech discard the take without transcribing it; no account, token, screen permission, speaker models or permanent history. Download the Whisper model once in Settings → Audio. Temporary audio is removed after success or discard; a failed transcription can be retried until the panel is closed. Text awaiting recovery remains editable in memory until a new dictation or the app quits. After successful insertion, the badge disappears and the shortcut starts a new dictation. Recording, processing, editing and model operations must finish before dictation can start, and vice versa.
 - Menu bar icon with quick actions: record screen/region, stop, format, resolution, fps, microphone, system audio, transcription, clicks, webcam, recent recordings.
 - Open at login (menu-bar-only start), optional Dock icon.
 - Interface in English and Italian, light or dark with the system.
 - A **CLI and an MCP server** (`traccia-cli`), so an AI agent can read recordings and start or stop one without the app in front.
 
 ## Screenshots
+
+These screenshots show the screen recording workflow. Conversation and dictation views are not pictured.
 
 ### First run
 
@@ -130,7 +160,7 @@ If you enable the shortcuts with the macOS screenshot keys (⇧⌘5, ⇧⌘4), m
 
 ## CLI & MCP
 
-The app includes an [MCP](https://modelcontextprotocol.io) server and a command-line tool, so an AI agent can list the recordings, read their timeline and frames, and start or stop a recording without the app in front. Reading works on the files alone; starting and stopping talk to the running app through a local control socket.
+The app includes an [MCP](https://modelcontextprotocol.io) server and a command-line tool, so an AI agent can list the recordings, read their timeline and frames, and start or stop screen or audio-only conversation recordings without the app in front. Dictation is controlled from the app or its shortcut, not through these tools. Reading works on the files alone; starting and stopping talk to the running app through a local control socket.
 
 ### MCP server
 
@@ -154,7 +184,7 @@ The server offers:
 - **prompts** — `write_bug_report` and `explain_recording`: the timeline plus a handful of frames, with instructions;
 - **resources** — `recording://<id>/recording.txt`, `recording-raw.txt`, `recording.json` and `recording://<id>/frames/<file>`.
 
-Frames of JPG recordings come straight from `frames/`; for video recordings the server extracts stills with the `ffmpeg` bundled in the app (or the one in the `PATH`, or `TRACCIA_FFMPEG`). Each image costs about a thousand tokens, which is why `get_frames` takes a time range and a maximum. ChatGPT does not support local MCP servers; Codex does.
+Audio-only recordings return no frames. Frames of JPG recordings come straight from `frames/`; for video recordings the server extracts stills with the `ffmpeg` bundled in the app (or the one in the `PATH`, or `TRACCIA_FFMPEG`). Each image costs about a thousand tokens, which is why `get_frames` takes a time range and a maximum. ChatGPT does not support local MCP servers; Codex does.
 
 ### Command line
 
@@ -243,11 +273,6 @@ Translations live in `src/shared/i18n.ts`; adding a language means adding a dict
 
 ## Roadmap
 
-- [x] A CLI and an MCP server, so agents can read recordings and start/stop a recording without the app in front (see [CLI & MCP](#cli--mcp)).
-- [x] Microphone picker with a live input level, before and during the recording.
-- [x] Webcam in a corner of the video (circle, square or rectangle, changed from the widget while recording), with a parallel recording without it for the AI, on by default.
-- [x] A small post-recording editor that keeps the timeline in sync: cut, move and join parts, hide the webcam or silence the audio over a part.
-- [x] System audio on macOS.
 - [ ] Windows support.
 - [ ] `whisper.cpp` backend on Apple Silicon.
 - [ ] More interface languages.

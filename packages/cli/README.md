@@ -1,6 +1,8 @@
 # traccia-cli
 
-Command-line tool and [MCP](https://modelcontextprotocol.io) server for [Traccia](https://github.com/francescosganga/traccia), the macOS screen recorder that writes output meant to be read by an AI: a video or a JPG sequence plus a text timeline with the mouse clicks and the voice transcript.
+Command-line tool and [MCP](https://modelcontextprotocol.io) server for [Traccia](https://github.com/francescosganga/traccia), a macOS app for local screen recording, conversation transcription and dictation. Read screen and audio-only recordings as files an AI agent can use: media, timestamped transcripts, speaker labels when enabled, and clicks for screen recordings. Speaker names assigned in the app are included in the transcripts.
+
+The CLI and MCP server read recordings and control recording sessions. Dictation is available through the app's menu bar or shortcut; these tools do not start it or keep a dictation history.
 
 If you have the app, you do not need this package: **Settings → AI agents** registers the MCP server bundled in the app with Claude Code, Claude Desktop, Cursor or Codex. This package is the same program for terminals and for machines without the app. Reading recordings works on the files alone; starting and stopping a recording needs the app running, reached over its local control socket.
 
