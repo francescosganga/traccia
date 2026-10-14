@@ -21,7 +21,7 @@ export function getSettings(): Settings {
   }
   // Earlier versions stored a single "shortcut" (Cmd+Shift+R); the two new ones replace it
   delete (stored as Record<string, unknown>).shortcut
-  cache = { ...DEFAULTS, ...stored }
+  cache = { ...DEFAULTS, dictationMic: stored.micDevice ?? null, dictationModel: stored.whisperModel ?? 'base', dictationLanguage: stored.speechLanguage ?? 'auto', ...stored }
   setLanguage(cache.uiLanguage)
   return cache
 }

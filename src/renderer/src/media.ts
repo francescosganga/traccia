@@ -67,6 +67,8 @@ const RELEASE = 0.85
 export interface LevelMeter {
   /** Peak level of the latest audio, 0..1 on a -60..0 dBFS scale */
   read(): number
+  /** Unsmoothed RMS amplitude, for detecting silence rather than animating a meter. */
+  readRms(): number
   close(): void
 }
 
@@ -80,6 +82,12 @@ export function levelMeter(stream: MediaStream): LevelMeter {
   const samples = new Float32Array(analyser.fftSize)
   let level = 0
   return {
+    readRms() {
+      analyser.getFloatTimeDomainData(samples)
+      let sum = 0
+      for (const sample of samples) sum += sample * sample
+      return Math.sqrt(sum / samples.length)
+    },
     read() {
       analyser.getFloatTimeDomainData(samples)
       let peak = 0

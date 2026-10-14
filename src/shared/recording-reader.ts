@@ -89,6 +89,11 @@ export const SETTINGS_DEFAULTS: Omit<Settings, 'outputDir'> = {
   showRegionFrame: true,
   // Off until the user picks the keys: the macOS ones fire the system screenshot until disabled in System Settings
   shortcutsEnabled: false,
+  dictationShortcutEnabled: false,
+  dictationShortcut: 'Control+Alt+D',
+  dictationMic: null,
+  dictationModel: 'base',
+  dictationLanguage: 'auto',
   shortcutScreen: SHORTCUT_PRESETS.mac.screen,
   shortcutRegion: SHORTCUT_PRESETS.mac.region,
   lastMode: 'screen',

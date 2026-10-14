@@ -78,7 +78,7 @@ export function Home({ settings, state, modelInstalled, platform, goSettings }: 
     }
   }, [state.status])
 
-  const start = () => void window.api.recording.start({ mode, displayId, overrides: choices })
+  const start = () => void window.api.recording.start({ mode, displayId, overrides: choices }).catch((error) => console.error('start recording failed', error))
   const reveal = platform === 'darwin' ? t('home.revealMac') : t('home.revealOther')
   const busy = state.status === 'processing' || state.status === 'recording' || state.status === 'countdown' || state.status === 'selecting'
   // A recording started from the tray or a shortcut closes the editor: its result shows here

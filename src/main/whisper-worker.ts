@@ -47,6 +47,7 @@ function load(model: string, id: number, reportProgress: boolean): Promise<AsrPi
     let lastSent = 0
     const p = tf.pipeline('automatic-speech-recognition', key, {
       dtype: 'q8',
+      local_files_only: !reportProgress,
       progress_callback: (ev: { status: string; file?: string; loaded?: number; total?: number }) => {
         if (!reportProgress || !ev.file) return
         if (ev.status === 'progress' || ev.status === 'done') {

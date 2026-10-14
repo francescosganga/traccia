@@ -27,6 +27,7 @@ export default defineConfig({
           region: resolve(__dirname, 'src/renderer/region.html'),
           controls: resolve(__dirname, 'src/renderer/controls.html'),
           frame: resolve(__dirname, 'src/renderer/frame.html'),
+          dictation: resolve(__dirname, 'src/renderer/dictation.html'),
           webcam: resolve(__dirname, 'src/renderer/webcam.html')
         }
       }

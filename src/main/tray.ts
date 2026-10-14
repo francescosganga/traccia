@@ -9,6 +9,8 @@ import { applySettings } from './apply-settings'
 import { getSettings } from './settings'
 
 export interface TrayActions {
+  dictate(): void
+  dictationActive(): boolean
   recordScreen(): void
   recordRegion(): void
   stop(): void
@@ -115,6 +117,8 @@ export async function refreshTray(): Promise<void> {
     : [{ label: t('tray.noRecordings'), enabled: false }]
 
   const template: MenuItemConstructorOptions[] = [
+    { label: t(actions.dictationActive() ? 'dictation.open' : 'dictation.tray'), click: actions.dictate },
+    { type: 'separator' },
     { label: t('tray.recordScreen'), enabled: idle, click: actions.recordScreen },
     { label: t('tray.recordRegion'), enabled: idle, click: actions.recordRegion },
     { label: t('tray.stop'), enabled: recording, click: actions.stop },

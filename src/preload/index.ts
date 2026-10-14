@@ -25,6 +25,8 @@ import type {
 import type { EditPart } from '../shared/edit-list'
 import type { WebcamLayout } from '../shared/webcam'
 
+import type { DictationCapture, DictationState } from '../shared/dictation'
+
 type Unsubscribe = () => void
 
 function on<T>(channel: string, cb: (payload: T) => void): Unsubscribe {
@@ -34,6 +36,23 @@ function on<T>(channel: string, cb: (payload: T) => void): Unsubscribe {
 }
 
 const api = {
+  dictation: {
+    state: (): Promise<DictationState> => ipcRenderer.invoke('dictation:state'),
+    open: (): Promise<void> => ipcRenderer.invoke('dictation:open'),
+    settings: (): Promise<void> => ipcRenderer.invoke('dictation:settings'),
+    action: (action: string, text?: string): Promise<void> => ipcRenderer.invoke('dictation:action', action, text),
+    shortcutStatus: (): Promise<boolean> => ipcRenderer.invoke('dictation:shortcutStatus'),
+    onShortcutStatus: (cb: (registered: boolean) => void) => on<boolean>('dictation:shortcutStatus', cb),
+    onState: (cb: (state: DictationState) => void) => on<DictationState>('dictation:state', cb),
+    onCapture: (cb: (command: DictationCapture) => void) => on<DictationCapture>('dictation:capture', cb),
+    onStop: (cb: (id: number) => void) => on<number>('dictation:stop', cb),
+    onCancel: (cb: () => void) => on<void>('dictation:cancel', cb),
+    chunk: (id: number, chunk: ArrayBuffer): Promise<void> => ipcRenderer.invoke('dictation:chunk', id, chunk),
+    started: (id: number, info: { fallback: boolean; callQuality: boolean; micName: string }) => ipcRenderer.send('dictation:started', id, info),
+    stopped: (id: number, interrupted: boolean): Promise<void> => ipcRenderer.invoke('dictation:stopped', id, interrupted),
+    error: (id: number) => ipcRenderer.send('dictation:error', id),
+    empty: (id: number) => ipcRenderer.send('dictation:empty', id)
+  },
   settings: {
     get: (): Promise<Settings> => ipcRenderer.invoke('settings:get'),
     update: (patch: Partial<Settings>): Promise<Settings> => ipcRenderer.invoke('settings:update', patch),

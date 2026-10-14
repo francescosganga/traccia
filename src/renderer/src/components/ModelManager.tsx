@@ -43,8 +43,8 @@ export function ModelManager({ selected, onSelect, compact }: Props) {
 
   const remove = async (id: WhisperModelId) => {
     if (!confirm(t('model.confirmDelete', { id }))) return
-    await window.api.whisper.delete(id)
-    refresh()
+    try { await window.api.whisper.delete(id); refresh() }
+    catch (error) { console.error('cannot delete Whisper model', error); alert(t('dictation.activityBusy')) }
   }
 
   return (

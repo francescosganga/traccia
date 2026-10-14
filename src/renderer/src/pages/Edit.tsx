@@ -406,10 +406,14 @@ function Editor({ dir, media, onClose }: { dir: string; media: RecordingMedia; o
   const kept = keptDuration(parts)
   const valid = kept >= MIN_RESULT_MS
   const changed = isEdited(parts) || speakers.some((id) => speakerNames[id].trim() !== initialNames[id])
-  const save = () => {
+  const save = async () => {
     player.current?.pause()
-    void window.api.recordings.edit(dir, parts, speakerNames)
-    onClose()
+    try {
+      if (await window.api.recordings.edit(dir, parts, speakerNames)) onClose()
+    } catch (error) {
+      console.error('cannot save recording edits', error)
+      alert(t('dictation.activityBusy'))
+    }
   }
   const cancel = () => {
     if (changed && !confirm(t('edit.confirmDiscard'))) return

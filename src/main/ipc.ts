@@ -8,6 +8,8 @@ import { listRecordings, setRecordingTitle } from '../shared/recording-reader'
 import type { RecordingSession } from './session'
 import { recordingMedia, recordingThumbnail } from './edit-recording'
 import { getSettings } from './settings'
+import { activities } from './activity'
+import { t } from '../shared/i18n'
 import { setMics } from './tray'
 import { speakerStatus, downloadSpeakers, cancelSpeakerDownload } from './speakers'
 import * as whisper from './whisper'
@@ -32,6 +34,13 @@ export function listDisplays(): DisplayInfo[] {
 }
 
 export function registerIpc({ session, startRecording, suspendShortcuts }: IpcDeps): void {
+  let download: WhisperModelId | null = null
+  let speakerDownload = false
+  const exclusive = async <T>(kind: 'models' | 'editing', operation: () => Promise<T>): Promise<T> => {
+    const release = activities.acquire(kind)
+    if (!release) throw new Error(t('dictation.activityBusy'))
+    try { return await operation() } finally { release() }
+  }
   // settings
   ipcMain.handle('settings:get', () => getSettings())
   ipcMain.handle('settings:update', (_e, patch: Partial<Settings>) => applySettings(patch))
@@ -69,26 +78,35 @@ export function registerIpc({ session, startRecording, suspendShortcuts }: IpcDe
   ipcMain.handle('agents:commands', () => mcpCommands())
 
   ipcMain.handle('speakers:status', () => speakerStatus())
-  ipcMain.handle('speakers:download', () => downloadSpeakers((status) => broadcast('speakers:progress', status)))
-  ipcMain.handle('speakers:cancel', () => cancelSpeakerDownload())
+  ipcMain.handle('speakers:download', () => exclusive('models', async () => {
+    speakerDownload = true
+    try { await downloadSpeakers((status) => broadcast('speakers:progress', status)) }
+    finally { speakerDownload = false }
+  }))
+  ipcMain.handle('speakers:cancel', () => { if (speakerDownload) cancelSpeakerDownload() })
 
   // whisper models
   ipcMain.handle('whisper:models', () => whisper.listModels())
   ipcMain.handle('whisper:dir', () => whisper.modelsDir())
   ipcMain.handle('whisper:download', async (_e, id: WhisperModelId) => {
     try {
-      await whisper.downloadModel(id, (progress, file) => broadcast('whisper:progress', { model: id, status: 'progress', progress, file }))
-      // Downloading a model is choosing it: otherwise the default (base) stays selected even when it is not installed
-      applySettings({ whisperModel: id })
-      broadcast('whisper:progress', { model: id, status: 'done', progress: 1 })
+      await exclusive('models', async () => {
+        download = id
+        try {
+          await whisper.downloadModel(id, (progress, file) => broadcast('whisper:progress', { model: id, status: 'progress', progress, file }))
+          // Downloading a model selects it for recordings; dictation has its own preference.
+          applySettings({ whisperModel: id })
+          broadcast('whisper:progress', { model: id, status: 'done', progress: 1 })
+        } finally { download = null }
+      })
     } catch (e) {
       const msg = (e as Error).message
       broadcast('whisper:progress', { model: id, status: msg === 'cancelled' ? 'cancelled' : 'error', progress: 0, error: msg })
       if (msg !== 'cancelled') throw e
     }
   })
-  ipcMain.handle('whisper:cancel', (_e, id: WhisperModelId) => whisper.cancelDownload(id))
-  ipcMain.handle('whisper:delete', (_e, id: WhisperModelId) => whisper.deleteModel(id))
+  ipcMain.handle('whisper:cancel', (_e, id: WhisperModelId) => download === id ? whisper.cancelDownload(id) : undefined)
+  ipcMain.handle('whisper:delete', (_e, id: WhisperModelId) => exclusive('models', () => whisper.deleteModel(id)))
 
   // recording
   ipcMain.handle('recording:state', () => session.state)
@@ -124,7 +142,7 @@ export function registerIpc({ session, startRecording, suspendShortcuts }: IpcDe
   ipcMain.handle('recordings:rename', (_e, dir: string, title: string) => setRecordingTitle(dir, title))
   ipcMain.handle('recordings:media', (_e, dir: string) => recordingMedia(dir))
   ipcMain.handle('recordings:thumbnail', (_e, dir: string, tMs: number) => recordingThumbnail(dir, tMs))
-  ipcMain.handle('recordings:edit', (_e, dir: string, parts: unknown, speakerNames: unknown) => session.edit(dir, parts, speakerNames))
+  ipcMain.handle('recordings:edit', (_e, dir: string, parts: unknown, speakerNames: unknown) => exclusive('editing', () => session.edit(dir, parts, speakerNames)))
   ipcMain.handle('recordings:trash', async (_e, dir: string) => {
     await shell.trashItem(dir)
     if (session.state.status === 'done' && session.state.result.dir === dir) session.reset()

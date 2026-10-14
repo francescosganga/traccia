@@ -45,7 +45,7 @@ export function App() {
     void window.api.system.platform().then(setPlatform)
     const offState = window.api.recording.onState(setState)
     const offSettings = window.api.settings.onChange(setSettings)
-    const offNav = window.api.recording.onNavigate((p) => (p === 'settings' ? openSettings() : setPage('home')))
+    const offNav = window.api.recording.onNavigate((p) => (p === 'dictation' ? openSettings('dictation') : p === 'settings' ? openSettings() : setPage('home')))
     return () => {
       offState()
       offSettings()

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { dictationActive } from '../../../shared/dictation'
 import { t } from '../../../shared/i18n'
 import { findDevice, systemDefaultLabel } from '../../../shared/devices'
 import type { InputDevice, MediaAccessStatus, MicList } from '../../../shared/types'
@@ -8,6 +9,7 @@ interface Props {
   value: InputDevice | null
   onChange: (device: InputDevice | null) => void
   disabled?: boolean
+  preview?: boolean
 }
 
 // Option value of the system default; device ids are never empty
@@ -18,8 +20,13 @@ const DEFAULT = ''
  * while the window has the focus, so the system's microphone indicator goes off as
  * soon as the user moves to another app.
  */
-export function MicPicker({ value, onChange, disabled }: Props) {
+export function MicPicker({ value, onChange, disabled, preview = true }: Props) {
   const [mics, setMics] = useState<MicList>({ devices: [], defaultLabel: null })
+  const [dictating, setDictating] = useState(false)
+  useEffect(() => {
+    void window.api.dictation.state().then((state) => setDictating(dictationActive(state.phase)))
+    return window.api.dictation.onState((state) => setDictating(dictationActive(state.phase)))
+  }, [])
   const [access, setAccess] = useState<MediaAccessStatus | null>(null)
   // A window opened hidden at login must not open the microphone
   const [focused, setFocused] = useState(document.hasFocus() && document.visibilityState === 'visible')
@@ -50,7 +57,7 @@ export function MicPicker({ value, onChange, disabled }: Props) {
   }, [])
 
   const connected = value ? findDevice(value, mics.devices) : undefined
-  const live = !disabled && access === 'granted' && focused
+  const live = preview && !dictating && !disabled && access === 'granted' && focused
 
   useEffect(() => {
     if (!live) return
@@ -114,7 +121,7 @@ export function MicPicker({ value, onChange, disabled }: Props) {
             </button>
           </div>
         ) : (
-          <div className="meter" title={t('mic.level')} aria-hidden="true">
+          <div className="meter" hidden={!preview} title={t('mic.level')} aria-hidden="true">
             <div ref={bar} />
           </div>
         ))}

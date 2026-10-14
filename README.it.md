@@ -68,6 +68,8 @@ Il `recording.txt` prodotto dalla demo qui sopra (modalità JPG, 2 fps; l'interf
 - Widget flottante con timer, Stop e cosa si sta registrando (formato, microfono con il suo livello), escluso dalla registrazione; con la webcam, un pulsante apre sopra il widget forma, angolo e Nascondi; una cornice rossa contorna l'area registrata, come il registratore di macOS. Scorciatoie globali opzionali, disattivate di default: i tasti degli screenshot di macOS (⇧⌘5 tutto lo schermo, ⇧⌘4 area), quelli alternativi (⌃⌥⌘5, ⌃⌥⌘4) o i tuoi, registrati premendo i tasti; entrambe fermano anche la registrazione.
 - Le registrazioni si possono rinominare e spostare nel Cestino dall'app; una trascrizione troppo lunga si può saltare.
 - **Modifica** di una registrazione, dopo (**Modifica** tra le sue azioni): una timeline con una traccia per lo schermo (miniature), la webcam e l'audio (con cosa è stato detto), e i click. Dividi all'indicatore, poi togli delle parti, rimettile, uniscile di nuovo, trascinale in un altro ordine o trascina un taglio per accorciare una parte; annulla e ripeti prima di salvare. Sulla traccia della webcam una parte può nascondere la webcam o darle un'altra forma e un altro angolo lasciando lo schermo com'è (le registrazioni fatte prima di questa versione possono solo nasconderla, prendendo quei fotogrammi dalla copia senza webcam); sulla traccia audio una parte si può silenziare, e quello che è stato detto lì esce anche dalla trascrizione. Video, frame, audio, timeline, trascrizione e `PROMPT.md` seguono la modifica, allineati al millisecondo a ogni giunzione; i file com'erano vengono spostati in una cartella `original/` dentro la registrazione.
+- **Dettatura locale** dalla barra dei menu o con una scorciatoia globale opzionale e configurabile. Un badge compatto in basso al centro mostra l’ascolto senza sottrarre il focus. Dopo circa 1,4 secondi di silenzio, trascrive e inserisce automaticamente nell’app di origine, senza conferma. Se l’inserimento non riesce, il testo resta disponibile con **Copia** e **Modifica testo**. L’inserimento richiede Accessibilità su macOS, verifica l’app, il campo e la selezione originali, lascia il testo negli appunti e non preme mai Invio. Se il campo non è verificabile, copia e incolla manualmente. Microfono, modello Whisper e lingua hanno preferenze indipendenti in Impostazioni → Dettatura.
+- La dettatura usa soltanto il microfono, con un limite di cinque minuti e trascrizione Whisper locale dopo il silenzio o lo Stop manuale; otto secondi senza parlato scartano la registrazione senza trascriverla; non richiede account, token, permesso schermo o modelli speaker e non conserva una cronologia permanente. Scarica il modello Whisper una volta in Impostazioni → Audio. L’audio temporaneo viene eliminato dopo la trascrizione o lo scarto; una trascrizione non riuscita può essere ritentata fino alla chiusura del pannello. Il testo da recuperare rimane modificabile in memoria fino a una nuova dettatura o all’uscita dall’app. Dopo un inserimento riuscito, il badge scompare e la scorciatoia avvia una nuova dettatura. Registrazione, elaborazione, modifica e operazioni sui modelli devono terminare prima di avviare la dettatura, e viceversa.
 - Icona nella barra dei menu con azioni rapide: registra schermo/area, stop, formato, risoluzione, fps, microfono, audio di sistema, trascrizione, click, webcam, registrazioni recenti.
 - Apertura al login (avvio solo nella barra dei menu), icona nel Dock opzionale.
 - Interfaccia in inglese e italiano, chiara o scura come il sistema.
@@ -177,7 +179,7 @@ Mentre è aperta, l'app ascolta su `~/Library/Application Support/traccia/contro
 
 Il codice l'ho scritto io con un uso intensivo di Claude Code. Ogni riga è stata letta e capita; l'architettura, il formato di output e le scelte sono mie. Issue e PR sono benvenute, e rispondo personalmente: [CONTRIBUTING.md](CONTRIBUTING.md) (in inglese) spiega come proporre una modifica.
 
-Richiede Node 20+.
+Richiede Node 20+ e gli strumenti da riga di comando di Xcode su macOS. `npm run dev` e `npm run build` compilano il componente Swift per l’inserimento del testo per l’architettura del Mac; chi usa l’app pacchettizzata non deve installare Xcode.
 
 ```bash
 npm install
@@ -207,7 +209,7 @@ Token e regole dei componenti sono in [docs/design-system.md](docs/design-system
 
 ### Permessi macOS in sviluppo
 
-In sviluppo l'app gira dentro `node_modules/electron/dist/Electron.app`, quindi macOS chiede i permessi per "Electron": Registrazione schermo (obbligatorio), Microfono, Fotocamera (per la webcam), Accessibilità (per i click). Dopo aver concesso Registrazione schermo o Accessibilità bisogna riavviare l'app.
+In sviluppo l'app gira dentro `node_modules/electron/dist/Electron.app`, quindi macOS chiede i permessi per "Electron": Registrazione schermo (per schermo/audio di sistema), Microfono, Fotocamera (per la webcam), Accessibilità (per i click e l’inserimento della dettatura). Dettatura dal microfono e Copia non richiedono Registrazione schermo o Accessibilità. Dopo aver concesso Registrazione schermo o Accessibilità bisogna riavviare l'app.
 
 ### Release
 

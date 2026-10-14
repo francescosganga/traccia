@@ -62,6 +62,11 @@ export interface Settings {
   shortcutsEnabled: boolean
   shortcutScreen: string
   shortcutRegion: string
+  dictationShortcutEnabled: boolean
+  dictationShortcut: string
+  dictationMic: InputDevice | null
+  dictationModel: WhisperModelId
+  dictationLanguage: SpeechLanguage
   /** Last used capture mode and display */
   lastMode: CaptureMode
   lastDisplayId: number | null

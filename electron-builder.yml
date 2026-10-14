@@ -5,6 +5,7 @@ directories:
   buildResources: build
 files:
   - out/**
+  - '!out/native/**'
   - package.json
   - '!**/*.map'
   # The CLI / MCP server, run by the app's own binary in Node mode (see src/main/agents.ts).
@@ -12,6 +13,9 @@ files:
     to: cli
     filter: traccia.cjs
 extraResources:
+  - from: out/native
+    to: native
+    filter: text-insertion
   - from: resources
     to: resources
   # Localized permission prompts: macOS reads <lang>.lproj/InfoPlist.strings from
@@ -40,7 +44,7 @@ mac:
   entitlementsInherit: build/entitlements.mac.plist
   notarize: true
   extendInfo:
-    NSMicrophoneUsageDescription: Needed to record your voice along with the screen.
+    NSMicrophoneUsageDescription: Needed to record your voice and transcribe dictation locally.
     NSCameraUsageDescription: Needed to put your webcam in a corner of the video.
     # Asked by macOS if Chromium records the system audio through a Core Audio tap
     NSAudioCaptureUsageDescription: Needed to record the sound your computer plays along with the screen.

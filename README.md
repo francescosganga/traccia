@@ -68,6 +68,8 @@ The `recording.txt` produced by the demo above (JPG mode, 2 fps):
 - Floating widget with timer, Stop and what is being recorded (format, microphone with its level), excluded from the capture; with the webcam, a button opens its shape, corner and Hide above the widget; a red frame outlines the region being recorded, like the macOS recorder. Optional global shortcuts, off by default: the macOS screenshot keys (⇧⌘5 full screen, ⇧⌘4 region), alternative ones (⌃⌥⌘5, ⌃⌥⌘4) or your own, recorded by pressing the keys; either one also stops.
 - Recordings can be named and moved to the Trash from the app; a transcription that takes too long can be skipped.
 - **Edit** a recording afterwards (**Edit** among its actions): a timeline with a track for the screen (thumbnails), the webcam and the audio (with what was said), and the clicks. Split at the playhead, then cut parts out, put them back, join them again, drag them into another order or drag a cut to shorten a part; undo and redo before saving. On the webcam track a part can hide the webcam or give it another shape and corner while the screen stays as it is (recordings made before this version can only hide it, taking those frames from the copy without it); on the audio track a part can be silenced, and what was said there leaves the transcript too. The video, the frames, the audio, the timeline, the transcript and `PROMPT.md` all follow the edit, in step to the millisecond at every join; the files as they were move to an `original/` folder inside the recording.
+- **Local dictation** from the menu bar or an optional configurable global shortcut. A compact badge at the bottom center shows listening without taking focus. After about 1.4 seconds of silence, it transcribes and inserts into the original app automatically, without confirmation. If insertion fails, the text stays available with **Copy** and **Edit text**. Insertion requires macOS Accessibility, checks the original app, field and selection, leaves the text on the clipboard, and never presses Enter. If the field cannot be verified, copy and paste manually. Microphone, Whisper model and language have independent preferences under Settings → Dictation.
+- Dictation uses only the microphone, with a five-minute limit and local Whisper processing after silence or manual Stop; eight seconds without speech discard the take without transcribing it; no account, token, screen permission, speaker models or permanent history. Download the Whisper model once in Settings → Audio. Temporary audio is removed after success or discard; a failed transcription can be retried until the panel is closed. Text awaiting recovery remains editable in memory until a new dictation or the app quits. After successful insertion, the badge disappears and the shortcut starts a new dictation. Recording, processing, editing and model operations must finish before dictation can start, and vice versa.
 - Menu bar icon with quick actions: record screen/region, stop, format, resolution, fps, microphone, system audio, transcription, clicks, webcam, recent recordings.
 - Open at login (menu-bar-only start), optional Dock icon.
 - Interface in English and Italian, light or dark with the system.
@@ -177,7 +179,7 @@ While the app runs it listens on `~/Library/Application Support/traccia/control.
 
 The code was written by me with heavy use of Claude Code. Every line has been read and understood; the architecture, the output format and the trade-offs are mine. Issues and PRs are welcome, and I answer them personally: [CONTRIBUTING.md](CONTRIBUTING.md) says how to propose a change.
 
-Requires Node 20+.
+Requires Node 20+ and the Xcode Command Line Tools on macOS. `npm run dev` and `npm run build` compile the bundled Swift text-insertion helper for the host architecture; users of the packaged app do not need Xcode.
 
 ```bash
 npm install
@@ -207,7 +209,7 @@ The design tokens and component rules live in [docs/design-system.md](docs/desig
 
 ### macOS permissions in development
 
-In development the app runs inside `node_modules/electron/dist/Electron.app`, so macOS asks for permissions for "Electron": Screen Recording (required), Microphone, Camera (for the webcam), Accessibility (for clicks). After granting Screen Recording or Accessibility the app must be restarted.
+In development the app runs inside `node_modules/electron/dist/Electron.app`, so macOS asks for permissions for "Electron": Screen Recording (for screen/system-audio capture), Microphone, Camera (for the webcam), Accessibility (for clicks and dictation insertion). Microphone-only dictation and Copy do not require Screen Recording or Accessibility. After granting Screen Recording or Accessibility the app must be restarted.
 
 ### Releases
 

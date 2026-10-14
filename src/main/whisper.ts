@@ -63,6 +63,7 @@ export async function deleteModel(id: WhisperModelId): Promise<void> {
 
 type Pending = { resolve: (v: unknown) => void; reject: (e: Error) => void; onProgress?: (p: number, file?: string) => void }
 let worker: UtilityProcess | null = null
+let idleTimer: NodeJS.Timeout | null = null
 let nextId = 1
 const pending = new Map<number, Pending>()
 
@@ -86,9 +87,14 @@ function getWorker(): UtilityProcess {
       pending.delete(msg.id)
       p.reject(new Error(msg.error))
     }
+    if (!pending.size) {
+      if (idleTimer) clearTimeout(idleTimer)
+      idleTimer = setTimeout(() => { if (!pending.size) killWorker() }, 5 * 60_000)
+    }
   })
   w.on('exit', (code) => {
     console.log('[whisper] worker exited', code)
+    if (worker !== w) return
     worker = null
     for (const p of pending.values()) p.reject(new Error(t('err.whisperCrashed')))
     pending.clear()
@@ -98,6 +104,8 @@ function getWorker(): UtilityProcess {
 }
 
 export function killWorker(): void {
+  if (idleTimer) clearTimeout(idleTimer)
+  idleTimer = null
   if (!worker) return
   const w = worker
   worker = null
@@ -107,10 +115,14 @@ export function killWorker(): void {
 }
 
 function request<T>(msg: Record<string, unknown>, onProgress?: Pending['onProgress']): Promise<T> {
+  if (pending.size) return Promise.reject(new Error(t('dictation.activityBusy')))
+  if (idleTimer) clearTimeout(idleTimer)
+  idleTimer = null
   const id = nextId++
   return new Promise<T>((resolve, reject) => {
     pending.set(id, { resolve: resolve as (v: unknown) => void, reject, onProgress })
-    getWorker().postMessage({ id, ...msg })
+    try { getWorker().postMessage({ id, ...msg }) }
+    catch (error) { pending.delete(id); reject(error) }
   })
 }
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { t, type TranslationKey } from '../../../shared/i18n'
 import type { LoginItemStatus, Settings, SpeechLanguage } from '../../../shared/types'
+import { DictationSettings } from '../components/DictationSettings'
 import { AgentsPanel } from '../components/AgentsPanel'
 import { LanguagePicker } from '../components/LanguagePicker'
 import { MicPicker } from '../components/MicPicker'
@@ -14,13 +15,14 @@ import { Toggle } from '../components/Toggle'
 import { WebcamPicker } from '../components/WebcamPicker'
 import { FORMATS, RESOLUTIONS, resolutionLabel } from '../options'
 
-export type SettingsSection = 'general' | 'output' | 'audio' | 'webcam' | 'cursor' | 'recording' | 'shortcuts' | 'agents' | 'startup' | 'permissions'
+export type SettingsSection = 'dictation' | 'general' | 'output' | 'audio' | 'webcam' | 'cursor' | 'recording' | 'shortcuts' | 'agents' | 'startup' | 'permissions'
 
 /** The cards of the page in order; the sidebar lists them and scrolls to the one clicked. */
 export const SETTINGS_SECTIONS: { id: SettingsSection; label: TranslationKey }[] = [
   { id: 'general', label: 'settings.general' },
   { id: 'output', label: 'settings.output' },
   { id: 'audio', label: 'settings.audioSection' },
+  { id: 'dictation', label: 'dictation.title' },
   { id: 'webcam', label: 'settings.webcamSection' },
   { id: 'cursor', label: 'settings.cursorSection' },
   { id: 'recording', label: 'settings.recordingSection' },
@@ -233,6 +235,11 @@ export function SettingsPage({ settings, update, jump, onSection }: Props) {
             <label>{t('settings.models')}</label>
             <ModelManager selected={settings.whisperModel} onSelect={(id) => void update({ whisperModel: id })} />
           </div>
+        </div>
+
+        <div className="card" id="settings-dictation">
+          <h3>{t('dictation.title')}</h3>
+          <DictationSettings settings={settings} update={update} platform={platform} />
         </div>
 
         <div className="card" id="settings-webcam">

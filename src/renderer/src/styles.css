@@ -1779,3 +1779,31 @@ input[type='text'] {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+
+/* The dictation badge stays anchored above the Dock without taking focus. */
+body.dictation-body { overflow: hidden; color-scheme: dark; }
+.dictation-overlay { height: 100vh; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 10px; padding: 12px; color: #f4f3f6; font-size: 12px; }
+.dictation-pill { width: 280px; height: 48px; flex-shrink: 0; display: flex; align-items: center; gap: 10px; padding: 0 10px 0 15px; border: 1px solid #ffffff24; border-radius: 26px; background: linear-gradient(155deg, #29282d, #17171b); box-shadow: 0 5px 12px #00000030, inset 0 1px #ffffff0c; }
+.dictation-pill-label { flex: 1; min-width: 0; white-space: nowrap; font-weight: 500; letter-spacing: .01em; }
+.dictation-mark { color: #dfd3fa; display: flex; }
+.dictation-mark .icon { width: 17px; height: 17px; }
+.dictation-mark.is-busy { animation: dictation-breathe 1.2s ease-in-out infinite; }
+.dictation-icon { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; border: 0; width: 26px; height: 26px; padding: 5px; border-radius: 50%; background: transparent; color: #aaa7b2; cursor: pointer; }
+.dictation-icon:hover { color: #fff; background: #ffffff15; }
+.dictation-icon:focus-visible, .dictation-recovery button:focus-visible { outline: 2px solid #cfb4f7; outline-offset: 2px; }
+.dictation-icon:disabled { opacity: .3; cursor: default; }
+.dictation-icon .icon { width: 14px; height: 14px; }
+.dictation-finish span { width: 9px; height: 9px; border-radius: 2px; background: #eeedf2; }
+.dictation-wave { display: flex; align-items: center; gap: 2px; height: 26px; }
+.dictation-wave i { width: 2px; border-radius: 2px; background: #eee4ff; transition: height 80ms linear; }
+.dictation-recovery { width: 100%; flex: 1; min-height: 0; padding: 14px 16px; border-radius: 16px; border: 1px solid #ffffff24; background: #232227; box-shadow: 0 4px 12px #00000024; overflow: auto; }
+.dictation-recovery-heading { display: flex; align-items: center; justify-content: space-between; }
+.dictation-recovery p { color: #bdbac6; line-height: 1.45; margin: 6px 0 12px; }
+.dictation-recovery-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.dictation-recovery-actions button { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 7px; border: 1px solid #ffffff1f; color: #f4f3f6; background: #ffffff0b; cursor: pointer; font: inherit; }
+.dictation-recovery-actions button:hover { background: #ffffff18; }
+.dictation-recovery-actions .icon { width: 13px; height: 13px; }
+.dictation-recovery textarea { display: block; width: 100%; height: 140px; resize: none; padding: 10px; margin: 8px 0 12px; background: #17171b; border: 1px solid #ffffff26; border-radius: 8px; color: #f4f3f6; font: inherit; line-height: 1.5; }
+@keyframes dictation-breathe { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .dictation-mark.is-busy { animation: none; } .dictation-wave i { transition: none; } }
