@@ -1,6 +1,6 @@
 {
   "name": "traccia",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Local screen recording, conversation transcription and dictation for macOS. Turn screen and audio into files AI agents can read, or speech into text in your apps.",
   "main": "./out/main/index.js",
   "author": "Francesco Sganga",

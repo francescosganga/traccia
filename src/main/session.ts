@@ -586,11 +586,6 @@ export class RecordingSession {
               this.progress({ step: t('step.extractAudio'), progress: -1, canSkipTranscription: true })
               await runFfmpeg(['-i', join(this.dir, file), '-vn', '-ac', '1', '-ar', '16000', '-f', 'f32le', '-acodec', 'pcm_f32le', audioPath])
               if (this.transcriptionCancelled) throw new Error('cancelled')
-              const step = t('step.transcribe', { model: settings.whisperModel })
-              this.progress({ step, detail: t(source === 'microphone' ? 'home.mic' : 'home.systemAudio'), progress: -1, canSkipTranscription: true })
-              const transcript = await transcribe(audioPath, settings.whisperModel, settings.speechLanguage, (p) =>
-                this.progress({ step, detail: t(source === 'microphone' ? 'home.mic' : 'home.systemAudio'), progress: p > 0 ? p : -1, canSkipTranscription: true })
-              )
               let turns
               if (recognizeSpeakers) {
                 if (this.transcriptionCancelled) throw new Error('cancelled')
@@ -603,6 +598,13 @@ export class RecordingSession {
                   warnings.push(t('speakers.failed'))
                 }
               }
+              if (this.transcriptionCancelled) throw new Error('cancelled')
+              const step = t('step.transcribe', { model: settings.whisperModel })
+              this.progress({ step, detail: t(source === 'microphone' ? 'home.mic' : 'home.systemAudio'), progress: -1, canSkipTranscription: true })
+              const transcript = await transcribe(audioPath, settings.whisperModel, settings.speechLanguage, (p) =>
+                this.progress({ step, detail: t(source === 'microphone' ? 'home.mic' : 'home.systemAudio'), progress: p > 0 ? p : -1, canSkipTranscription: true }),
+                turns
+              )
               const labeled = labelSpeakers(transcript, source, turns)
               segments.push(...clipToDuration(labeled.segments, durationMs))
               words.push(...clipToDuration(labeled.words, durationMs))

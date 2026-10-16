@@ -163,7 +163,7 @@ export type AudioSource = 'microphone' | 'system'
 export interface SpeakerTurn {
   start: number
   end: number
-  speaker: string
+  speaker?: string
 }
 
 export interface SpeakerModelStatus {

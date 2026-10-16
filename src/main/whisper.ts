@@ -5,6 +5,7 @@ import { join } from 'path'
 import { t, type TranslationKey } from '../shared/i18n'
 import type { TranscriptResult, WhisperModelId, WhisperModelInfo } from '../shared/types'
 import { MODEL_FILES, findInHfCache, importFromHfCache } from './model-cache'
+import type { SpeechSpan } from './transcription-audio'
 
 export const MODELS: Omit<WhisperModelInfo, 'installed' | 'sizeOnDisk' | 'description'>[] = [
   { id: 'tiny', label: 'Tiny', sizeLabel: '≈ 40 MB' },
@@ -146,7 +147,8 @@ export function transcribe(
   audioPath: string,
   model: WhisperModelId,
   language: string,
-  onProgress: (p: number) => void
+  onProgress: (p: number) => void,
+  speech?: SpeechSpan[]
 ): Promise<TranscriptResult> {
-  return request<TranscriptResult>({ type: 'transcribe', model, audioPath, language }, (p) => onProgress(p))
+  return request<TranscriptResult>({ type: 'transcribe', model, audioPath, language, speech }, (p) => onProgress(p))
 }

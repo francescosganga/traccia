@@ -3,13 +3,13 @@
  * audio with @huggingface/transformers (ONNX runtime, CPU) so the main process never blocks.
  *
  * Messages in:  { id, type: 'download', model }
- *               { id, type: 'transcribe', model, audioPath, language }
+ *               { id, type: 'transcribe', model, audioPath, language, speech? }
  * Messages out: { id, type: 'progress', progress, file? }
  *               { id, type: 'result', segments }
  *               { id, type: 'error', error }
  */
 import { readFileSync } from 'fs'
-import { transcriptionStart } from './transcription-audio'
+import { transcriptionStart, transcriptionWindows, transcriptionPieces, restoreSpeechTime, type SpeechSpan } from './transcription-audio'
 import type { TranscriptResult, TranscriptSegment, TranscriptWord } from '../shared/types'
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -74,7 +74,6 @@ function load(model: string, id: number, reportProgress: boolean): Promise<AsrPi
 }
 
 const SAMPLE_RATE = 16000
-const PIECE_SECONDS = 600
 
 /** Transformers.js currently defaults to English for an omitted language; use Whisper's language logits instead. */
 async function detectLanguage(asr: AsrPipeline, audio: Float32Array): Promise<string> {
@@ -158,36 +157,27 @@ function isHallucination(seg: TranscriptSegment): boolean {
   return seg.end <= seg.start || CREDIT_LINES.some((re) => re.test(seg.text.trim()))
 }
 
-/** Drops entries starting at or after `audioEnd` (seconds) and clamps the others to it. */
-function clipToAudio<T extends { start: number; end: number }>(items: T[], audioEnd: number): T[] {
-  return items.filter((x) => x.start < audioEnd).map((x) => (x.end > audioEnd ? { ...x, end: audioEnd } : x))
-}
-
-async function transcribe(id: number, model: string, audioPath: string, language: string): Promise<void> {
+async function transcribe(id: number, model: string, audioPath: string, language: string, speech?: SpeechSpan[]): Promise<void> {
   const buf = readFileSync(audioPath)
   const audio = new Float32Array(buf.buffer, buf.byteOffset, Math.floor(buf.byteLength / 4))
   const totalSec = audio.length / SAMPLE_RATE
   const result: TranscriptResult = { segments: [], words: [] }
-  const firstSound = transcriptionStart(audio, SAMPLE_RATE)
-  if (firstSound === null) {
+  const windows = transcriptionWindows(totalSec, speech)
+  if (!windows.length || transcriptionStart(audio, SAMPLE_RATE) === null) {
     port.postMessage({ id, type: 'result', result })
     return
   }
   const asr = await load(model, id, false)
-  const common = { language: language === 'auto' ? await detectLanguage(asr, audio) : language, task: 'transcribe', chunk_length_s: 30, stride_length_s: 5 }
+  const first = windows.find((s) => s.end - s.start >= 3) ?? windows[0]
+  const languageAudio = speech === undefined ? audio : audio.subarray(Math.floor(first.start * SAMPLE_RATE), Math.floor(first.end * SAMPLE_RATE))
+  const common = { language: language === 'auto' ? await detectLanguage(asr, languageAudio) : language, task: 'transcribe', chunk_length_s: 30, stride_length_s: 5 }
 
-  // Long recordings are processed in 10-minute pieces so we can report progress and bound memory.
-  const pieces = Math.max(1, Math.ceil(totalSec / PIECE_SECONDS))
-  for (let i = 0; i < pieces; i++) {
-    const from = i * PIECE_SECONDS * SAMPLE_RATE
-    const to = Math.min(audio.length, (i + 1) * PIECE_SECONDS * SAMPLE_RATE)
-    const leading = transcriptionStart(audio.subarray(from, to), SAMPLE_RATE)
+  for (const prepared of transcriptionPieces(audio, SAMPLE_RATE, windows)) {
+    const leading = transcriptionStart(prepared.audio, SAMPLE_RATE)
     if (leading === null) continue
-    const piece = audio.subarray(from + leading, to)
-    const offset = (from + leading) / SAMPLE_RATE
+    const piece = prepared.audio.subarray(leading)
     const pieceEnd = piece.length / SAMPLE_RATE
-    const audioEnd = offset + pieceEnd
-    port.postMessage({ id, type: 'progress', progress: i / pieces })
+    port.postMessage({ id, type: 'progress', progress: prepared.spans[0].start / totalSec })
 
     let words: TranscriptWord[] | null = null
     try {
@@ -197,18 +187,21 @@ async function transcribe(id: number, model: string, audioPath: string, language
         const start = Math.max(lastEnd, c.timestamp[0] ?? lastEnd)
         const end = Math.max(start, c.timestamp[1] ?? start + 0.3)
         lastEnd = end
-        return { start: offset + start, end: offset + end, text: c.text }
+        return { start, end, text: c.text }
       })
     } catch (e) {
       console.warn('word-level timestamps unavailable, falling back to chunk timestamps:', (e as Error).message)
     }
 
     if (words) {
-      const inAudio = clipToAudio(words, audioEnd)
+      const inAudio = words.flatMap((word) => {
+        const mapped = restoreSpeechTime(word, prepared.spans, leading / SAMPLE_RATE)
+        return mapped ? [mapped] : []
+      })
       const phrases = groupWords(inAudio)
       const kept = phrases.filter((p) => !isHallucination(p))
       const dropped = words.length - inAudio.length + (phrases.length - kept.length)
-      if (dropped) console.log(`dropped ${dropped} hallucinated word(s)/phrase(s) from piece ${i + 1}/${pieces}`)
+      if (dropped) console.log(`dropped ${dropped} hallucinated word(s)/phrase(s)`)
       result.words.push(...kept.flatMap((p) => p.words))
       result.segments.push(...kept.map((p) => ({ start: p.start, end: p.end, text: p.text })))
     } else {
@@ -218,10 +211,11 @@ async function transcribe(id: number, model: string, audioPath: string, language
       for (const c of chunks) {
         const text = c.text.trim()
         if (!text) continue
-        segments.push({ start: offset + (c.timestamp[0] ?? 0), end: offset + (c.timestamp[1] ?? pieceEnd), text })
+        const mapped = restoreSpeechTime({ start: c.timestamp[0] ?? 0, end: c.timestamp[1] ?? pieceEnd, text }, prepared.spans, leading / SAMPLE_RATE, false)
+        if (mapped) segments.push(mapped)
       }
-      const kept = clipToAudio(segments, audioEnd).filter((s) => !isHallucination(s))
-      if (kept.length < segments.length) console.log(`dropped ${segments.length - kept.length} hallucinated segment(s) from piece ${i + 1}/${pieces}`)
+      const kept = segments.filter((s) => !isHallucination(s))
+      if (kept.length < segments.length) console.log(`dropped ${segments.length - kept.length} hallucinated segment(s)`)
       result.segments.push(...kept)
     }
   }
@@ -229,7 +223,7 @@ async function transcribe(id: number, model: string, audioPath: string, language
 }
 
 port.on('message', (e) => {
-  const msg = e.data as { id: number; type: string; model: string; audioPath?: string; language?: string }
+  const msg = e.data as { id: number; type: string; model: string; audioPath?: string; language?: string; speech?: SpeechSpan[] }
   const fail = (err: unknown) => port.postMessage({ id: msg.id, type: 'error', error: String((err as Error)?.message ?? err) })
   try {
     if (msg.type === 'download') {
@@ -237,7 +231,7 @@ port.on('message', (e) => {
         .then(() => port.postMessage({ id: msg.id, type: 'result' }))
         .catch(fail)
     } else if (msg.type === 'transcribe') {
-      transcribe(msg.id, msg.model, msg.audioPath!, msg.language ?? 'auto').catch(fail)
+      transcribe(msg.id, msg.model, msg.audioPath!, msg.language ?? 'auto', msg.speech).catch(fail)
     }
   } catch (err) {
     fail(err)

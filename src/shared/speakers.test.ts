@@ -49,4 +49,10 @@ describe('speaker alignment', () => {
     expect(speechText({ start: 0, end: 1, text: 'old' })).toBe('old')
     expect(speechText({ start: 0, end: 1, text: 'new', source: 'system' })).toBe('[system] new')
   })
+
+  it('retains uncertain speech without displaying or exporting an invented identity', () => {
+    const result = labelSpeakers(transcript, 'microphone', [{ start: 0, end: 3 }])
+    expect(result.words.every((w) => w.source === 'microphone' && w.speaker === undefined)).toBe(true)
+    expect(speechText(result.segments[0])).toBe('[microphone] hello yes silence')
+  })
 })
